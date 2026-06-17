@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Redirecting to TRINET SOLUTION</title>
+</head>
+<body>
+    <script>
+        const portalUrl = 'http://trinetpay.online/';
+        const params = new URLSearchParams({
+            mac: '$(mac)',
+            ip: '$(ip)',
+            username: '$(username)',
+            'link-login-only': '$(link-login-only)',
+            'link-orig': '$(link-orig)',
+            error: '$(error)'
+        });
+
+        window.location.replace(portalUrl + '?' + params.toString());
+    </script>
+    <noscript>
+        <a href="http://trinetpay.online/">Open TRINET SOLUTION WiFi Portal</a>
+    </noscript>
+</body>
+</html>
