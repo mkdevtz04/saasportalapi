@@ -1,53 +1,50 @@
 <?php
+
 namespace App\Services;
 
+use App\Models\TenantRouter;
 use Illuminate\Support\Facades\Log;
 
 class MikrotikService
 {
-    protected $ip;
-    protected $user;
-    protected $pass;
-    protected $port;
-    protected $socket;
+    private mixed $socket = null;
 
-    public function __construct()
+    public function __construct(
+        private string $ip,
+        private string $user,
+        private string $pass,
+        private int    $port = 8728,
+    ) {}
+
+    public static function forRouter(TenantRouter $router): self
     {
-        $this->ip   = config('services.mikrotik.ip');
-        $this->user = config('services.mikrotik.user');
-        $this->pass = config('services.mikrotik.password');
-        $this->port = config('services.mikrotik.port', 8728);
+        return new self(
+            $router->router_ip,
+            $router->username,
+            $router->password,
+            $router->port,
+        );
     }
 
     public function connect(): bool
     {
         try {
-            $this->socket = @fsockopen(
-                $this->ip,
-                $this->port,
-                $errno,
-                $errstr,
-                10
-            );
+            $this->socket = @fsockopen($this->ip, $this->port, $errno, $errstr, 10);
 
-            if (!$this->socket) {
-                Log::error("MikroTik connection failed: $errstr ($errno)");
+            if (! $this->socket) {
+                Log::error("MikroTik connection failed to {$this->ip}:{$this->port} — $errstr ($errno)");
                 return false;
             }
 
             return $this->login();
-
         } catch (\Exception $e) {
             Log::error('MikroTik connect error: ' . $e->getMessage());
             return false;
         }
     }
 
-    public function createHotspotUser(
-        string $username,
-        string $password,
-        string $profile
-    ): bool {
+    public function createHotspotUser(string $username, string $password, string $profile): bool
+    {
         try {
             $this->writeWord('/ip/hotspot/user/add');
             $this->writeWord('=name='     . $username);
@@ -57,14 +54,13 @@ class MikrotikService
 
             $response = $this->read();
 
-            Log::info('MikroTik user created', [
+            Log::info('MikroTik hotspot user created', [
                 'username' => $username,
                 'profile'  => $profile,
                 'response' => $response,
             ]);
 
             return in_array('!done', $response);
-
         } catch (\Exception $e) {
             Log::error('MikroTik createHotspotUser: ' . $e->getMessage());
             return false;
@@ -75,6 +71,7 @@ class MikrotikService
     {
         if ($this->socket) {
             fclose($this->socket);
+            $this->socket = null;
         }
     }
 

@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
@@ -6,18 +7,26 @@ use Illuminate\Support\Facades\Log;
 
 class PalmPesaService
 {
-    protected $baseUrl;
-    protected $apiKey;
-    protected $userId;
+    public function __construct(
+        private string $baseUrl,
+        private string $apiKey,
+        private string $userId,
+    ) {}
 
-    public function __construct()
+    /**
+     * Platform-wide instance using the single merchant account from config.
+     * All tenant payments flow through here; revenue is split at the app layer.
+     */
+    public static function platform(): self
     {
-        $this->baseUrl = config('services.palmpesa.base_url');
-        $this->apiKey  = config('services.palmpesa.key');
-        $this->userId  = config('services.palmpesa.user_id');
+        return new self(
+            config('services.palmpesa.base_url'),
+            config('services.palmpesa.key'),
+            config('services.palmpesa.user_id'),
+        );
     }
 
-    public function initiatePayment(array $data)
+    public function initiatePayment(array $data): array
     {
         $transactionId = 'TN' . strtoupper(uniqid());
 
@@ -43,18 +52,17 @@ class PalmPesaService
 
         Log::info('PalmPesa Response', $response->json() ?? []);
 
-        if (!$response->successful()) {
-            throw new \Exception($response->json()['message'] ?? 'Payment failed');
+        if (! $response->successful()) {
+            throw new \Exception($response->json()['message'] ?? 'Payment initiation failed');
         }
 
         return [
-            'transaction_id' => $transactionId,
-            'order_id'       => $response->json()['order_id'] ?? null,
-            'response'       => $response->json(),
+            'palmpesa_txn_id' => $transactionId,
+            'order_id'        => $response->json()['order_id'] ?? null,
         ];
     }
 
-    public function checkStatus(string $orderId)
+    public function checkStatus(string $orderId): array
     {
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . $this->apiKey,
@@ -64,7 +72,7 @@ class PalmPesaService
             'order_id' => $orderId,
         ]);
 
-        return $response->json();
+        return $response->json() ?? [];
     }
 
     private function formatPhone(string $phone): string

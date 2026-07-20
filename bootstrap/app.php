@@ -13,7 +13,16 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Resolve the tenant from the subdomain on every web AND api request.
+        // Passes through silently when on the main domain (no subdomain).
+        // API routes need it so /api/payment/initiate and /api/payment/status
+        // have tenant() available (called from subdomain portal via fetch()).
+        $middleware->web(append: [
+            \App\Http\Middleware\ResolveTenant::class,
+        ]);
+        $middleware->api(append: [
+            \App\Http\Middleware\ResolveTenant::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
