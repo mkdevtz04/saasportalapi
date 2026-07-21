@@ -7,7 +7,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <title>{{ $tenant?->name ?? 'WiFi Portal' }} — Buy WiFi</title>
-<style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
 :root { --brand: {{ $settings?->brand_color ?? '#0b7a75' }}; }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{min-height:100%;background:#eef3f7;font-family:Arial,Helvetica,sans-serif;color:#142033}
@@ -80,8 +81,8 @@ html,body{min-height:100%;background:#eef3f7;font-family:Arial,Helvetica,sans-se
     <div class="body">
       {{-- Tab switcher --}}
       <div class="tabs">
-        <div class="tab active" onclick="switchTab('pay',this)">💳 Pay Online</div>
-        <div class="tab" onclick="switchTab('voucher',this)">🎫 Enter Voucher</div>
+         <div class="tab active" onclick="switchTab('pay',this)"><i class="fa-solid fa-credit-card"></i> Pay Online</div>
+         <div class="tab" onclick="switchTab('voucher',this)"><i class="fa-solid fa-ticket"></i> Enter Voucher</div>
       </div>
 
       {{-- Pay tab --}}
@@ -183,7 +184,7 @@ function showSuccess(token, pkgName, loginUrl, dst) {
   }
 
   document.getElementById('modalBox').innerHTML = `
-    <span class="m-icon">✅</span>
+    <span class="m-icon"><i class="fa-solid fa-check"></i></span>
     <div class="m-title">Payment Successful!</div>
     <div class="m-msg">${verifyUrl ? 'Connecting your device...' : 'Enter this token on the WiFi login page.'}</div>
     <div class="token-box">
@@ -233,16 +234,16 @@ async function initiatePayment() {
     if (data.status === 'success') {
       currentTxnId   = data.transaction_id;
       currentOrderId = data.order_id;
-      showModal('📱', 'Check Your Phone!',
+      showModal('<i class="fa-solid fa-mobile-screen"></i>', 'Check Your Phone!',
         `A payment prompt of <strong>${selectedPrice.toLocaleString()} TZS</strong> has been sent to <strong>${phone}</strong>.<br><br>Confirm it on your phone to connect.`,
         true);
       startPolling();
     } else {
-      showModal('❌', 'Failed', data.message || 'Something went wrong. Please try again.');
+      showModal('<i class="fa-solid fa-xmark"></i>', 'Failed', data.message || 'Something went wrong. Please try again.');
       btn.disabled = false;
     }
   } catch (e) {
-    showModal('❌', 'Error', 'Could not reach the server. Check your connection.');
+    showModal('<i class="fa-solid fa-xmark"></i>', 'Error', 'Could not reach the server. Check your connection.');
     btn.disabled = false;
   }
 }
@@ -265,7 +266,7 @@ async function redeemVoucher() {
     return;
   }
 
-  showModal('⏳', 'Verifying Voucher…', 'Please wait…', true);
+      showModal('<i class="fa-solid fa-spinner"></i>', 'Verifying Voucher…', 'Please wait…', true);
 
   try {
     const res = await fetch('/api/voucher/redeem', {
@@ -307,7 +308,7 @@ function startPolling() {
     attempts++;
     if (attempts > 60) {
       clearInterval(pollTimer);
-      showModal('⏱', 'Timed Out', 'Payment not confirmed in time. If you paid, please contact support.');
+        showModal('<i class="fa-solid fa-clock"></i>', 'Timed Out', 'Payment not confirmed in time. If you paid, please contact support.');
       document.getElementById('payBtn').disabled = false;
       return;
     }
@@ -319,7 +320,7 @@ function startPolling() {
         showSuccess(data.wifi_token, data.package, data.login_url, data.dst);
       } else if (data.status === 'failed') {
         clearInterval(pollTimer);
-        showModal('❌', 'Payment Failed', 'Payment was declined. Please try again.');
+        showModal('<i class="fa-solid fa-xmark"></i>', 'Payment Failed', 'Payment was declined. Please try again.');
         document.getElementById('payBtn').disabled = false;
       }
     } catch (e) { /* keep polling */ }

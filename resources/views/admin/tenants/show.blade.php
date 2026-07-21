@@ -108,8 +108,8 @@
                 <tbody>
                 @foreach ($recentTransactions as $txn)
                     <tr>
-                        <td style="font-family:monospace;">{{ $txn->phone_number }}</td>
-                        <td style="color:#64748b;font-size:12px;">{{ $txn->package_name ?? '—' }}</td>
+                        <td style="font-family:monospace;">{{ $txn->phone }}</td>
+                        <td style="color:#64748b;font-size:12px;">{{ $txn->package?->name ?? '—' }}</td>
                         <td><strong>{{ number_format($txn->amount) }}</strong> TZS</td>
                         <td>
                             @if ($txn->status === 'success')

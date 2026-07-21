@@ -16,7 +16,7 @@
 @if ($routers->isEmpty())
     <div class="card">
         <div class="empty-state">
-            <div class="icon">📡</div>
+            <div class="icon"><i class="fa-solid fa-wifi"></i></div>
             <p>No routers added yet. Add your first MikroTik router to get started.</p>
             <a href="{{ route('dashboard.routers.create') }}" class="btn btn-primary" style="margin-top:16px;display:inline-flex;">+ Add Router</a>
         </div>
@@ -53,11 +53,11 @@
                             </td>
                             <td>
                                 <div style="display:flex;gap:6px;">
-                                    <button
-                                        class="btn btn-secondary btn-sm"
-                                        onclick="testRouter(this, '{{ $router->router_ip }}', '{{ $router->username }}', {{ $router->port }})"
-                                        title="Test connection">
-                                        🔗 Test
+                                        <button
+                                            class="btn btn-secondary btn-sm"
+                                            onclick="testRouter(this, '{{ $router->router_ip }}', '{{ $router->username }}', {{ $router->port }})"
+                                            title="Test connection">
+                                        <i class="fa-solid fa-link"></i> Test
                                     </button>
                                     <a href="{{ route('dashboard.routers.edit', $router) }}" class="btn btn-secondary btn-sm">Edit</a>
                                     <form method="POST" action="{{ route('dashboard.routers.destroy', $router) }}"
@@ -99,12 +99,12 @@ function testRouter(btn, ip, username, port) {
     })
     .then(r => r.json())
     .then(data => {
-        btn.innerHTML = data.ok ? '✅ OK' : '❌ Failed';
+        btn.innerHTML = data.ok ? '<i class="fa-solid fa-check"></i> OK' : '<i class="fa-solid fa-xmark"></i> Failed';
         setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 3000);
         if (!data.ok) alert('Test failed: ' + data.message);
     })
     .catch(() => {
-        btn.innerHTML = '❌ Error';
+        btn.innerHTML = '<i class="fa-solid fa-xmark"></i> Error';
         setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 3000);
     });
 }

@@ -39,12 +39,12 @@ class AdminTenantController extends Controller
 
         $platformEarnings  = PlatformBillingLog::where('tenant_id', $tenant->id)->sum('amount');
         $monthRevenue      = Transaction::where('tenant_id', $tenant->id)
-            ->where('status', 'success')
+            ->where('status', 'completed')
             ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
             ->sum('amount');
         $totalTransactions = Transaction::where('tenant_id', $tenant->id)
-            ->where('status', 'success')->count();
+            ->where('status', 'completed')->count();
         $recentTransactions = Transaction::where('tenant_id', $tenant->id)
             ->orderByDesc('created_at')->limit(10)->get();
 

@@ -63,8 +63,8 @@
         <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:20px;">
             <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:10px;">Test Connection</div>
             <div style="display:flex;gap:10px;align-items:center;">
-                <button type="button" id="testBtn" class="btn btn-secondary btn-sm" onclick="testConnection()">
-                    🔗 Test Connection
+                     <button type="button" id="testBtn" class="btn btn-secondary btn-sm" onclick="testConnection()">
+                    <i class="fa-solid fa-link"></i> Test Connection
                 </button>
                 <span id="testResult" style="font-size:13px;"></span>
             </div>
@@ -95,7 +95,7 @@ function testConnection() {
     const port   = document.querySelector('[name=port]').value || 8728;
 
     if (!ip || !user || !pass) {
-        result.textContent = '⚠️ Fill in IP, username, and password first.';
+        result.textContent = '<i class="fa-solid fa-triangle-exclamation"></i> Fill in IP, username, and password first.';
         result.style.color = '#d97706';
         return;
     }
@@ -111,16 +111,16 @@ function testConnection() {
     })
     .then(r => r.json())
     .then(data => {
-        result.textContent = data.ok ? '✅ ' + data.message : '❌ ' + data.message;
+        result.textContent = data.ok ? '<i class="fa-solid fa-check"></i> ' + data.message : '<i class="fa-solid fa-xmark"></i> ' + data.message;
         result.style.color = data.ok ? '#15803d' : '#dc2626';
     })
     .catch(() => {
-        result.textContent = '❌ Network error';
+        result.textContent = '<i class="fa-solid fa-xmark"></i> Network error';
         result.style.color = '#dc2626';
     })
     .finally(() => {
         btn.disabled = false;
-        btn.textContent = '🔗 Test Connection';
+        btn.textContent = '<i class="fa-solid fa-link"></i> Test Connection';
     });
 }
 </script>

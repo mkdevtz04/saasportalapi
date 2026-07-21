@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Dashboard') — {{ $tenant->name }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -380,39 +381,39 @@
     <div class="sidebar-nav">
         <a href="{{ route('dashboard.home') }}"
            class="nav-item {{ request()->routeIs('dashboard.home') ? 'active' : '' }}">
-            <span class="icon">📊</span> Overview
+             <span class="icon"><i class="fa-solid fa-chart-column"></i></span> Overview
         </a>
         <a href="{{ route('dashboard.transactions') }}"
            class="nav-item {{ request()->routeIs('dashboard.transactions') ? 'active' : '' }}">
-            <span class="icon">💳</span> Transactions
+             <span class="icon"><i class="fa-solid fa-credit-card"></i></span> Transactions
         </a>
 
         <div class="nav-section">Manage</div>
         <a href="{{ route('dashboard.routers.index') }}"
            class="nav-item {{ request()->routeIs('dashboard.routers.*') ? 'active' : '' }}">
-            <span class="icon">📡</span> Routers
+             <span class="icon"><i class="fa-solid fa-wifi"></i></span> Routers
         </a>
         <a href="{{ route('dashboard.packages.index') }}"
            class="nav-item {{ request()->routeIs('dashboard.packages.*') ? 'active' : '' }}">
-            <span class="icon">📦</span> Packages
+             <span class="icon"><i class="fa-solid fa-box"></i></span> Packages
         </a>
         <a href="{{ route('dashboard.vouchers.index') }}"
            class="nav-item {{ request()->routeIs('dashboard.vouchers.*') ? 'active' : '' }}">
-            <span class="icon">🎫</span> Vouchers
+             <span class="icon"><i class="fa-solid fa-ticket"></i></span> Vouchers
         </a>
         <a href="{{ route('dashboard.agents.index') }}"
            class="nav-item {{ request()->routeIs('dashboard.agents.*') ? 'active' : '' }}">
-            <span class="icon">👥</span> Agents
+             <span class="icon"><i class="fa-solid fa-users"></i></span> Agents
         </a>
 
         <div class="nav-section">Account</div>
         <a href="{{ route('dashboard.wallet') }}"
            class="nav-item {{ request()->routeIs('dashboard.wallet') ? 'active' : '' }}">
-            <span class="icon">💰</span> Wallet
+             <span class="icon"><i class="fa-solid fa-coins"></i></span> Wallet
         </a>
         <a href="{{ route('dashboard.settings') }}"
            class="nav-item {{ request()->routeIs('dashboard.settings') ? 'active' : '' }}">
-            <span class="icon">⚙️</span> Settings
+             <span class="icon"><i class="fa-solid fa-gear"></i></span> Settings
         </a>
     </div>
 
@@ -420,7 +421,7 @@
         <form method="POST" action="{{ route('tenant.logout') }}">
             @csrf
             <button type="submit" class="nav-item" style="width:100%;background:none;cursor:pointer;border:none;">
-                <span class="icon">🚪</span> Sign out
+                 <span class="icon"><i class="fa-solid fa-right-from-bracket"></i></span> Sign out
             </button>
         </form>
     </div>
@@ -434,9 +435,9 @@
             <span>{{ $tenant->name }}</span>
         </div>
         <div class="topbar-right">
-            <a href="//{{ $tenant->subdomain }}.trinetpay.online" target="_blank" class="btn-portal">
-                🌐 Live Portal ↗
-            </a>
+                 <a href="//{{ $tenant->subdomain }}.trinetpay.online" target="_blank" class="btn-portal">
+                 <i class="fa-solid fa-globe"></i> Live Portal <i class="fa-solid fa-arrow-up-right-from-square"></i>
+             </a>
             <div class="user-badge">
                 <div class="user-avatar">{{ strtoupper(substr(Auth::guard('tenant')->user()->name, 0, 1)) }}</div>
                 <span>{{ Auth::guard('tenant')->user()->name }}</span>
@@ -446,7 +447,7 @@
 
     <main class="content">
         @if (session('success'))
-            <div class="alert alert-success">✓ {{ session('success') }}</div>
+            <div class="alert alert-success"><i class="fa-solid fa-check"></i> {{ session('success') }}</div>
         @endif
 
         @if ($errors->any())

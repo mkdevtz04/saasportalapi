@@ -48,7 +48,7 @@ class PalmPesaService
             'Authorization' => 'Bearer ' . $this->apiKey,
             'Content-Type'  => 'application/json',
             'Accept'        => 'application/json',
-        ])->withoutVerifying()->post($this->baseUrl . '/api/pay-via-mobile', $payload);
+        ])->post($this->baseUrl . '/api/pay-via-mobile', $payload);
 
         Log::info('PalmPesa Response', $response->json() ?? []);
 
@@ -68,7 +68,7 @@ class PalmPesaService
             'Authorization' => 'Bearer ' . $this->apiKey,
             'Content-Type'  => 'application/json',
             'Accept'        => 'application/json',
-        ])->withoutVerifying()->post($this->baseUrl . '/api/order-status', [
+        ])->post($this->baseUrl . '/api/order-status', [
             'order_id' => $orderId,
         ]);
 

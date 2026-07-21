@@ -16,7 +16,7 @@
 @if ($batches->isEmpty())
     <div class="card">
         <div class="empty-state">
-            <div class="icon">🎫</div>
+            <div class="icon"><i class="fa-solid fa-ticket"></i></div>
             <p>No voucher batches yet. Generate a batch to start selling via agents or cash.</p>
             <a href="{{ route('dashboard.vouchers.generate') }}" class="btn btn-primary" style="margin-top:16px;display:inline-flex;">+ Generate First Batch</a>
         </div>
@@ -70,7 +70,7 @@
                             <td>
                                 <div style="display:flex;gap:6px;">
                                     <a href="{{ route('dashboard.vouchers.print', $batch->batch_ref) }}"
-                                       class="btn btn-secondary btn-sm" target="_blank">🖨️ Print</a>
+                                       class="btn btn-secondary btn-sm" target="_blank"><i class="fa-solid fa-print"></i> Print</a>
                                     @if ($available > 0)
                                         <form method="POST" action="{{ route('dashboard.vouchers.destroy', $batch->batch_ref) }}"
                                               onsubmit="return confirm('Delete {{ $available }} unused vouchers in this batch?')">

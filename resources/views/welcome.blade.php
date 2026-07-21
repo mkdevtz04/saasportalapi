@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TrinetPay — Hotspot Billing Made Simple</title>
     <meta name="description" content="The easiest way for small ISPs in Tanzania to manage hotspot billing, voucher sales, and agent networks.">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -675,37 +676,37 @@
 
         <div class="features-grid">
             <div class="feature-card">
-                <div class="feature-icon">📡</div>
+                <div class="feature-icon"><i class="fa-solid fa-wifi"></i></div>
                 <h3>MikroTik Integration</h3>
                 <p>Connect your RouterOS device directly over the local network. Hotspot users are provisioned automatically the moment a customer pays — no manual setup.</p>
             </div>
 
             <div class="feature-card">
-                <div class="feature-icon">💳</div>
+                <div class="feature-icon"><i class="fa-solid fa-credit-card"></i></div>
                 <h3>Mobile Money Payments</h3>
                 <p>Accept payments via PalmPesa, M-Pesa, Airtel Money, Tigo Pesa, and Halotel. Customers pay from the captive portal — no apps, no cards needed.</p>
             </div>
 
             <div class="feature-card">
-                <div class="feature-icon">🎫</div>
+                <div class="feature-icon"><i class="fa-solid fa-ticket"></i></div>
                 <h3>Voucher System</h3>
                 <p>Generate bulk voucher batches and print them on card stock. Customers scratch-and-connect. Track used, sold, and available vouchers per batch.</p>
             </div>
 
             <div class="feature-card">
-                <div class="feature-icon">👥</div>
+                <div class="feature-icon"><i class="fa-solid fa-users"></i></div>
                 <h3>Agent POS Network</h3>
                 <p>Deploy field agents with their own mobile-optimized POS. Fund agent wallets, let them sell vouchers, and collect commissions — all tracked automatically.</p>
             </div>
 
             <div class="feature-card">
-                <div class="feature-icon">📊</div>
+                <div class="feature-icon"><i class="fa-solid fa-chart-column"></i></div>
                 <h3>Real-time Dashboard</h3>
                 <p>Monitor daily revenue, 7-day chart, router status, transaction history, and wallet balance from your browser. No app install required.</p>
             </div>
 
             <div class="feature-card">
-                <div class="feature-icon">💰</div>
+                <div class="feature-icon"><i class="fa-solid fa-coins"></i></div>
                 <h3>Instant Wallet Payouts</h3>
                 <p>Your earnings accumulate in your TrinetPay wallet. Request a withdrawal to your mobile money number at any time — no waiting for month-end settlements.</p>
             </div>

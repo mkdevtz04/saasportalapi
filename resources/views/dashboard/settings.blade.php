@@ -10,9 +10,9 @@
         <div class="page-title">Portal Settings</div>
         <div class="page-sub">Customize your customer portal appearance and payout details</div>
     </div>
-    <a href="//{{ $tenant->subdomain }}.trinetpay.online" target="_blank" class="btn btn-secondary">
-        🌐 Preview Portal ↗
-    </a>
+         <a href="//{{ $tenant->subdomain }}.trinetpay.online" target="_blank" class="btn btn-secondary">
+         <i class="fa-solid fa-globe"></i> Preview Portal <i class="fa-solid fa-arrow-up-right-from-square"></i>
+     </a>
 </div>
 
 <form method="POST" action="{{ route('dashboard.settings.update') }}" enctype="multipart/form-data">
@@ -22,7 +22,7 @@
 
         {{-- Branding --}}
         <div class="card">
-            <div class="card-title">🎨 Branding</div>
+            <div class="card-title"><i class="fa-solid fa-palette"></i> Branding</div>
 
             <div class="field" style="margin-bottom:16px;">
                 <label>Brand Color</label>
@@ -72,7 +72,7 @@
         {{-- Payout --}}
         <div>
             <div class="card">
-                <div class="card-title">💰 Payout Details</div>
+                <div class="card-title"><i class="fa-solid fa-coins"></i> Payout Details</div>
 
                 <div class="field">
                     <label>Withdrawal Mobile Number</label>
@@ -86,7 +86,7 @@
 
             {{-- Portal info --}}
             <div class="card" style="margin-top:0;">
-                <div class="card-title">🌐 Your Portal</div>
+                <div class="card-title"><i class="fa-solid fa-globe"></i> Your Portal</div>
                 <div style="font-size:13px;color:#475569;line-height:1.8;">
                     <div><strong>Portal URL:</strong>
                         <a href="//{{ $tenant->subdomain }}.trinetpay.online" target="_blank"
@@ -103,7 +103,7 @@
 
             {{-- MikroTik redirect --}}
             <div class="card" style="margin-top:0;background:#f8fafc;">
-                <div class="card-title">📡 MikroTik Redirect URL</div>
+                <div class="card-title"><i class="fa-solid fa-wifi"></i> MikroTik Redirect URL</div>
                 <p style="font-size:13px;color:#64748b;margin-bottom:10px;">
                     Set this as the redirect URL in your hotspot server profile:
                 </p>

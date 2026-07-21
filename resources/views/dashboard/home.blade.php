@@ -11,19 +11,19 @@
 
 <div class="stats-grid">
     <div class="stat-card">
-        <span class="stat-icon">📅</span>
+        <span class="stat-icon"><i class="fa-solid fa-calendar"></i></span>
         <div class="stat-label">Today's Revenue</div>
         <div class="stat-value">{{ number_format($todayRevenue) }}</div>
         <div class="stat-sub">TZS collected today</div>
     </div>
     <div class="stat-card">
-        <span class="stat-icon">📈</span>
+        <span class="stat-icon"><i class="fa-solid fa-arrow-trend-up"></i></span>
         <div class="stat-label">This Month</div>
         <div class="stat-value">{{ number_format($monthRevenue) }}</div>
         <div class="stat-sub">{{ number_format($monthCount) }} transactions</div>
     </div>
     <div class="stat-card">
-        <span class="stat-icon">💰</span>
+        <span class="stat-icon"><i class="fa-solid fa-coins"></i></span>
         <div class="stat-label">Wallet Balance</div>
         <div class="stat-value">{{ number_format($wallet?->balance ?? 0) }}</div>
         <div class="stat-sub">
@@ -31,7 +31,7 @@
         </div>
     </div>
     <div class="stat-card">
-        <span class="stat-icon">📡</span>
+        <span class="stat-icon"><i class="fa-solid fa-wifi"></i></span>
         <div class="stat-label">Routers</div>
         <div class="stat-value">{{ ($routerStats['online'] ?? 0) + ($routerStats['offline'] ?? 0) + ($routerStats['unknown'] ?? 0) }}</div>
         <div class="stat-sub">
@@ -45,21 +45,21 @@
 
 {{-- Revenue chart --}}
 <div class="card">
-    <div class="card-title">📊 Revenue — Last 7 Days</div>
+    <div class="card-title"><i class="fa-solid fa-chart-column"></i> Revenue — Last 7 Days</div>
     <canvas id="revenueChart" height="80"></canvas>
 </div>
 
 {{-- Recent transactions --}}
 <div class="card">
     <div class="card-title" style="justify-content:space-between;">
-        <span>🕐 Recent Transactions</span>
+            <span><i class="fa-solid fa-clock"></i> Recent Transactions</span>
         <a href="{{ route('dashboard.transactions') }}" class="btn btn-secondary btn-sm">View all</a>
     </div>
 
     @if ($recentTransactions->isEmpty())
         <div class="empty-state">
-            <div class="icon">💳</div>
-            <p>No transactions yet. Share your portal link to start collecting payments.</p>
+                <div class="icon"><i class="fa-solid fa-credit-card"></i></div>
+                <p>No transactions yet. Share your portal link to start collecting payments.</p>
         </div>
     @else
         <div class="table-wrap">

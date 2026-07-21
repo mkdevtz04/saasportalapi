@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Withdrawal Setup — TrinetPay</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     @include('onboarding._styles')
 </head>
 <body>
@@ -12,7 +13,7 @@
 
     <div class="card">
         <div class="card-header">
-            <div class="step-icon">💳</div>
+            <div class="step-icon"><i class="fa-solid fa-credit-card"></i></div>
             <div>
                 <h2>Withdrawal Number</h2>
                 <p class="sub">Enter the mobile money number where you want to receive your earnings.</p>
@@ -59,8 +60,8 @@
                 </label>
             </div>
 
-            <button type="submit" class="btn-primary" style="margin-top:24px;">
-                Finish Setup — Launch My Portal 🚀
+                <button type="submit" class="btn-primary" style="margin-top:24px;">
+                Finish Setup — Launch My Portal <i class="fa-solid fa-rocket"></i>
             </button>
         </form>
     </div>

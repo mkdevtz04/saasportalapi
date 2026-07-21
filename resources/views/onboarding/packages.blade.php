@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Package Setup — TrinetPay</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     @include('onboarding._styles')
     <style>
         .pkg-row { display:grid; grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr auto; gap:8px; align-items:end; margin-bottom:10px; padding:14px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; }
@@ -30,7 +31,7 @@
 
     <div class="card" style="max-width:860px">
         <div class="card-header">
-            <div class="step-icon">📦</div>
+            <div class="step-icon"><i class="fa-solid fa-box"></i></div>
             <div>
                 <h2>Set Up Your Packages</h2>
                 <p class="sub">Define the WiFi packages your customers will see. You can edit these anytime from your dashboard.</p>
@@ -83,7 +84,7 @@
                         <label>Profile</label>
                         <input type="text" name="packages[{{ $i }}][mikrotik_profile]" value="{{ $pkg['mikrotik_profile'] }}" placeholder="bronze" pattern="[a-zA-Z0-9_-]+" required>
                     </div>
-                    <button type="button" class="btn-remove" onclick="removeRow({{ $i }})" title="Remove">✕</button>
+                     <button type="button" class="btn-remove" onclick="removeRow({{ $i }})" title="Remove"><i class="fa-solid fa-xmark"></i></button>
                 </div>
                 @endforeach
             </div>
@@ -112,7 +113,7 @@ function addRow() {
         <div class="field"><label>Down</label><input type="number" name="packages[${i}][speed_down_mbps]" placeholder="1" min="1" required></div>
         <div class="field"><label>Up</label><input type="number" name="packages[${i}][speed_up_mbps]" placeholder="1" min="1" required></div>
         <div class="field"><label>Profile</label><input type="text" name="packages[${i}][mikrotik_profile]" placeholder="custom" pattern="[a-zA-Z0-9_-]+" required></div>
-        <button type="button" class="btn-remove" onclick="removeRow(${i})" title="Remove">✕</button>
+        <button type="button" class="btn-remove" onclick="removeRow(${i})" title="Remove"><i class="fa-solid fa-xmark"></i></button>
     </div>`;
     document.getElementById('packages-list').insertAdjacentHTML('beforeend', html);
 }

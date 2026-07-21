@@ -35,7 +35,7 @@
 
     {{-- Request withdrawal form --}}
     <div class="card">
-        <div class="card-title">💸 Request Withdrawal</div>
+        <div class="card-title"><i class="fa-solid fa-money-bill-transfer"></i> Request Withdrawal</div>
 
         <div style="background:#fefce8;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;font-size:13px;color:#92400e;margin-bottom:16px;line-height:1.6;">
             Minimum withdrawal: <strong>5,000 TZS</strong><br>
@@ -79,12 +79,12 @@
 
     {{-- Withdrawal history --}}
     <div class="card">
-        <div class="card-title">📋 Withdrawal History</div>
+        <div class="card-title"><i class="fa-solid fa-clipboard-list"></i> Withdrawal History</div>
 
         @if ($requests->isEmpty())
             <div class="empty-state" style="padding:24px;">
-                <div class="icon">📋</div>
-                <p>No withdrawal requests yet.</p>
+                    <div class="icon"><i class="fa-solid fa-clipboard-list"></i></div>
+                    <p>No withdrawal requests yet.</p>
             </div>
         @else
             <div class="table-wrap">

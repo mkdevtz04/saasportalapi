@@ -16,7 +16,7 @@
 @if ($packages->isEmpty())
     <div class="card">
         <div class="empty-state">
-            <div class="icon">📦</div>
+            <div class="icon"><i class="fa-solid fa-box"></i></div>
             <p>No packages yet. Create your first hotspot plan.</p>
             <a href="{{ route('dashboard.packages.create') }}" class="btn btn-primary" style="margin-top:16px;display:inline-flex;">+ Create Package</a>
         </div>

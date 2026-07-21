@@ -134,7 +134,7 @@
     <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
         <input type="checkbox" id="hideUsed" onchange="toggleUsed(this.checked)"> Hide used
     </label>
-    <button onclick="window.print()" class="btn btn-primary">🖨️ Print</button>
+    <button onclick="window.print()" class="btn btn-primary"><i class="fa-solid fa-print"></i> Print</button>
     <a href="{{ route('dashboard.vouchers.index') }}" class="btn btn-secondary">← Back</a>
 </div>
 
@@ -142,7 +142,7 @@
     @foreach ($vouchers as $v)
         <div class="voucher-card {{ $v->isUsed() ? 'used' : '' }}" data-used="{{ $v->isUsed() ? '1' : '0' }}">
             @if ($v->isUsed())
-                <span class="vc-used-badge">✓ Used</span>
+                <span class="vc-used-badge"><i class="fa-solid fa-check"></i> Used</span>
             @endif
             <div class="vc-brand">{{ $tenant->name }}</div>
             <div class="vc-package">{{ $package?->name }}</div>

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Router Setup — TrinetPay Onboarding</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     @include('onboarding._styles')
 </head>
 <body>
@@ -13,7 +14,7 @@
 
     <div class="card">
         <div class="card-header">
-            <div class="step-icon">📡</div>
+            <div class="step-icon"><i class="fa-solid fa-wifi"></i></div>
             <div>
                 <h2>Connect Your Router</h2>
                 <p class="sub">Enter your MikroTik router details so we can provision hotspot users automatically.</p>
@@ -100,10 +101,10 @@ async function testConnection() {
             })
         });
         const data = await res.json();
-        result.textContent = (data.success ? '✓ ' : '✗ ') + data.message;
+        result.textContent = (data.success ? '<i class="fa-solid fa-check"></i> ' : '<i class="fa-solid fa-xmark"></i> ') + data.message;
         result.className = data.success ? 'test-ok' : 'test-fail';
     } catch (e) {
-        result.textContent = '✗ Request failed. Check your connection.';
+        result.textContent = '<i class="fa-solid fa-xmark"></i> Request failed. Check your connection.';
         result.className = 'test-fail';
     } finally {
         btn.disabled = false;

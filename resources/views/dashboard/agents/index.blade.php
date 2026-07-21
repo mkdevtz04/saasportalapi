@@ -16,7 +16,7 @@
 @if ($agents->isEmpty())
     <div class="card">
         <div class="empty-state">
-            <div class="icon">👥</div>
+            <div class="icon"><i class="fa-solid fa-users"></i></div>
             <p>No agents yet. Add agents to let them sell vouchers via mobile POS.</p>
             <a href="{{ route('dashboard.agents.create') }}" class="btn btn-primary" style="margin-top:16px;display:inline-flex;">+ Add First Agent</a>
         </div>
@@ -71,7 +71,7 @@
 
     {{-- POS link instructions --}}
     <div class="card" style="background:#f8fafc;margin-top:0;">
-        <div class="card-title">📱 Agent POS Access</div>
+        <div class="card-title"><i class="fa-solid fa-mobile-screen"></i> Agent POS Access</div>
         <p style="font-size:13px;color:#475569;margin-bottom:10px;">
             Share this URL with your agents. They log in using their email and password.
         </p>

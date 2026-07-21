@@ -44,8 +44,8 @@
 <div class="card">
     @if ($transactions->isEmpty())
         <div class="empty-state">
-            <div class="icon">🔍</div>
-            <p>No transactions found for the selected filters.</p>
+                <div class="icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+                <p>No transactions found for the selected filters.</p>
         </div>
     @else
         <div class="table-wrap">

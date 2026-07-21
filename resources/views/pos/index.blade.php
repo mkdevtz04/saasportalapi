@@ -6,7 +6,7 @@
 
 {{-- Packages --}}
 <div class="card">
-    <div class="card-title">📦 Select Package to Sell</div>
+    <div class="card-title"><i class="fa-solid fa-box"></i> Select Package to Sell</div>
 
     @if ($packages->isEmpty())
         <p style="font-size:13px;color:#94a3b8;text-align:center;padding:20px 0;">
@@ -35,7 +35,7 @@
 {{-- Recent sales --}}
 @if ($recentSales->isNotEmpty())
     <div class="card">
-        <div class="card-title">🕐 Recent Sales</div>
+        <div class="card-title"><i class="fa-solid fa-clock"></i> Recent Sales</div>
         <table>
             <tbody>
                 @foreach ($recentSales as $v)
@@ -93,7 +93,7 @@
 
         {{-- Success state --}}
         <div class="success-screen" id="successScreen">
-            <div style="font-size:40px;margin-bottom:8px;">✅</div>
+            <div style="font-size:40px;margin-bottom:8px;"><i class="fa-solid fa-check"></i></div>
             <h2 style="margin-bottom:4px;">Sale Complete!</h2>
             <p>Give this code to the customer:</p>
             <div class="success-code" id="successCode"></div>
@@ -158,7 +158,7 @@ function confirmSell() {
             document.getElementById('walletBadge').textContent =
                 data.wallet_balance.toLocaleString() + ' TZS';
         } else {
-            alert('❌ ' + data.message);
+            alert('<i class="fa-solid fa-xmark"></i> ' + data.message);
         }
     })
     .catch(() => alert('Network error. Please try again.'))

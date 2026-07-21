@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Admin') — TrinetPay</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -165,22 +166,22 @@
     <div class="sidebar-nav">
         <a href="{{ route('admin.dashboard') }}"
            class="nav-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-            <span class="icon">📊</span> Overview
+             <span class="icon"><i class="fa-solid fa-chart-column"></i></span> Overview
         </a>
         <a href="{{ route('admin.tenants.index') }}"
            class="nav-item {{ request()->routeIs('admin.tenants.*') ? 'active' : '' }}">
-            <span class="icon">🏢</span> ISPs
+             <span class="icon"><i class="fa-solid fa-building"></i></span> ISPs
         </a>
         <a href="{{ route('admin.withdrawals.index') }}"
            class="nav-item {{ request()->routeIs('admin.withdrawals.*') ? 'active' : '' }}">
-            <span class="icon">💸</span> Withdrawals
+             <span class="icon"><i class="fa-solid fa-money-bill-transfer"></i></span> Withdrawals
         </a>
     </div>
     <div class="sidebar-footer">
         <form method="POST" action="{{ route('admin.logout') }}">
             @csrf
             <button type="submit" class="nav-item" style="width:100%;background:none;cursor:pointer;border:none;">
-                <span class="icon">🚪</span> Sign out
+                 <span class="icon"><i class="fa-solid fa-right-from-bracket"></i></span> Sign out
             </button>
         </form>
     </div>
@@ -190,13 +191,13 @@
     <header class="topbar">
         <div class="topbar-left">@yield('breadcrumb', 'Dashboard')</div>
         <div class="topbar-right">
-            <span class="admin-badge">⚡ {{ Auth::guard('admin')->user()->name }}</span>
+            <span class="admin-badge"><i class="fa-solid fa-bolt"></i> {{ Auth::guard('admin')->user()->name }}</span>
         </div>
     </header>
 
     <main class="content">
         @if (session('success'))
-            <div class="alert alert-success">✓ {{ session('success') }}</div>
+            <div class="alert alert-success"><i class="fa-solid fa-check"></i> {{ session('success') }}</div>
         @endif
         @if (session('info'))
             <div class="alert alert-info">ℹ {{ session('info') }}</div>

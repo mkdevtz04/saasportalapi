@@ -8,7 +8,7 @@
 {{-- Stats --}}
 <div class="stats-grid">
     <div class="stat-card">
-        <span class="stat-icon">🏢</span>
+        <span class="stat-icon"><i class="fa-solid fa-building"></i></span>
         <div class="stat-label">Total ISPs</div>
         <div class="stat-value">{{ $stats['total'] }}</div>
         <div class="stat-sub">
@@ -16,19 +16,19 @@
         </div>
     </div>
     <div class="stat-card">
-        <span class="stat-icon">💰</span>
+        <span class="stat-icon"><i class="fa-solid fa-coins"></i></span>
         <div class="stat-label">Platform Earnings (Month)</div>
         <div class="stat-value">{{ number_format($earnings['month']) }}</div>
         <div class="stat-sub">TZS · Total: {{ number_format($earnings['total']) }} TZS</div>
     </div>
     <div class="stat-card">
-        <span class="stat-icon">💸</span>
+        <span class="stat-icon"><i class="fa-solid fa-money-bill-transfer"></i></span>
         <div class="stat-label">Pending Withdrawals</div>
         <div class="stat-value">{{ $pendingWithdrawals->count ?? 0 }}</div>
         <div class="stat-sub">{{ number_format($pendingWithdrawals->total ?? 0) }} TZS outstanding</div>
     </div>
     <div class="stat-card">
-        <span class="stat-icon">🆕</span>
+        <span class="stat-icon"><i class="fa-solid fa-circle-plus"></i></span>
         <div class="stat-label">ISP Status</div>
         <div class="stat-value" style="font-size:18px;margin-top:8px;">
             <span class="badge badge-active">{{ $stats['active'] }} Active</span>
@@ -42,7 +42,7 @@
 
     {{-- Recent ISPs --}}
     <div class="card">
-        <div class="card-title">🏢 Recent ISPs
+        <div class="card-title"><i class="fa-solid fa-building"></i> Recent ISPs
             <a href="{{ route('admin.tenants.index') }}" style="font-size:12px;color:#4f46e5;font-weight:500;margin-left:auto;">View all →</a>
         </div>
         @if ($recentTenants->isEmpty())
@@ -69,7 +69,7 @@
 
     {{-- Recent earnings --}}
     <div class="card">
-        <div class="card-title">💰 Recent Platform Earnings</div>
+        <div class="card-title"><i class="fa-solid fa-coins"></i> Recent Platform Earnings</div>
         @if ($recentBilling->isEmpty())
             <p style="color:#94a3b8;font-size:13px;text-align:center;padding:20px 0;">No earnings yet.</p>
         @else
@@ -96,7 +96,7 @@
 
 @if ($pendingWithdrawals->count > 0)
     <div class="alert alert-info" style="display:flex;align-items:center;justify-content:space-between;">
-        <span>💸 <strong>{{ $pendingWithdrawals->count }}</strong> pending withdrawal{{ $pendingWithdrawals->count != 1 ? 's' : '' }} totalling <strong>TZS {{ number_format($pendingWithdrawals->total) }}</strong></span>
+        <span><i class="fa-solid fa-money-bill-transfer"></i> <strong>{{ $pendingWithdrawals->count }}</strong> pending withdrawal{{ $pendingWithdrawals->count != 1 ? 's' : '' }} totalling <strong>TZS {{ number_format($pendingWithdrawals->total) }}</strong></span>
         <a href="{{ route('admin.withdrawals.index') }}" class="btn btn-primary btn-sm">Review</a>
     </div>
 @endif

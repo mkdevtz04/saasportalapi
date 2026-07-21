@@ -161,18 +161,24 @@ class DashboardController extends Controller
             return back()->withErrors(['amount' => 'Insufficient wallet balance.'])->withInput();
         }
 
-        $debited = $wallet->debit($validated['amount']);
+        try {
+            DB::transaction(function () use ($tenant, $validated, $wallet) {
+                $withdrawal = WithdrawalRequest::create([
+                    'tenant_id'     => $tenant->id,
+                    'amount'        => $validated['amount'],
+                    'mobile_number' => $validated['mobile_number'],
+                    'status'        => 'pending',
+                ]);
 
-        if (! $debited) {
-            return back()->withErrors(['amount' => 'Insufficient wallet balance.'])->withInput();
+                $debited = $wallet->debit($validated['amount']);
+
+                if (! $debited) {
+                    throw new \RuntimeException('Insufficient balance during transaction.');
+                }
+            });
+        } catch (\Exception $e) {
+            return back()->withErrors(['amount' => 'Withdrawal failed: ' . $e->getMessage()])->withInput();
         }
-
-        WithdrawalRequest::create([
-            'tenant_id'     => $tenant->id,
-            'amount'        => $validated['amount'],
-            'mobile_number' => $validated['mobile_number'],
-            'status'        => 'pending',
-        ]);
 
         return back()->with('success', 'Withdrawal request submitted. Processing within 24 hours.');
     }

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Router Setup Script — TrinetPay</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     @include('onboarding._styles')
     <style>
         .script-box { background: #1e1e2e; border-radius: 8px; padding: 20px 24px; margin: 20px 0; overflow-x: auto; }
@@ -26,7 +27,7 @@
 
     <div class="card">
         <div class="card-header">
-            <div class="step-icon">✅</div>
+            <div class="step-icon"><i class="fa-solid fa-check"></i></div>
             <div>
                 <h2>Router Saved!</h2>
                 <p class="sub">Paste the script below into your MikroTik terminal to finish the setup.</p>
@@ -34,7 +35,7 @@
         </div>
 
         <div class="success-badge">
-            <span>📡</span> {{ $router->name }} — {{ $router->router_ip }}:{{ $router->port }}
+            <span><i class="fa-solid fa-wifi"></i> {{ $router->name }} — {{ $router->router_ip }}:{{ $router->port }}</span>
         </div>
 
         <dl class="router-summary">
