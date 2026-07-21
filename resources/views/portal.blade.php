@@ -79,6 +79,25 @@ html,body{min-height:100%;background:#eef3f7;font-family:Arial,Helvetica,sans-se
     </div>
 
     <div class="body">
+      @if($activeVoucher)
+      <div class="active-session" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:18px 20px;margin-bottom:20px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <i class="fa-solid fa-check" style="color:#15803d;font-size:20px;"></i>
+          <div style="font-weight:800;color:#15803d;font-size:15px;">Welcome Back!</div>
+        </div>
+        <div style="font-size:13px;color:#374151;line-height:1.6;margin-bottom:14px;">
+          Your <strong>{{ $activeVoucher->package?->name ?? 'WiFi' }}</strong> session is still active.<br>
+          Expires: <strong>{{ $activeVoucher->expires_at->format('d M Y, H:i') }}</strong>
+        </div>
+        <button class="btn" onclick="reconnectActive()" style="background:#15803d;">
+          <i class="fa-solid fa-wifi"></i> Reconnect Now
+        </button>
+        <p style="font-size:11px;color:#64748b;margin-top:8px;text-align:center;">
+          Token: <span style="font-family:monospace;font-weight:700;">{{ $activeVoucher->voucher_code }}</span>
+        </p>
+      </div>
+      @endif
+
       {{-- Tab switcher --}}
       <div class="tabs">
          <div class="tab active" onclick="switchTab('pay',this)"><i class="fa-solid fa-credit-card"></i> Pay Online</div>
@@ -198,6 +217,18 @@ function showSuccess(token, pkgName, loginUrl, dst) {
   if (verifyUrl) {
     setTimeout(() => { window.location.href = verifyUrl; }, 1500);
   }
+}
+
+function reconnectActive() {
+  @if($activeVoucher)
+  const token   = '{{ $activeVoucher->voucher_code }}';
+  const pkgName = '{{ $activeVoucher->package?->name ?? 'WiFi' }}';
+  const loginUrl = '{{ $hotspot['link_login_only'] ?? '' }}';
+  const dst = '{{ $hotspot['link_orig'] ?? '' }}';
+  showSuccess(token, pkgName, loginUrl, dst);
+  @else
+  showModal('<i class="fa-solid fa-circle-info"></i>', 'No Active Session', 'You do not have an active WiFi session. Please purchase a package to connect.');
+  @endif
 }
 
 async function initiatePayment() {

@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\PlatformBillingLog;
+use App\Models\TenantWallet;
+use App\Models\Transaction;
 use App\Models\Voucher;
 use App\Services\MikrotikService;
 use Illuminate\Http\JsonResponse;
@@ -82,6 +85,23 @@ class VoucherController extends Controller
             Log::warning('Voucher redeemed but MikroTik provisioning failed', ['code' => $code]);
         }
 
+        Transaction::create([
+            'tenant_id'    => $tenant->id,
+            'router_id'    => $router?->id,
+            'package_id'   => $package?->id,
+            'phone'        => $request->input('phone'),
+            'amount'       => $package?->price ?? 0,
+            'status'       => 'completed',
+            'voucher_code' => $code,
+            'expires_at'   => now()->addHours($package?->duration_hours ?? 24),
+            'customer_mac' => $request->input('mac'),
+            'customer_ip'  => $request->ip(),
+        ]);
+
+        if ($package && $package->price > 0) {
+            $this->creditTenantWallet($tenant->id, $package->price);
+        }
+
         return response()->json([
             'ok'       => true,
             'code'     => $code,
@@ -89,5 +109,35 @@ class VoucherController extends Controller
             'duration' => $package?->durationLabel(),
             'message'  => 'Voucher accepted! Connecting you now…',
         ]);
+    }
+
+    private function creditTenantWallet(int $tenantId, int $amount): void
+    {
+        try {
+            $feePct      = (float) config('platform.fee_pct', 5);
+            $platformFee = (int) round($amount * $feePct / 100);
+            $tenantAmt   = $amount - $platformFee;
+
+            $wallet = TenantWallet::firstOrCreate(
+                ['tenant_id' => $tenantId],
+                ['balance' => 0, 'total_earned' => 0]
+            );
+            $wallet->credit($tenantAmt);
+
+            if ($platformFee > 0) {
+                PlatformBillingLog::create([
+                    'tenant_id' => $tenantId,
+                    'type'      => 'revenue_share',
+                    'amount'    => $platformFee,
+                    'reference' => 'VCHR-' . ($redeemed->code ?? 'unknown'),
+                    'notes'     => $feePct . '% fee on voucher redemption',
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to credit tenant wallet for voucher', [
+                'tenant_id' => $tenantId,
+                'error'     => $e->getMessage(),
+            ]);
+        }
     }
 }

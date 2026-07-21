@@ -34,7 +34,18 @@ class PaymentController extends Controller
             'error'           => $request->query('error'),
         ];
 
-        return view('portal', compact('tenant', 'packages', 'settings', 'hotspot'));
+        $activeVoucher = null;
+
+        if ($tenant && $hotspot['mac']) {
+            $activeVoucher = Transaction::where('tenant_id', $tenant->id)
+                ->where('customer_mac', $hotspot['mac'])
+                ->where('status', 'completed')
+                ->where('expires_at', '>', now())
+                ->orderByDesc('expires_at')
+                ->first();
+        }
+
+        return view('portal', compact('tenant', 'packages', 'settings', 'hotspot', 'activeVoucher'));
     }
 
     public function initiate(Request $request): JsonResponse
