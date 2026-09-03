@@ -12,6 +12,7 @@ use App\Http\Controllers\DashboardRouterController;
 use App\Http\Controllers\DashboardVoucherController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\RouterProvisionController;
 use App\Http\Controllers\TenantLoginController;
 use App\Http\Controllers\TenantRegistrationController;
 use App\Http\Middleware\EnsureAdmin;
@@ -23,6 +24,11 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+// ── 1-Command MikroTik Router Auto-Provisioning Public Endpoints ───────────────
+Route::get('/provision/{token}',          [RouterProvisionController::class, 'downloadScript'])->name('router.provision.script');
+Route::get('/provision/{token}/complete', [RouterProvisionController::class, 'completeProvision'])->name('router.provision.complete');
+Route::get('/provision/{token}/status',   [RouterProvisionController::class, 'checkStatus'])->name('router.provision.status');
 
 // Auth
 // Named 'login' so Laravel's auth middleware redirects here automatically

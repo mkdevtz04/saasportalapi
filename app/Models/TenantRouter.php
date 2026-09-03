@@ -20,13 +20,17 @@ class TenantRouter extends Model
         'nas_identifier',
         'status',
         'last_seen_at',
+        'provision_token',
+        'provision_status',
+        'provisioned_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'last_seen_at' => 'datetime',
-            'port' => 'integer',
+            'last_seen_at'   => 'datetime',
+            'provisioned_at' => 'datetime',
+            'port'           => 'integer',
         ];
     }
 
@@ -57,5 +61,19 @@ class TenantRouter extends Model
     public static function generateNasIdentifier(int $tenantId): string
     {
         return 'nas-' . $tenantId . '-' . Str::random(8);
+    }
+
+    public static function generateProvisionToken(): string
+    {
+        return 'trinet_prov_' . Str::random(32);
+    }
+
+    public function getOrGenerateProvisionToken(): string
+    {
+        if (empty($this->provision_token)) {
+            $this->provision_token = static::generateProvisionToken();
+            $this->save();
+        }
+        return $this->provision_token;
     }
 }

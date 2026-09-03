@@ -25,15 +25,28 @@ class OnboardingController extends Controller
     {
         $tenant = $this->tenant();
 
-        // If they already saved a router in this session, jump to the script view
-        if ($routerId = session('onboarding_router_id')) {
-            $router = TenantRouter::where('id', $routerId)->first();
-            if ($router && $router->tenant_id === $tenant->id) {
-                return view('onboarding.router-script', compact('tenant', 'router'));
-            }
+        // Load existing router or auto-initialize first router for 1-command provisioning
+        $router = $tenant->routers()->first();
+
+        if (! $router) {
+            $router = TenantRouter::create([
+                'tenant_id'        => $tenant->id,
+                'name'             => $tenant->name . ' Router',
+                'router_ip'        => '192.168.88.1',
+                'username'         => 'trinetpay',
+                'password'         => \Illuminate\Support\Str::random(12),
+                'port'             => 8728,
+                'nas_identifier'   => TenantRouter::generateNasIdentifier($tenant->id),
+                'provision_token'  => TenantRouter::generateProvisionToken(),
+                'provision_status' => 'pending',
+            ]);
+        } else {
+            $router->getOrGenerateProvisionToken();
         }
 
-        return view('onboarding.router', compact('tenant'));
+        session(['onboarding_router_id' => $router->id]);
+
+        return view('onboarding.router-script', compact('tenant', 'router'));
     }
 
     public function storeRouter(Request $request): RedirectResponse
@@ -56,13 +69,15 @@ class OnboardingController extends Controller
         ]);
 
         $router = TenantRouter::create([
-            'tenant_id'      => $tenant->id,
-            'name'           => $request->name,
-            'router_ip'      => $request->router_ip,
-            'username'       => $request->username,
-            'password'       => $request->password, // model accessor encrypts on write
-            'port'           => $request->port,
-            'nas_identifier' => TenantRouter::generateNasIdentifier($tenant->id),
+            'tenant_id'        => $tenant->id,
+            'name'             => $request->name,
+            'router_ip'        => $request->router_ip,
+            'username'         => $request->username,
+            'password'         => $request->password, // model accessor encrypts on write
+            'port'             => $request->port,
+            'nas_identifier'   => TenantRouter::generateNasIdentifier($tenant->id),
+            'provision_token'  => TenantRouter::generateProvisionToken(),
+            'provision_status' => 'pending',
         ]);
 
         session(['onboarding_router_id' => $router->id]);

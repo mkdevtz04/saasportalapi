@@ -53,10 +53,16 @@
                             </td>
                             <td>
                                 <div style="display:flex;gap:6px;">
-                                        <button
-                                            class="btn btn-secondary btn-sm"
-                                            onclick="testRouter(this, '{{ $router->router_ip }}', '{{ $router->username }}', {{ $router->port }})"
-                                            title="Test connection">
+                                    <button
+                                        class="btn btn-secondary btn-sm"
+                                        onclick="copyProvisionCmd('{{ request()->getSchemeAndHttpHost() }}/provision/{{ $router->getOrGenerateProvisionToken() }}')"
+                                        title="Copy 1-Command Provisioning Code">
+                                        <i class="fa-solid fa-bolt" style="color:#eab308;"></i> Provision Code
+                                    </button>
+                                    <button
+                                        class="btn btn-secondary btn-sm"
+                                        onclick="testRouter(this, '{{ $router->router_ip }}', '{{ $router->username }}', {{ $router->port }})"
+                                        title="Test connection">
                                         <i class="fa-solid fa-link"></i> Test
                                     </button>
                                     <a href="{{ route('dashboard.routers.edit', $router) }}" class="btn btn-secondary btn-sm">Edit</a>
@@ -106,6 +112,13 @@ function testRouter(btn, ip, username, port) {
     .catch(() => {
         btn.innerHTML = '<i class="fa-solid fa-xmark"></i> Error';
         setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 3000);
+    });
+}
+
+function copyProvisionCmd(url) {
+    const cmd = `/tool fetch url="${url}" dst-path=trinetpay-bootstrap.rsc check-certificate=no; :import trinetpay-bootstrap.rsc; /file remove trinetpay-bootstrap.rsc`;
+    navigator.clipboard.writeText(cmd).then(() => {
+        alert('Copied 1-Command Provisioning Snippet:\n\n' + cmd + '\n\nPaste this into your MikroTik WinBox Terminal!');
     });
 }
 </script>

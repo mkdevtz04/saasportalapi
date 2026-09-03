@@ -73,6 +73,24 @@
             </p>
         </div>
 
+        @if ($router)
+        {{-- 1-Command Provisioning Snippet --}}
+        <div style="background:#1e1e2e;border:1px solid #313244;border-radius:10px;padding:20px;margin-bottom:20px;color:#cdd6f4;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <div style="font-size:13px;font-weight:700;color:#89b4fa;text-transform:uppercase;letter-spacing:0.5px;">
+                    <i class="fa-solid fa-bolt"></i> 1-Command Router Provisioning
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="copyProvisionCmd()" style="background:#313244;color:#cdd6f4;border:none;">
+                    <i class="fa-solid fa-copy"></i> Copy
+                </button>
+            </div>
+            <div style="background:#11111b;border:1px solid #45475a;padding:12px;border-radius:6px;font-family:monospace;font-size:12px;color:#a6e3a1;word-break:break-all;" id="provisionCmd">/tool fetch url="{{ request()->getSchemeAndHttpHost() }}/provision/{{ $router->getOrGenerateProvisionToken() }}" dst-path=trinetpay-bootstrap.rsc check-certificate=no; :import trinetpay-bootstrap.rsc; /file remove trinetpay-bootstrap.rsc</div>
+            <p style="font-size:11px;color:#9399b2;margin-top:8px;margin-bottom:0;">
+                Paste into WinBox Terminal to automatically configure API, credentials, walled garden, and hotspot portal settings on this router.
+            </p>
+        </div>
+        @endif
+
         <div style="display:flex;gap:10px;">
             <button type="submit" class="btn btn-primary">
                 {{ $router ? 'Save Changes' : 'Add Router' }}
@@ -121,6 +139,13 @@ function testConnection() {
     .finally(() => {
         btn.disabled = false;
         btn.textContent = '<i class="fa-solid fa-link"></i> Test Connection';
+    });
+}
+
+function copyProvisionCmd() {
+    const text = document.getElementById('provisionCmd').innerText;
+    navigator.clipboard.writeText(text).then(() => {
+        alert('Provision command copied to clipboard!');
     });
 }
 </script>

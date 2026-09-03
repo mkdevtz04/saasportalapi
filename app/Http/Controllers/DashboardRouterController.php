@@ -35,9 +35,11 @@ class DashboardRouterController extends Controller
         $tenant = $this->tenant();
         $data   = $this->validated($request);
 
-        $data['tenant_id']      = $tenant->id;
-        $data['nas_identifier'] = TenantRouter::generateNasIdentifier($tenant->id);
-        $data['status']         = 'unknown';
+        $data['tenant_id']        = $tenant->id;
+        $data['nas_identifier']   = TenantRouter::generateNasIdentifier($tenant->id);
+        $data['provision_token']  = TenantRouter::generateProvisionToken();
+        $data['provision_status'] = 'pending';
+        $data['status']           = 'unknown';
 
         TenantRouter::create($data);
 
@@ -48,6 +50,7 @@ class DashboardRouterController extends Controller
     {
         $tenant = $this->tenant();
         abort_unless($router->tenant_id === $tenant->id, 403);
+        $router->getOrGenerateProvisionToken();
         return view('dashboard.routers.form', compact('tenant', 'router'));
     }
 
