@@ -70,7 +70,7 @@ class VoucherController extends Controller
                 $connected = $mikrotik->connect();
 
                 if ($connected) {
-                    $connected = $mikrotik->createHotspotUser($code, '', $package->mikrotik_profile);
+                    $connected = $mikrotik->createHotspotUser($code, $code, $package->mikrotik_profile);
                     $mikrotik->disconnect();
                 }
             } catch (\Exception $e) {

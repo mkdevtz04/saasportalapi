@@ -196,7 +196,7 @@ function showSuccess(token, pkgName, loginUrl, dst) {
   if (loginUrl) {
     loginForm = `<form id="routerLogin" method="post" action="${safe(loginUrl)}">
       <input type="hidden" name="username" value="${safe(token)}">
-      <input type="hidden" name="password" value="">
+      <input type="hidden" name="password" value="${safe(token)}">
       <input type="hidden" name="dst" value="${safe(target)}">
     </form>`;
   }

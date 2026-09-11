@@ -214,7 +214,7 @@ class PaymentController extends Controller
         $success  = false;
 
         if ($mikrotik->connect()) {
-            $success = $mikrotik->createHotspotUser($token, '', $package->mikrotik_profile);
+            $success = $mikrotik->createHotspotUser($token, $token, $package->mikrotik_profile);
             $mikrotik->disconnect();
         } else {
             Log::error('MikroTik connection failed', [
