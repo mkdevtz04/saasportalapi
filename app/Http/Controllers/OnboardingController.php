@@ -110,6 +110,9 @@ class OnboardingController extends Controller
             $request->username,
             $request->password,
             (int) $request->port,
+            useRelay:    (bool) config('services.mikrotik.relay_enabled', false),
+            relayUrl:    (string) config('services.mikrotik.relay_url', ''),
+            relaySecret: (string) config('services.mikrotik.relay_secret', ''),
         );
 
         $connected = $mikrotik->connect();

@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\TenantRouter;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class MikrotikService
@@ -14,6 +16,9 @@ class MikrotikService
         private string $user,
         private string $pass,
         private int    $port = 8728,
+        private bool   $useRelay = false,
+        private string $relayUrl = '',
+        private string $relaySecret = '',
     ) {}
 
     public static function forRouter(TenantRouter $router): self
@@ -23,11 +28,18 @@ class MikrotikService
             $router->username,
             $router->password,
             $router->port,
+            useRelay:    (bool) config('services.mikrotik.relay_enabled', false),
+            relayUrl:    (string) config('services.mikrotik.relay_url', ''),
+            relaySecret: (string) config('services.mikrotik.relay_secret', ''),
         );
     }
 
     public function connect(): bool
     {
+        if ($this->useRelay) {
+            return $this->relayConnect();
+        }
+
         try {
             $this->socket = @fsockopen($this->ip, $this->port, $errno, $errstr, 10);
 
@@ -45,6 +57,10 @@ class MikrotikService
 
     public function createHotspotUser(string $username, string $password, string $profile): bool
     {
+        if ($this->useRelay) {
+            return $this->relayCreateHotspotUser($username, $password, $profile);
+        }
+
         try {
             $this->writeWord('/ip/hotspot/user/add');
             $this->writeWord('=name='     . $username);
@@ -74,6 +90,77 @@ class MikrotikService
             $this->socket = null;
         }
     }
+
+    // ── Relay (HTTP agent) implementation ─────────────────────────────────────
+
+    private function relayCall(string $action, array $extra = []): array
+    {
+        if (! $this->relayUrl) {
+            Log::error('MikroTik relay enabled but no relay_url configured');
+            return ['ok' => false, 'error' => 'No relay URL configured'];
+        }
+
+        $payload = array_merge([
+            'action' => $action,
+            'ip'     => $this->ip,
+            'user'   => $this->user,
+            'pass'   => $this->pass,
+            'port'   => $this->port,
+        ], $extra);
+
+        try {
+            $response = Http::withHeaders([
+                'X-AGENT-SECRET' => $this->relaySecret,
+                'Accept'         => 'application/json',
+            ])->timeout(15)
+              ->retry(2, 500)
+              ->post($this->relayUrl, $payload);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            Log::error('MikroTik relay HTTP error', [
+                'status' => $response->status(),
+                'body'   => $response->body(),
+            ]);
+
+            return ['ok' => false, 'error' => "Relay returned HTTP {$response->status()}"];
+        } catch (ConnectionException $e) {
+            Log::error('MikroTik relay connection failed', ['error' => $e->getMessage()]);
+            return ['ok' => false, 'error' => 'Relay unreachable: ' . $e->getMessage()];
+        } catch (\Exception $e) {
+            Log::error('MikroTik relay error', ['error' => $e->getMessage()]);
+            return ['ok' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    private function relayConnect(): bool
+    {
+        $result = $this->relayCall('connect');
+        return $result['ok'] ?? false;
+    }
+
+    private function relayCreateHotspotUser(string $username, string $password, string $profile): bool
+    {
+        $result = $this->relayCall('create_hotspot_user', [
+            'username' => $username,
+            'password' => $password,
+            'profile'  => $profile,
+        ]);
+
+        if (! ($result['ok'] ?? false)) {
+            Log::warning('MikroTik relay hotspot user creation failed', [
+                'username' => $username,
+                'profile'  => $profile,
+                'error'    => $result['error'] ?? 'unknown',
+            ]);
+        }
+
+        return $result['ok'] ?? false;
+    }
+
+    // ── Direct (socket) implementation ────────────────────────────────────────
 
     private function login(): bool
     {

@@ -101,7 +101,11 @@ class DashboardRouterController extends Controller
         ]);
 
         try {
-            $svc       = new MikrotikService($request->ip, $request->username, $request->password, (int) ($request->port ?? 8728));
+            $svc       = new MikrotikService($request->ip, $request->username, $request->password, (int) ($request->port ?? 8728),
+            useRelay:    (bool) config('services.mikrotik.relay_enabled', false),
+            relayUrl:    (string) config('services.mikrotik.relay_url', ''),
+            relaySecret: (string) config('services.mikrotik.relay_secret', ''),
+        );
             $connected = $svc->connect();
             $svc->disconnect();
 

@@ -46,6 +46,14 @@ return [
         'user'     => env('MIKROTIK_USER', 'costa'),
         'password' => env('MIKROTIK_PASSWORD', 'costa123'),
         'port'     => env('MIKROTIK_PORT', 8728),
+
+        // ── Local Relay Agent (for SaaS where router is on customer LAN) ──────
+        // When the VPS cannot reach the router's private IP directly,
+        // enable the relay so all MikroTik API calls are proxied through
+        // a local agent running on a machine that CAN reach the router.
+        'relay_enabled' => env('MIKROTIK_RELAY_ENABLED', false),
+        'relay_url'     => env('MIKROTIK_RELAY_URL', ''),
+        'relay_secret'  => env('MIKROTIK_RELAY_SECRET', ''),
     ],
 
 ];
