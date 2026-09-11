@@ -18,7 +18,7 @@ class RouterProvisionController extends Controller
 
         if (! $router) {
             $errorScript = "# ERROR: Invalid or expired provision token.\n"
-                . ":log error \"TrinetPay Provisioning failed: Invalid Token\"\n";
+                . ":log error \"WifiKitaa Provisioning failed: Invalid Token\"\n";
             return response($errorScript, 404, ['Content-Type' => 'text/plain']);
         }
 
@@ -41,13 +41,13 @@ class RouterProvisionController extends Controller
         // Build RouterOS script
         $script = <<<ROUTEROS
 # =========================================================
-# TrinetPay Automated MikroTik Provisioning Script
+# WifiKitaa Automated MikroTik Provisioning Script
 # Tenant: {$subdomain}
 # Router: {$router->name} ({$router->nas_identifier})
 # Generated at: {$nowFormatted}
 # =========================================================
 
-:log info "TrinetPay Provisioning: Starting setup..."
+:log info "WifiKitaa Provisioning: Starting setup..."
 
 # 1. Save system backup before changes
 /system backup save name="trinetpay-backup"
@@ -58,7 +58,7 @@ class RouterProvisionController extends Controller
 
 # 3. Configure API User Credentials
 :if ([:len [/user find name="{$router->username}"]] = 0) do={
-    /user add name="{$router->username}" password="{$router->password}" group=full comment="TrinetPay API User"
+    /user add name="{$router->username}" password="{$router->password}" group=full comment="WifiKitaa API User"
 } else={
     /user set [find name="{$router->username}"] password="{$router->password}" group=full
 }
@@ -66,10 +66,10 @@ class RouterProvisionController extends Controller
 # 4. Configure Hotspot Walled Garden Rules
 /ip hotspot walled-garden
 :if ([:len [find dst-host="{$portalDomain}"]] = 0) do={
-    add dst-host="{$portalDomain}" comment="TrinetPay Portal"
+    add dst-host="{$portalDomain}" comment="WifiKitaa Portal"
 }
 :if ([:len [find dst-host="{$mainDomain}"]] = 0) do={
-    add dst-host="{$mainDomain}" comment="TrinetPay Main Site"
+    add dst-host="{$mainDomain}" comment="WifiKitaa Main Site"
 }
 :if ([:len [find dst-host="palmpesa.drmlelwa.co.tz"]] = 0) do={
     add dst-host="palmpesa.drmlelwa.co.tz" comment="PalmPesa Gateway"
@@ -81,12 +81,12 @@ class RouterProvisionController extends Controller
     set \$p login-by=http-chap html-directory-override=""
 }
 
-:log info "TrinetPay Provisioning: Setup complete! Sending pingback to server..."
+:log info "WifiKitaa Provisioning: Setup complete! Sending pingback to server..."
 
-# 6. Signal Completion Back to TrinetPay Server
+# 6. Signal Completion Back to WifiKitaa Server
 /tool fetch url="{$completeUrl}" keep-result=no check-certificate=no
 
-:log info "TrinetPay Provisioning: Successfully registered with TrinetPay!"
+:log info "WifiKitaa Provisioning: Successfully registered with WifiKitaa!"
 ROUTEROS;
 
         return response($script, 200, [
@@ -141,3 +141,6 @@ ROUTEROS;
             'nas_identifier'   => $router->nas_identifier,
             'provisioned_at'   => $router->provisioned_at ? $router->provisioned_at->diffForHumans() : null,
             'last_seen_at'     => $router->last_seen_at ? $router->last_seen_at->diffForHumans() : null,
+        ]);
+    }
+}
