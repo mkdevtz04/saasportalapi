@@ -14,6 +14,19 @@ class ResolveTenant
         $subdomain = $this->extractSubdomain($request);
 
         if (! $subdomain) {
+            // Fallback: Check if we have a 'nas' identifier in the query string
+            // This allows the main domain to resolve the tenant when redirected from a router.
+            if ($request->has('nas')) {
+                $router = \App\Models\TenantRouter::where('nas_identifier', $request->query('nas'))->first();
+                if ($router) {
+                    $tenant = $router->tenant;
+                    if ($tenant) {
+                        app()->instance('tenant', $tenant);
+                        return $next($request);
+                    }
+                }
+            }
+
             // Main domain request — no tenant context needed
             return $next($request);
         }

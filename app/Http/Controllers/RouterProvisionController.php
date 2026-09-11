@@ -78,7 +78,7 @@ class RouterProvisionController extends Controller
 # 5. Configure Hotspot Profile Redirect Settings
 /ip hotspot profile
 :foreach p in=[find] do={
-    set \$p login-by=http-chap html-directory-override=""
+    set \$p login-by=http-pap html-directory-override=""
 }
 
 :log info "WifiKitaa Provisioning: Setup complete! Sending pingback to server..."

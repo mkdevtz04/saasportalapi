@@ -192,30 +192,30 @@ function showModal(icon, title, msg, spinner) {
 
 function showSuccess(token, pkgName, loginUrl, dst) {
   const target = dst || 'http://www.google.com';
-  let verifyUrl = null;
+  let loginForm = null;
   if (loginUrl) {
-    try {
-      const routerOrigin = new URL(loginUrl).origin;
-      verifyUrl = routerOrigin + '/verify.html'
-        + '?token=' + encodeURIComponent(token)
-        + '&dst='   + encodeURIComponent(target);
-    } catch (e) { /* malformed loginUrl — fall back to manual mode */ }
+    loginForm = `<form id="routerLogin" method="post" action="${safe(loginUrl)}">
+      <input type="hidden" name="username" value="${safe(token)}">
+      <input type="hidden" name="password" value="">
+      <input type="hidden" name="dst" value="${safe(target)}">
+    </form>`;
   }
 
   document.getElementById('modalBox').innerHTML = `
     <span class="m-icon"><i class="fa-solid fa-check"></i></span>
     <div class="m-title">Payment Successful!</div>
-    <div class="m-msg">${verifyUrl ? 'Connecting your device...' : 'Enter this token on the WiFi login page.'}</div>
+    <div class="m-msg">${loginForm ? 'Connecting your device...' : 'Enter this token on the WiFi login page.'}</div>
     <div class="token-box">
       <div class="token-lbl">WiFi Token</div>
       <div class="token-val">${safe(token)}</div>
     </div>
     <p style="color:#667085;font-size:13px;margin-bottom:16px">Package: <strong>${safe(pkgName)}</strong></p>
-    ${verifyUrl ? `<a class="m-btn primary" href="${safe(verifyUrl)}">Tap to Connect</a>` : ''}
+    ${loginForm ? loginForm : ''}
+    ${loginForm ? '<button class="m-btn primary" onclick="document.getElementById(\'routerLogin\').submit()">Connect to WiFi</button>' : ''}
     <button class="m-btn" onclick="document.getElementById('modal').classList.remove('show')">Close</button>`;
 
-  if (verifyUrl) {
-    setTimeout(() => { window.location.href = verifyUrl; }, 1500);
+  if (loginForm) {
+    setTimeout(() => { document.getElementById('routerLogin').submit(); }, 1500);
   }
 }
 
