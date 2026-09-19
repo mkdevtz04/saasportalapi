@@ -214,10 +214,11 @@ RSC, [
             : ':local idok "";';
         $idParam  = $router->isRadius() ? ' . "&m=" . $idok' : '';
 
+        // No lock against overlapping runs on purpose. One run takes about three seconds against a
+        // ten second interval, and the platform hands each command out only once, so an overlap is
+        // harmless. A lock would stay stuck if a run were ever interrupted, and the router would
+        // then stop reporting for good.
         return strtr(<<<'RSC'
-:global tnBusy;
-:if ($tnBusy != 1) do={
-:set tnBusy 1;
 :do {
 :local base {{POLL_URL}};
 {{IDENTITY}}
@@ -291,9 +292,7 @@ RSC, [
     }
   }
 }
-} on-error={ };
-:set tnBusy 0;
-}
+} on-error={ :log warning "TrinetPay agent: could not reach the platform" };
 RSC, [
             '{{POLL_URL}}' => RouterOs::quote($poll),
             '{{IDENTITY}}' => $identity,

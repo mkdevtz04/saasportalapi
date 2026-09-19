@@ -103,7 +103,8 @@ class AgentModeTest extends TestCase
         $this->assertStringContainsString('/ip hotspot user add', $source);
         $this->assertStringContainsString('limit-uptime=[:totime', $source);
         $this->assertStringContainsString('limit-bytes-total=', $source);
-        $this->assertStringContainsString('tnBusy', $source, 'a slow poll must not pile up overlapping runs');
+        // A lock that could get stuck would stop the router reporting for good, so there is none.
+        $this->assertStringNotContainsString(':global', $source, 'nothing may persist between runs and jam the agent');
         $this->assertStringNotContainsString('/import', $source);
         $this->assertStringNotContainsString('&m=', $source, 'the router name only matters for FreeRADIUS');
     }
