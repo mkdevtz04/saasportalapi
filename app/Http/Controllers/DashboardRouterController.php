@@ -31,7 +31,7 @@ class DashboardRouterController extends Controller
         $routers = $tenant->routers()->orderBy('name')->get();
 
         $commands = $routers
-            ->filter(fn (TenantRouter $router) => $router->isRadius())
+            ->filter(fn (TenantRouter $router) => $router->runsAgent())
             ->mapWithKeys(fn (TenantRouter $router) => [$router->id => $this->scripts->oneLiner($router)]);
 
         return view('dashboard.routers.index', compact('tenant', 'routers', 'commands'));
@@ -40,7 +40,7 @@ class DashboardRouterController extends Controller
     public function create(Request $request): View
     {
         $tenant = $this->tenant();
-        $mode   = $request->query('mode') === 'api' ? TenantRouter::MODE_API : TenantRouter::MODE_RADIUS;
+        $mode   = $this->chosenMode($request->query('mode'));
 
         return view('dashboard.routers.form', ['tenant' => $tenant, 'router' => null, 'mode' => $mode, 'command' => null]);
     }
@@ -71,11 +71,16 @@ class DashboardRouterController extends Controller
         }
 
         $validated = $request->validate(['name' => 'required|string|max:100']);
+        $mode      = $this->chosenMode($request->input('mode'));
+
+        if ($mode === TenantRouter::MODE_RADIUS && ! TenantRouter::radiusIsConfigured()) {
+            return back()->withInput()->withErrors(['name' => 'FreeRADIUS is not set up on this server yet, so this connection type cannot be used.']);
+        }
 
         $router = TenantRouter::create([
             'tenant_id'        => $tenant->id,
             'name'             => $validated['name'],
-            'auth_mode'        => TenantRouter::MODE_RADIUS,
+            'auth_mode'        => $mode,
             'nas_identifier'   => TenantRouter::generateNasIdentifier($tenant->id),
             'provision_token'  => TenantRouter::generateProvisionToken(),
             'agent_token'      => TenantRouter::generateAgentToken(),
@@ -98,7 +103,7 @@ class DashboardRouterController extends Controller
             'tenant'  => $tenant,
             'router'  => $router,
             'mode'    => $router->auth_mode,
-            'command' => $router->isRadius() ? $this->scripts->oneLiner($router) : null,
+            'command' => $router->runsAgent() ? $this->scripts->oneLiner($router) : null,
         ]);
     }
 
@@ -107,7 +112,7 @@ class DashboardRouterController extends Controller
         $tenant = $this->tenant();
         abort_unless($router->tenant_id === $tenant->id, 403);
 
-        if ($router->isRadius()) {
+        if ($router->runsAgent()) {
             $router->update($request->validate(['name' => 'required|string|max:100']));
 
             return redirect()->route('dashboard.routers.index')->with('success', 'Router updated.');
@@ -140,7 +145,7 @@ class DashboardRouterController extends Controller
     {
         $tenant = $this->tenant();
         abort_unless($router->tenant_id === $tenant->id, 403);
-        abort_unless($router->isRadius(), 422, 'This router is connected the older way and cannot take commands.');
+        abort_unless($router->runsAgent(), 422, 'This router is connected the older way and cannot take commands.');
 
         $validated = $request->validate(['type' => 'required|in:' . RouterCommand::REBOOT . ',' . RouterCommand::KICK_ALL]);
 
@@ -161,7 +166,7 @@ class DashboardRouterController extends Controller
         abort_unless($router->tenant_id === $tenant->id, 403);
 
         $router->update([
-            'auth_mode'        => TenantRouter::MODE_RADIUS,
+            'auth_mode'        => TenantRouter::connectMode(),
             'agent_token'      => TenantRouter::generateAgentToken(),
             'provision_token'  => TenantRouter::generateProvisionToken(),
             'provision_status' => 'pending',
@@ -223,6 +228,14 @@ class DashboardRouterController extends Controller
         } catch (\Exception $e) {
             return response()->json(['ok' => false, 'message' => $e->getMessage()], 422);
         }
+    }
+
+    /** api, agent or radius from the address or form, and the configured default when it says nothing valid. */
+    private function chosenMode(mixed $requested): string
+    {
+        return in_array($requested, [TenantRouter::MODE_API, TenantRouter::MODE_AGENT, TenantRouter::MODE_RADIUS], true)
+            ? $requested
+            : TenantRouter::defaultMode();
     }
 
     private function validatedApi(Request $request, ?TenantRouter $existing = null): array

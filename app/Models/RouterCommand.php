@@ -13,11 +13,14 @@ class RouterCommand extends Model
     public const REBOOT    = 'reboot';
     public const KICK_USER = 'kick_user';
     public const KICK_ALL  = 'kick_all';
+    public const ADD_USER    = 'add_user';
+    public const REMOVE_USER = 'remove_user';
 
     protected $fillable = [
         'tenant_id',
         'router_id',
         'type',
+        'reference',
         'payload',
         'status',
         'delivered_at',

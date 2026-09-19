@@ -42,6 +42,8 @@ return [
 
     'paid_title'         => 'Payment successful!',
     'connecting'         => 'Connecting your device…',
+    'preparing_title'    => 'Setting up your access…',
+    'preparing_msg'      => 'This takes a few seconds. Please do not close this page.',
     'enter_token'        => 'Enter this token on the WiFi login page.',
     'package'            => 'Package',
     'connect_btn'        => 'Connect to WiFi',

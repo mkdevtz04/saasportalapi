@@ -26,7 +26,7 @@ class RouterAlerts
     /** Returns "offline", "online" or null when nothing needed saying. */
     public function check(TenantRouter $router): ?string
     {
-        if (! $router->isRadius() || $router->provision_status !== 'completed' || ! $router->last_seen_at) {
+        if (! $router->runsAgent() || $router->provision_status !== 'completed' || ! $router->last_seen_at) {
             return null;
         }
 

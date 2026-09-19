@@ -21,12 +21,12 @@ class RouterHeartbeat extends Command
         TenantRouter::withoutGlobalScopes()->orderBy('id')->each(function (TenantRouter $router) use (&$online, &$offline, &$total, $alerts) {
             $total++;
 
-            $isOnline = $router->isRadius()
+            $isOnline = $router->runsAgent()
                 ? $this->radiusRouterIsOnline($router)
                 : $this->apiRouterIsOnline($router);
 
             // Tell the owner once when a router goes quiet, and once when it returns.
-            if ($router->isRadius()) {
+            if ($router->runsAgent()) {
                 $alerts->check($router->fresh());
             }
 

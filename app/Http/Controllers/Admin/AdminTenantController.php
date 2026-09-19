@@ -8,6 +8,7 @@ use App\Models\RouterCommand;
 use App\Models\Tenant;
 use App\Models\Transaction;
 use App\Support\Audit;
+use App\Services\AgentAccess;
 use App\Services\Radius\RadiusAccess;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -56,16 +57,17 @@ class AdminTenantController extends Controller
         ));
     }
 
-    public function suspend(Tenant $tenant, RadiusAccess $radius): RedirectResponse
+    public function suspend(Tenant $tenant, RadiusAccess $radius, AgentAccess $agent): RedirectResponse
     {
         $tenant->update(['status' => 'suspended']);
 
         // A suspended ISP loses access at once: every current login is blocked and every
         // router is told to disconnect its customers on its next check-in.
         $radius->suspendTenant($tenant->id);
+        $agent->suspendTenant($tenant->id);
         Audit::record('tenant.suspended', $tenant->id, [], $tenant);
         $tenant->routers()->get()->each(function ($router) {
-            if ($router->isRadius()) {
+            if ($router->runsAgent()) {
                 $router->queueCommand(RouterCommand::KICK_ALL, [], 'platform admin');
             }
         });
@@ -74,10 +76,11 @@ class AdminTenantController extends Controller
             ->with('success', $tenant->name . ' has been suspended.');
     }
 
-    public function activate(Tenant $tenant, RadiusAccess $radius): RedirectResponse
+    public function activate(Tenant $tenant, RadiusAccess $radius, AgentAccess $agent): RedirectResponse
     {
         $tenant->update(['status' => 'active']);
         $radius->resumeTenant($tenant->id);
+        $agent->resumeTenant($tenant->id);
         Audit::record('tenant.activated', $tenant->id, [], $tenant);
         return redirect()->route('admin.tenants.show', $tenant)
             ->with('success', $tenant->name . ' is now active.');

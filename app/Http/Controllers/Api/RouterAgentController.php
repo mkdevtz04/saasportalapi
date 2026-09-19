@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\RouterCommand;
 use App\Models\TenantRouter;
+use App\Models\Transaction;
 use App\Services\ProvisioningScript;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -51,7 +52,10 @@ class RouterAgentController extends Controller
 
         $router->update($update);
 
-        return $this->plain($this->scripts->agentCommands($this->takePendingCommands($router)));
+        $commands = $this->takePendingCommands($router);
+        $this->markAccessGiven($router, $commands);
+
+        return $this->plain($this->scripts->agentCommands($commands));
     }
 
     /**
@@ -79,6 +83,25 @@ class RouterAgentController extends Controller
 
             return $commands;
         });
+    }
+
+    /**
+     * A customer's access is on the router once it has taken the command that creates their user.
+     * Their transaction stops saying "connecting".
+     *
+     * @param Collection<int,RouterCommand> $commands
+     */
+    private function markAccessGiven(TenantRouter $router, Collection $commands): void
+    {
+        $logins = $commands->where('type', RouterCommand::ADD_USER)->pluck('reference')->filter()->values();
+
+        if ($logins->isNotEmpty()) {
+            Transaction::withoutGlobalScopes()
+                ->where('tenant_id', $router->tenant_id)
+                ->whereIn('voucher_code', $logins)
+                ->where('provision_status', '!=', 'done')
+                ->update(['provision_status' => 'done', 'provision_error' => null]);
+        }
     }
 
     /** Values reported by a router end up in dashboards, so keep them to plain text. */

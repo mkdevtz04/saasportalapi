@@ -42,6 +42,8 @@ return [
 
     'paid_title'         => 'Malipo yamefanikiwa!',
     'connecting'         => 'Tunaunganisha kifaa chako…',
+    'preparing_title'    => 'Tunaandaa huduma yako…',
+    'preparing_msg'      => 'Hii huchukua sekunde chache. Tafadhali usifunge ukurasa huu.',
     'enter_token'        => 'Weka namba hii kwenye ukurasa wa kuingia WiFi.',
     'package'            => 'Kifurushi',
     'connect_btn'        => 'Unganisha WiFi',

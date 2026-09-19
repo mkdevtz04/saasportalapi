@@ -53,14 +53,7 @@ class ProvisioningScript
         $token  = $router->getOrGenerateProvisionToken();
         $base   = TenantUrls::base();
 
-        $walled = collect([
-            TenantUrls::portalHost($tenant),
-            TenantUrls::baseHost(),
-            'cdnjs.cloudflare.com',
-            (string) parse_url((string) config('services.palmpesa.base_url'), PHP_URL_HOST),
-        ])->filter()->unique()->map(
-            fn ($dst) => '/ip hotspot walled-garden add dst-host=' . RouterOs::quote($dst) . ' comment="TrinetPay"'
-        )->implode("\n  ");
+        $walled = $this->walledGarden($tenant);
 
         return strtr(<<<'RSC'
 # =========================================================
@@ -132,17 +125,102 @@ RSC, [
     }
 
     /**
-     * The script stored on the router that runs every minute. It reports the router's
-     * state and imports whatever commands the platform has waiting.
+     * Setup script for agent mode: no RADIUS, no API and nothing that has to reach the router.
+     * The router calls the platform every few seconds and creates customers' hotspot users itself.
+     */
+    public function agentSetup(TenantRouter $router): string
+    {
+        $tenant = $router->tenant;
+        $token  = $router->getOrGenerateProvisionToken();
+        $base   = TenantUrls::base();
+
+        return strtr(<<<'RSC'
+# =========================================================
+# TrinetPay router setup
+# Tenant:    {{TENANT}}
+# Router:    {{ROUTER}}
+# Generated: {{TIME}}
+# =========================================================
+:log info "TrinetPay: setup started"
+:local failed ""
+
+# 1. Hotspot: customers log in with the code they get after paying. Cookies keep a device logged in.
+:do {
+  :if ([:len [/ip hotspot find]] = 0) do={ :error "no hotspot configured" }
+  /ip hotspot profile set [find] use-radius=no login-by=cookie,http-pap
+} on-error={ :set failed ($failed . "hotspot,") }
+
+# 2. Walled garden: what customers may open before they have paid.
+:do {
+  /ip hotspot walled-garden remove [find where comment="TrinetPay"]
+  {{WALLED}}
+} on-error={ :set failed ($failed . "walled-garden,") }
+
+# 3. Branded login page for this ISP.
+:do {
+  /tool fetch url={{LOGIN_URL}} dst-path="hotspot/login.html" mode=https check-certificate=no
+} on-error={ :set failed ($failed . "login-page,") }
+
+# 4. Agent: calls the platform every few seconds and creates customers' hotspot users.
+:do {
+  /system script remove [find where name="trinetpay-agent"]
+  /system script add name="trinetpay-agent" policy=read,write,policy,test,reboot source={{AGENT_SOURCE}}
+  /system scheduler remove [find where name="trinetpay-agent"]
+  /system scheduler add name="trinetpay-agent" interval={{INTERVAL}} start-time=startup policy=read,write,policy,test,reboot comment="TrinetPay" on-event="/system script run trinetpay-agent"
+} on-error={ :set failed ($failed . "agent,") }
+
+# 5. Tell the platform we are done, and which steps did not work.
+:do {
+  /tool fetch url=({{COMPLETE_URL}} . $failed) mode=https keep-result=no check-certificate=no
+} on-error={ :log error "TrinetPay: could not report to the platform" }
+:log info "TrinetPay: setup finished"
+RSC, [
+            '{{TENANT}}'       => RouterOs::comment($tenant->name),
+            '{{ROUTER}}'       => RouterOs::comment($router->name),
+            '{{TIME}}'         => now()->toDateTimeString(),
+            '{{WALLED}}'       => $this->walledGarden($tenant),
+            '{{LOGIN_URL}}'    => RouterOs::quote($base . '/provision/' . $token . '/login.html'),
+            '{{AGENT_SOURCE}}' => RouterOs::quote($this->agentSource($router)),
+            '{{INTERVAL}}'     => RouterOs::bareName((string) config('router.agent_interval'), '10s'),
+            '{{COMPLETE_URL}}' => RouterOs::quote($base . '/provision/' . $token . '/complete?failed='),
+        ]);
+    }
+
+    /** One walled-garden line per host a customer must reach before paying. */
+    private function walledGarden($tenant): string
+    {
+        return collect([
+            TenantUrls::portalHost($tenant),
+            TenantUrls::baseHost(),
+            'cdnjs.cloudflare.com',
+            (string) parse_url((string) config('services.palmpesa.base_url'), PHP_URL_HOST),
+        ])->filter()->unique()->map(
+            fn ($dst) => '/ip hotspot walled-garden add dst-host=' . RouterOs::quote($dst) . ' comment="TrinetPay"'
+        )->implode("\n  ");
+    }
+
+    /**
+     * The script stored on the router that runs every few seconds. It reports the router's state and
+     * reads the commands the platform has waiting. It never runs downloaded text as a script: each
+     * line is matched against a fixed shape and every value is checked again on the router.
      */
     public function agentSource(TenantRouter $router): string
     {
         $poll = TenantUrls::base() . '/api/agent/' . $router->getOrGenerateAgentToken() . '/poll';
 
+        // Only routers logged in through RADIUS need to keep their platform name, so only they report it.
+        $identity = $router->isRadius()
+            ? ':local idok 0;' . "\n" . ':do { :if ([/system identity get name] = ' . RouterOs::quote((string) $router->nas_identifier) . ') do={ :set idok 1 } } on-error={ };'
+            : ':local idok "";';
+        $idParam  = $router->isRadius() ? ' . "&m=" . $idok' : '';
+
         return strtr(<<<'RSC'
+:global tnBusy;
+:if ($tnBusy != 1) do={
+:set tnBusy 1;
+:do {
 :local base {{POLL_URL}};
-:local idok 0;
-:do { :if ([/system identity get name] = {{NAS}}) do={ :set idok 1 } } on-error={ };
+{{IDENTITY}}
 :local ver [/system resource get version];
 :local cut [:find $ver " "];
 :if ([:typeof $cut] = "nil") do={ :set cut [:len $ver] };
@@ -150,45 +228,93 @@ RSC, [
 :local users 0;
 :do { :set users [:len [/ip hotspot active find]] } on-error={ };
 :local up [/system resource get uptime];
-:do {
-  /tool fetch url=($base . "?v=" . $ver . "&n=" . $users . "&u=" . $up . "&m=" . $idok) mode=https dst-path="trinetpay-cmd.txt" check-certificate=no;
-  :delay 2s;
-  :if ([:len [/file find where name="trinetpay-cmd.txt"]] > 0) do={
-    :local content [/file get [/file find where name="trinetpay-cmd.txt"] contents];
-    /file remove [/file find where name="trinetpay-cmd.txt"];
-    :local pos 0;
-    :while ($pos < [:len $content]) do={
-      :local eol [:find $content "\n" $pos];
-      :if ([:typeof $eol] = "nil") do={ :set eol [:len $content] };
-      :local line [:pick $content $pos $eol];
-      :set pos ($eol + 1);
-      :if ($line = "reboot") do={ /system reboot };
-      :if ($line = "kick_all") do={ /ip hotspot active remove [find]; /ip hotspot cookie remove [find] };
-      :if ([:len $line] > 5) do={
-        :if ([:pick $line 0 5] = "kick ") do={
-          :local u [:pick $line 5 [:len $line]];
-          :if ($u ~ "^[A-Za-z0-9:_.-]+\$") do={
-            /ip hotspot active remove [find where user=$u];
-            /ip hotspot cookie remove [find where user=$u];
+/tool fetch url=($base . "?v=" . $ver . "&n=" . $users . "&u=" . $up{{IDPARAM}}) mode=https dst-path="trinetpay-cmd.txt" check-certificate=no;
+:delay 2s;
+:if ([:len [/file find where name="trinetpay-cmd.txt"]] > 0) do={
+  :local content [/file get [/file find where name="trinetpay-cmd.txt"] contents];
+  /file remove [/file find where name="trinetpay-cmd.txt"];
+  :local pos 0;
+  :while ($pos < [:len $content]) do={
+    :local eol [:find $content "\n" $pos];
+    :if ([:typeof $eol] = "nil") do={ :set eol [:len $content] };
+    :local line [:pick $content $pos $eol];
+    :set pos ($eol + 1);
+    :if ($line = "reboot") do={ /system reboot };
+    :if ($line = "kick_all") do={ /ip hotspot active remove [find]; /ip hotspot cookie remove [find] };
+    :if ([:len $line] > 5) do={
+      :if ([:pick $line 0 5] = "kick ") do={
+        :local u [:pick $line 5 [:len $line]];
+        :if ($u ~ "^[A-Za-z0-9:_.-]+\$") do={
+          /ip hotspot active remove [find where user=$u];
+          /ip hotspot cookie remove [find where user=$u];
+        }
+      }
+    }
+    :if ([:len $line] > 11) do={
+      :if ([:pick $line 0 11] = "removeuser ") do={
+        :local u [:pick $line 11 [:len $line]];
+        :if ($u ~ "^[A-Za-z0-9:_.-]+\$") do={
+          /ip hotspot user remove [find where name=$u];
+          /ip hotspot active remove [find where user=$u];
+          /ip hotspot cookie remove [find where user=$u];
+        }
+      }
+    }
+    :if ([:len $line] > 8) do={
+      :if ([:pick $line 0 8] = "adduser ") do={
+        :local rest ([:pick $line 8 [:len $line]] . " ");
+        :local parts [:toarray ""];
+        :local start 0;
+        :for i from=0 to=([:len $rest] - 1) do={
+          :if ([:pick $rest $i ($i + 1)] = " ") do={
+            :set parts ($parts, [:pick $rest $start $i]);
+            :set start ($i + 1);
+          }
+        }
+        :if ([:len $parts] = 5) do={
+          :local user [:pick $parts 0];
+          :local prof [:pick $parts 1];
+          :local rate [:pick $parts 2];
+          :local secs [:pick $parts 3];
+          :local bytes [:pick $parts 4];
+          :if (($user ~ "^[A-Za-z0-9:_.-]+\$") && ($prof ~ "^[A-Za-z0-9_-]+\$") && ($rate ~ "^[0-9]+[MK]/[0-9]+[MK]\$") && ($secs ~ "^[0-9]+\$") && ($bytes ~ "^[0-9]+\$")) do={
+            :if ([:len [/ip hotspot user profile find where name=$prof]] = 0) do={
+              /ip hotspot user profile add name=$prof rate-limit=$rate shared-users=1;
+            } else={
+              /ip hotspot user profile set [find where name=$prof] rate-limit=$rate;
+            }
+            :if ([:len [/ip hotspot user find where name=$user]] > 0) do={ /ip hotspot user remove [find where name=$user] };
+            /ip hotspot user add name=$user password=$user profile=$prof limit-uptime=[:totime ($secs . "s")] limit-bytes-total=$bytes comment="TrinetPay";
           }
         }
       }
     }
   }
-} on-error={ :log warning "TrinetPay agent: could not reach the platform" };
+}
+} on-error={ };
+:set tnBusy 0;
+}
 RSC, [
             '{{POLL_URL}}' => RouterOs::quote($poll),
-            '{{NAS}}'      => RouterOs::quote((string) $router->nas_identifier),
+            '{{IDENTITY}}' => $identity,
+            '{{IDPARAM}}'  => $idParam,
         ]);
     }
 
     /**
      * The reply to an agent poll: plain lines the router reads, never a script it runs.
      *
-     * The grammar is three lines and nothing else: "reboot", "kick_all" and "kick <login>".
-     * The router only acts on those exact shapes and checks the login name again on its side,
-     * so a reply that was tampered with in transit can disconnect customers or restart the router
-     * at worst. It cannot make the router run any command of the attacker's choosing.
+     * The grammar is five shapes and nothing else:
+     *   reboot
+     *   kick_all
+     *   kick <login>
+     *   removeuser <login>
+     *   adduser <login> <profile> <up>M/<down>M <seconds> <bytes>
+     *
+     * The router acts only on those exact shapes and checks every value again on its side. So a
+     * reply that was tampered with in transit can restart the router, disconnect customers or add
+     * or remove a hotspot user, at worst. It cannot make the router run a command of the
+     * attacker's choosing.
      *
      * @param Collection<int,RouterCommand> $commands
      */
@@ -197,11 +323,15 @@ RSC, [
         $lines = ['# TrinetPay commands, generated ' . now()->toDateTimeString()];
 
         foreach ($commands as $command) {
+            $payload = (array) ($command->payload ?? []);
+
             $lines[] = match ($command->type) {
-                RouterCommand::KICK_USER => self::kickLine((string) ($command->payload['username'] ?? '')),
-                RouterCommand::KICK_ALL  => 'kick_all',
-                RouterCommand::REBOOT    => 'reboot',
-                default                  => '# unknown command skipped',
+                RouterCommand::KICK_USER   => self::loginLine('kick', (string) ($payload['username'] ?? '')),
+                RouterCommand::REMOVE_USER => self::loginLine('removeuser', (string) ($payload['username'] ?? '')),
+                RouterCommand::ADD_USER    => self::addUserLine($payload),
+                RouterCommand::KICK_ALL    => 'kick_all',
+                RouterCommand::REBOOT      => 'reboot',
+                default                    => '# unknown command skipped',
             };
         }
 
@@ -209,11 +339,31 @@ RSC, [
     }
 
     /** A login name that is not made of the plain characters a login can contain is skipped. */
-    private static function kickLine(string $username): string
+    private static function loginLine(string $verb, string $username): string
     {
         return preg_match('/^[A-Za-z0-9:_.\-]{1,64}$/', $username)
-            ? 'kick ' . $username
-            : '# kick skipped, the login name was not valid';
+            ? $verb . ' ' . $username
+            : '# ' . $verb . ' skipped, the login name was not valid';
+    }
+
+    /** @param array<string,mixed> $payload */
+    private static function addUserLine(array $payload): string
+    {
+        $user    = (string) ($payload['username'] ?? '');
+        $profile = (string) ($payload['profile'] ?? '');
+        $rate    = (string) ($payload['rate'] ?? '');
+        $seconds = (string) ($payload['seconds'] ?? '');
+        $bytes   = (string) ($payload['bytes'] ?? '');
+
+        $valid = preg_match('/^[A-Za-z0-9:_.\-]{1,64}$/', $user)
+            && preg_match('/^[A-Za-z0-9_\-]{1,40}$/', $profile)
+            && preg_match('/^\d{1,5}M\/\d{1,5}M$/', $rate)
+            && preg_match('/^\d{1,9}$/', $seconds)
+            && preg_match('/^\d{1,12}$/', $bytes);
+
+        return $valid
+            ? "adduser {$user} {$profile} {$rate} {$seconds} {$bytes}"
+            : '# adduser skipped, a value was not valid';
     }
 
     /**

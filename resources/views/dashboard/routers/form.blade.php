@@ -23,6 +23,7 @@
         <div class="card" style="max-width:640px;">
             <form method="POST" action="{{ route('dashboard.routers.store') }}">
                 @csrf
+                <input type="hidden" name="mode" value="{{ $mode }}">
                 <div class="field" style="margin-bottom:16px;">
                     <label>Router Name</label>
                     <input type="text" name="name" value="{{ old('name') }}" placeholder="Main Office Router" required maxlength="100">
@@ -36,8 +37,12 @@
             </form>
             <p style="font-size:12px;color:#94a3b8;margin-top:18px;">
                 Works with any MikroTik, RouterOS v6 and v7, even behind another router or a mobile connection.
-                Nothing needs to be opened on the router.
+                Nothing needs to be opened on the router. Customers are online a few seconds after they pay.
+                <br>
                 <a href="{{ route('dashboard.routers.create', ['mode' => 'api']) }}" style="color:#64748b;">Connect by API instead (advanced)</a>
+                @if (\App\Models\TenantRouter::radiusIsConfigured())
+                    &middot; <a href="{{ route('dashboard.routers.create', ['mode' => 'radius']) }}" style="color:#64748b;">Use FreeRADIUS (advanced)</a>
+                @endif
             </p>
         </div>
     @else

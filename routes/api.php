@@ -12,6 +12,7 @@ Route::post('/payment/callback', [PaymentController::class, 'callback']);
 Route::middleware('portal.locale')->group(function () {
     Route::post('/payment/initiate', [PaymentController::class, 'initiate']);
     Route::get('/payment/status',    [PaymentController::class, 'checkStatus']);
+    Route::get('/access/status',     [PaymentController::class, 'accessStatus'])->middleware('throttle:access');
 
     // Voucher redemption, called when a customer enters a code.
     Route::post('/voucher/redeem',   [VoucherController::class, 'redeem'])->middleware('throttle:voucher');

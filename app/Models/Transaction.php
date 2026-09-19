@@ -24,6 +24,7 @@ class Transaction extends Model
         'provision_status',
         'provision_error',
         'receipt_sent_at',
+        'access_ended_at',
         'locale',
         'channel',
         'palmpesa_order_id',
@@ -39,6 +40,7 @@ class Transaction extends Model
         return [
             'expires_at' => 'datetime',
             'receipt_sent_at' => 'datetime',
+            'access_ended_at' => 'datetime',
             'amount' => 'integer',
         ];
     }

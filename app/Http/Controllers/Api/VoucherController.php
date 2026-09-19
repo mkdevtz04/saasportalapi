@@ -79,8 +79,14 @@ class VoucherController extends Controller
             ->first() ?? $tenant->routers()->first();
 
         $mikrotikSuccess = false;
+        $waitForRouter   = false;
 
-        if ($router && $router->isRadius()) {
+        if ($router && $router->isAgent()) {
+            // The router creates the user itself within seconds. The portal waits for that.
+            app(AccessGranter::class)->grantViaAgent($router, $package, $code, now()->addHours($package->duration_hours ?? 24));
+            $mikrotikSuccess = true;
+            $waitForRouter   = true;
+        } elseif ($router && $router->isRadius()) {
             // The router connects out to RADIUS, so access is just database rows. It cannot fail
             // because the router is offline, the customer simply logs in when it is back.
             app(AccessGranter::class)->grantViaRadius(
@@ -131,6 +137,8 @@ class VoucherController extends Controller
             'package'  => $package->name,
             'duration' => $package->durationLabel(),
             'message'  => __('portal.voucher_ok'),
+            'access_ready' => ! $waitForRouter,
+            'access_ref'   => $waitForRouter ? $code : null,
         ]);
     }
 }

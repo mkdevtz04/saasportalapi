@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\PaymentWebhook;
 use App\Models\TenantPackage;
 use App\Models\Transaction;
+use App\Services\AgentAccess;
 use App\Services\PalmPesaService;
 use App\Services\PaymentSettlement;
 use App\Support\HotspotUrl;
@@ -285,6 +286,9 @@ class PaymentController extends Controller
             return response()->json([
                 'status'     => 'paid',
                 'reference'  => $transaction->reference(),
+                'access_ready' => app(AgentAccess::class)->isReady(
+                    $transaction->router?->isAgent() ? app(AgentAccess::class)->latestGrant((string) $transaction->voucher_code) : null
+                ),
                 'wifi_token' => $transaction->voucher_code,
                 'package'    => $transaction->package?->name,
                 'login_url'  => HotspotUrl::loginUrl($meta['link_login_only'] ?? null),
@@ -293,5 +297,20 @@ class PaymentController extends Controller
         }
 
         return response()->json(['status' => $transaction->status, 'reference' => $transaction->reference()]);
+    }
+
+    /**
+     * The portal asks this after a payment or voucher on a router in agent mode: has the router created
+     * the customer's user yet? It only says ready or not, nothing else about the login.
+     */
+    public function accessStatus(Request $request): JsonResponse
+    {
+        $ref = (string) $request->query('ref', '');
+
+        if (! preg_match('/^[A-Za-z0-9:_.\-]{1,64}$/', $ref)) {
+            return response()->json(['ready' => true]);
+        }
+
+        return response()->json(['ready' => app(AgentAccess::class)->isReady(app(AgentAccess::class)->latestGrant($ref))]);
     }
 }

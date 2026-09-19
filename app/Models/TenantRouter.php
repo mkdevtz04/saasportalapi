@@ -39,6 +39,7 @@ class TenantRouter extends Model
 
     public const MODE_API    = 'api';
     public const MODE_RADIUS = 'radius';
+    public const MODE_AGENT  = 'agent';
 
     protected function casts(): array
     {
@@ -67,10 +68,54 @@ class TenantRouter extends Model
         return $this->hasMany(RouterCommand::class, 'router_id');
     }
 
-    /** True when the router connects out to the platform instead of being logged in to. */
+    /** Customers log in through a FreeRADIUS server. */
     public function isRadius(): bool
     {
         return $this->auth_mode === self::MODE_RADIUS;
+    }
+
+    /** The router creates customers' hotspot users itself when the platform asks it to. */
+    public function isAgent(): bool
+    {
+        return $this->auth_mode === self::MODE_AGENT;
+    }
+
+    /**
+     * True when the router connects out to the platform and runs the agent script, which is every
+     * mode except the old one where the platform logs in to the router.
+     */
+    public function runsAgent(): bool
+    {
+        return $this->isRadius() || $this->isAgent();
+    }
+
+    /** How a new router is connected, from ROUTER_DEFAULT_MODE. Anything unknown means agent. */
+    public static function defaultMode(): string
+    {
+        $mode = (string) config('router.default_mode', self::MODE_AGENT);
+
+        return in_array($mode, [self::MODE_AGENT, self::MODE_RADIUS, self::MODE_API], true) ? $mode : self::MODE_AGENT;
+    }
+
+    /**
+     * The mode a router is switched to, or a new onboarding router gets. Never the old API mode, and
+     * never RADIUS while RADIUS is not set up.
+     */
+    public static function connectMode(): string
+    {
+        $mode = self::defaultMode();
+
+        if ($mode === self::MODE_RADIUS && ! self::radiusIsConfigured()) {
+            return self::MODE_AGENT;
+        }
+
+        return $mode === self::MODE_API ? self::MODE_AGENT : $mode;
+    }
+
+    /** RADIUS needs a server. Until RADIUS_HOST and RADIUS_SECRET are set it cannot be offered. */
+    public static function radiusIsConfigured(): bool
+    {
+        return (string) config('radius.host') !== '' && (string) config('radius.secret') !== '';
     }
 
     public function setPasswordAttribute(?string $value): void
@@ -119,11 +164,12 @@ class TenantRouter extends Model
     }
 
     /** Queue something for the router to do on its next poll. */
-    public function queueCommand(string $type, array $payload = [], ?string $requestedBy = null): RouterCommand
+    public function queueCommand(string $type, array $payload = [], ?string $requestedBy = null, ?string $reference = null): RouterCommand
     {
         return $this->commands()->create([
             'tenant_id'    => $this->tenant_id,
             'type'         => $type,
+            'reference'    => $reference,
             'payload'      => $payload ?: null,
             'requested_by' => $requestedBy,
         ]);

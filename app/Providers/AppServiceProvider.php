@@ -49,6 +49,9 @@ class AppServiceProvider extends ServiceProvider
         // Guessing voucher codes one after another. Real customers redeem one code, maybe a few tries.
         RateLimiter::for('voucher', fn (Request $request) => Limit::perMinute(30)->by('voucher:' . $request->ip()));
 
+        // The portal asks every couple of seconds whether the router has created the customer's user.
+        RateLimiter::for('access', fn (Request $request) => Limit::perMinute(90)->by('access:' . (string) $request->query('ref')));
+
         // Setup downloads for a router. Tokens are long and random, this only slows guessing.
         RateLimiter::for('provision', fn (Request $request) => Limit::perMinute(60)->by('provision:' . $request->ip()));
     }

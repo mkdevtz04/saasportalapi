@@ -297,15 +297,15 @@ class HardeningTest extends TestCase
         $this->app['env'] = 'production';
         $this->clearAdminEnv();
 
-        $this->artisan('db:seed', ['--class' => \Database\Seeders\PlatformAdminSeeder::class])->assertSuccessful();
+        $this->artisan('db:seed', ['--class' => \Database\Seeders\PlatformAdminSeeder::class, '--force' => true])->assertSuccessful();
         $this->assertSame(0, \App\Models\PlatformAdmin::count(), 'no default account on a live server');
 
         $this->setAdminEnv('boss@example.test', 'changeme123');   // the old default: only 11 characters
-        $this->artisan('db:seed', ['--class' => \Database\Seeders\PlatformAdminSeeder::class])->assertSuccessful();
+        $this->artisan('db:seed', ['--class' => \Database\Seeders\PlatformAdminSeeder::class, '--force' => true])->assertSuccessful();
         $this->assertSame(0, \App\Models\PlatformAdmin::count(), 'a weak password is refused on a live server');
 
         $this->setAdminEnv('boss@example.test', 'a-long-enough-password');
-        $this->artisan('db:seed', ['--class' => \Database\Seeders\PlatformAdminSeeder::class])->assertSuccessful();
+        $this->artisan('db:seed', ['--class' => \Database\Seeders\PlatformAdminSeeder::class, '--force' => true])->assertSuccessful();
         $this->assertSame(1, \App\Models\PlatformAdmin::count());
 
         $this->clearAdminEnv();
@@ -316,16 +316,18 @@ class HardeningTest extends TestCase
         $this->app['env'] = 'local';
         $this->clearAdminEnv();
 
-        $this->artisan('db:seed', ['--class' => \Database\Seeders\PlatformAdminSeeder::class])->assertSuccessful();
+        $this->artisan('db:seed', ['--class' => \Database\Seeders\PlatformAdminSeeder::class, '--force' => true])->assertSuccessful();
 
         $this->assertSame(['admin@trinetpay.online'], \App\Models\PlatformAdmin::pluck('email')->all());
+
+        $this->app['env'] = 'testing';
 
         $this->post('/admin/login', ['email' => 'admin@trinetpay.online', 'password' => 'changeme123'])
             ->assertRedirect(route('admin.dashboard'));
         $this->assertAuthenticated('admin');
 
         // Running it again changes nothing and does not duplicate the account.
-        $this->artisan('db:seed', ['--class' => \Database\Seeders\PlatformAdminSeeder::class])->assertSuccessful();
+        $this->artisan('db:seed', ['--class' => \Database\Seeders\PlatformAdminSeeder::class, '--force' => true])->assertSuccessful();
         $this->assertSame(1, \App\Models\PlatformAdmin::count());
     }
 
@@ -369,7 +371,7 @@ class HardeningTest extends TestCase
         Artisan::call('schedule:list');
         $list = Artisan::output();
 
-        foreach (['payments:reconcile', 'router:heartbeat', 'radius:prune', 'data:prune', 'scheduler-beat'] as $job) {
+        foreach (['payments:reconcile', 'router:heartbeat', 'radius:prune', 'data:prune', 'access:expire', 'scheduler-beat'] as $job) {
             $this->assertStringContainsString($job, $list, "{$job} is not scheduled");
         }
     }

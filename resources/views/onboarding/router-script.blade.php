@@ -245,8 +245,8 @@
                             <i class="fa-solid {{ $router->provision_status === 'script_downloaded' ? 'fa-spinner fa-spin' : ($router->provision_status === 'completed' ? 'fa-check' : 'fa-floppy-disk') }}"></i>
                         </div>
                         <div class="step-text">
-                            <div class="title">Connecting to the login server</div>
-                            <div class="desc">Setting the router name and pointing it at the TrinetPay login server.</div>
+                            <div class="title">Preparing the hotspot</div>
+                            <div class="desc">Setting how customers log in after they pay.</div>
                         </div>
                     </div>
                     <span class="badge-status" id="step-2-badge">

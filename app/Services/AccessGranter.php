@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\RouterCommand;
 use App\Models\TenantPackage;
 use App\Models\TenantRouter;
 use App\Models\Transaction;
@@ -18,7 +19,7 @@ use Throwable;
  */
 class AccessGranter
 {
-    public function __construct(private RadiusAccess $radius)
+    public function __construct(private RadiusAccess $radius, private AgentAccess $agent)
     {
     }
 
@@ -30,6 +31,15 @@ class AccessGranter
     public function grantViaRadius(TenantRouter $router, TenantPackage $package, string $username, string $password, \DateTimeInterface $expiresAt, string $source, ?string $mac = null): void
     {
         $this->radius->grant($router->tenant_id, $package, $username, $password, \Illuminate\Support\Carbon::instance($expiresAt), $source, $mac);
+    }
+
+    /**
+     * Queue the customer's access for a router in agent mode. The router creates the hotspot user
+     * itself within seconds. Also safe inside the transaction that settles the payment.
+     */
+    public function grantViaAgent(TenantRouter $router, TenantPackage $package, string $username, \DateTimeInterface $expiresAt): RouterCommand
+    {
+        return $this->agent->grant($router, $package, $username, \Illuminate\Support\Carbon::instance($expiresAt));
     }
 
     /**
@@ -74,6 +84,13 @@ class AccessGranter
         }
 
         $token = $transaction->voucher_code;
+
+        if ($router->isAgent()) {
+            // Access is queued. The transaction shows "connecting" until the router has picked it up.
+            $this->grantViaAgent($router, $package, $token, $transaction->expires_at ?? now()->addHours($package->duration_hours));
+
+            return true;
+        }
 
         if ($router->isRadius()) {
             $this->grantViaRadius($router, $package, $token, $token, $transaction->expires_at ?? now()->addHours($package->duration_hours), 'txn:' . $transaction->id, $transaction->customer_mac);

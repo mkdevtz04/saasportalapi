@@ -600,7 +600,7 @@ class RouterConnectivityTest extends TestCase
         $router = TenantRouter::withoutGlobalScopes()->firstOrFail();
         $response->assertRedirect(route('dashboard.routers.edit', $router));
 
-        $this->assertSame('radius', $router->auth_mode);
+        $this->assertSame('agent', $router->auth_mode, 'the default needs no FreeRADIUS');
         $this->assertNull($router->router_ip);
         $this->assertStringStartsWith('nas-' . $tenant->id . '-', $router->nas_identifier);
         $this->assertStringStartsWith('trinet_prov_', $router->provision_token);
@@ -689,7 +689,7 @@ class RouterConnectivityTest extends TestCase
 
         $this->post("/dashboard/routers/{$old->id}/switch")->assertRedirect();
         $old->refresh();
-        $this->assertSame('radius', $old->auth_mode);
+        $this->assertSame('agent', $old->auth_mode);
         $this->assertNotSame('old_tok', $old->provision_token);
         $this->assertStringStartsWith('trinet_agent_', $old->agent_token);
 
@@ -731,7 +731,7 @@ class RouterConnectivityTest extends TestCase
             ->assertSee('trinetpay-bootstrap.rsc');
 
         $router = TenantRouter::withoutGlobalScopes()->firstOrFail();
-        $this->assertSame('radius', $router->auth_mode);
+        $this->assertSame('agent', $router->auth_mode);
         $this->assertNull($router->username);
     }
 }

@@ -143,6 +143,14 @@ class PaymentSettlement
                 return 'granted';
             }
 
+            // A router in agent mode is given a command in the same database transaction as the
+            // payment. It shows as "connecting" until the router has picked the command up.
+            if ($router && $package && $router->isAgent()) {
+                app(AccessGranter::class)->grantViaAgent($router, $package, $locked->voucher_code, $locked->expires_at);
+
+                return 'granted';
+            }
+
             return 'queue';
         });
 

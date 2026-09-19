@@ -68,7 +68,7 @@ class DashboardController extends Controller
 
         // Things the owner should act on: routers that stopped reporting, and customers who paid
         // but never got online.
-        $offlineRouters = $tenant->routers()->where('auth_mode', 'radius')->get()
+        $offlineRouters = $tenant->routers()->whereIn('auth_mode', ['radius', 'agent'])->get()
             ->filter(fn ($router) => $router->last_seen_at !== null && ! $router->isOnline());
 
         $renamedRouters = $tenant->routers()->where('auth_mode', 'radius')->where('identity_ok', false)->get();

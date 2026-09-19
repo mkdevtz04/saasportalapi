@@ -34,7 +34,7 @@ class OnboardingController extends Controller
             $router = TenantRouter::create([
                 'tenant_id'        => $tenant->id,
                 'name'             => $tenant->name . ' Router',
-                'auth_mode'        => TenantRouter::MODE_RADIUS,
+                'auth_mode'        => TenantRouter::connectMode(),
                 'nas_identifier'   => TenantRouter::generateNasIdentifier($tenant->id),
                 'provision_token'  => TenantRouter::generateProvisionToken(),
                 'agent_token'      => TenantRouter::generateAgentToken(),

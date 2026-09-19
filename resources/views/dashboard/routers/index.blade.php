@@ -37,15 +37,15 @@
                 </thead>
                 <tbody>
                     @foreach ($routers as $router)
-                        @php($online = $router->isRadius() ? $router->isOnline() : $router->status === 'online')
+                        @php($online = $router->runsAgent() ? $router->isOnline() : $router->status === 'online')
                         <tr>
                             <td>
                                 <a href="{{ route('dashboard.routers.edit', $router) }}" style="font-weight:600;color:#0f172a;text-decoration:none;">{{ $router->name }}</a><br>
                                 <span style="font-family:monospace;font-size:11px;color:#94a3b8;">{{ $router->nas_identifier }}</span>
                             </td>
                             <td style="font-size:12px;color:#64748b;">
-                                @if ($router->isRadius())
-                                    One-command
+                                @if ($router->runsAgent())
+                                    {{ $router->isRadius() ? 'FreeRADIUS' : 'One-command' }}
                                     @if ($router->routeros_version) <br>RouterOS {{ $router->routeros_version }} @endif
                                 @else
                                     API {{ $router->router_ip }}:{{ $router->port }}
@@ -54,19 +54,19 @@
                             <td>
                                 @if ($router->provision_status === 'failed')
                                     <span class="badge badge-danger" title="{{ $router->provision_note }}">Setup incomplete</span>
-                                @elseif ($router->isRadius() && ! $router->last_seen_at)
+                                @elseif ($router->runsAgent() && ! $router->last_seen_at)
                                     <span class="badge badge-unknown">Not connected</span>
                                 @else
                                     <span class="badge badge-{{ $online ? 'online' : 'offline' }}">{{ $online ? 'Online' : 'Offline' }}</span>
                                 @endif
                             </td>
-                            <td>{{ $router->isRadius() ? number_format($router->active_users) : '-' }}</td>
+                            <td>{{ $router->runsAgent() ? number_format($router->active_users) : '-' }}</td>
                             <td style="color:#64748b;font-size:13px;">
                                 {{ $router->last_seen_at ? $router->last_seen_at->diffForHumans() : 'Never' }}
                             </td>
                             <td>
                                 <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                                    @if ($router->isRadius())
+                                    @if ($router->runsAgent())
                                         <button type="button" class="btn btn-secondary btn-sm"
                                                 data-command="{{ $commands[$router->id] ?? '' }}"
                                                 onclick="copyProvisionCmd(this)" title="Copy the setup command">

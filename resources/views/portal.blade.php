@@ -345,7 +345,8 @@ async function redeemVoucher() {
     });
 
     if (data.ok) {
-      showSuccess(data.code, data.package, hotspot.link_login_only, hotspot.link_orig);
+      const go = () => showSuccess(data.code, data.package, hotspot.link_login_only, hotspot.link_orig);
+      data.access_ready === false ? whenReady(data.access_ref || data.code, go) : go();
     } else {
       closeModal();
       vcErr.textContent = data.message || t('err_generic');
@@ -379,7 +380,8 @@ function startPolling() {
 
       if (data.status === 'paid') {
         clearInterval(pollTimer);
-        showSuccess(data.wifi_token, data.package, data.login_url || hotspot.link_login_only, data.dst || hotspot.link_orig);
+        const go = () => showSuccess(data.wifi_token, data.package, data.login_url || hotspot.link_login_only, data.dst || hotspot.link_orig);
+        data.access_ready === false ? whenReady(data.wifi_token, go) : go();
       } else if (data.status === 'failed') {
         clearInterval(pollTimer);
         showModal('fa-solid fa-circle-xmark', 'bad', t('failed_title'), safe(t('failed_msg')) + contactLine(), {
@@ -388,6 +390,24 @@ function startPolling() {
       }
     } catch (e) { /* the connection may drop for a moment, keep waiting */ }
   }, POLL_MS);
+}
+
+/**
+ * On a router that creates the user itself, the login only works a few seconds after paying. Wait for the
+ * router to say it is ready, then carry on. After about ninety seconds carry on anyway, the customer can
+ * still press the connect button.
+ */
+function whenReady(ref, done) {
+  showModal('fa-solid fa-gear', '', t('preparing_title'), safe(t('preparing_msg')), {spinner: true});
+  let tries = 0;
+  const timer = setInterval(async () => {
+    tries++;
+    try {
+      const status = await api('/api/access/status?ref=' + encodeURIComponent(ref));
+      if (status.ready) { clearInterval(timer); done(); return; }
+    } catch (e) { /* keep waiting */ }
+    if (tries > 45) { clearInterval(timer); done(); }
+  }, 2000);
 }
 
 /** One more round of waiting, for a customer who confirmed late. */

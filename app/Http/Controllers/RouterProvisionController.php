@@ -32,9 +32,11 @@ class RouterProvisionController extends Controller
         }
 
         try {
-            $script = $router->isRadius()
-                ? $this->scripts->radiusSetup($router)
-                : $this->scripts->apiSetup($router);
+            $script = match (true) {
+                $router->isRadius() => $this->scripts->radiusSetup($router),
+                $router->isAgent()  => $this->scripts->agentSetup($router),
+                default             => $this->scripts->apiSetup($router),
+            };
         } catch (RuntimeException $e) {
             Log::error('Router setup script could not be built', ['router_id' => $router->id, 'error' => $e->getMessage()]);
 
@@ -57,7 +59,7 @@ class RouterProvisionController extends Controller
     {
         $router = TenantRouter::where('provision_token', $token)->first();
 
-        abort_unless($router && $router->isRadius(), 404);
+        abort_unless($router && $router->runsAgent(), 404);
 
         return response($this->scripts->loginPage($router), 200, [
             'Content-Type'  => 'text/html; charset=utf-8',
