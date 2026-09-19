@@ -31,6 +31,7 @@
             All your customers' payments are collected through the TrinetPay platform account.
             Your earnings are tracked in your dashboard wallet and you can request a withdrawal
             to your mobile money number at any time. Withdrawals are processed within 24 hours.
+            There is no monthly fee. A <strong>{{ withdrawal_fee_label() }}</strong> fee is taken from each withdrawal, and only then.
         </div>
 
         <form method="POST" action="{{ route('onboarding.payment.store') }}">

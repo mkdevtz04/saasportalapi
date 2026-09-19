@@ -13,29 +13,54 @@
  *   MIKROTIK_AGENT_URL=http://192.168.88.250:8000
  */
 
-// ── Security: only allow requests with a shared secret ────────────────────────
-$expectedSecret = getenv('MIKROTIK_AGENT_SECRET') ?: 'change-me-now';
+// ── Security ──────────────────────────────────────────────────────────────────
+// LEGACY: only needed for routers connected the old way (platform logs in over the API).
+// Routers set up with the one-command setup never use this script.
+//
+// It refuses to run until a real secret is set, accepts the secret only in the
+// X-AGENT-SECRET header (never in the address), compares it safely, and only talks to
+// private network addresses, so a leaked secret cannot turn this into a proxy to the internet.
+function agent_fail(int $status, string $message): never
+{
+    http_response_code($status);
+    header('Content-Type: application/json');
+    echo json_encode(['ok' => false, 'error' => $message]);
+    exit;
+}
 
-// Prefer $_SERVER, but fall back to getallheaders() (PHP built-in server
-// sometimes does not populate $_SERVER for HTTP_* keys).
-$providedSecret = $_SERVER['HTTP_X-AGENT-SECRET']
-    ?? ($_GET['secret'] ?? '');
+$expectedSecret = (string) getenv('MIKROTIK_AGENT_SECRET');
 
-if (! $providedSecret) {
-    $allHeaders = function_exists('getallheaders') ? getallheaders() : [];
-    foreach ($allHeaders as $key => $value) {
-        if (strtolower($key) === 'x-agent-secret') {
-            $providedSecret = $value;
-            break;
-        }
+if (strlen($expectedSecret) < 16 || $expectedSecret === 'change-me-now') {
+    agent_fail(500, 'Set the MIKROTIK_AGENT_SECRET environment variable to a random value of at least 16 characters, and use the same value as MIKROTIK_RELAY_SECRET on the server.');
+}
+
+$providedSecret = '';
+
+foreach (function_exists('getallheaders') ? getallheaders() : [] as $key => $value) {
+    if (strtolower($key) === 'x-agent-secret') {
+        $providedSecret = (string) $value;
+        break;
     }
 }
 
-if ($providedSecret !== $expectedSecret) {
-    http_response_code(403);
-    header('Content-Type: application/json');
-    echo json_encode(['ok' => false, 'error' => 'Invalid agent secret']);
-    exit;
+if ($providedSecret === '' && isset($_SERVER['HTTP_X_AGENT_SECRET'])) {
+    $providedSecret = (string) $_SERVER['HTTP_X_AGENT_SECRET'];
+}
+
+if (! hash_equals($expectedSecret, $providedSecret)) {
+    agent_fail(403, 'Invalid agent secret');
+}
+
+/** True for addresses on a private or loopback network, the only ones a tenant router can have. */
+function agent_is_private_address(string $ip): bool
+{
+    if (! filter_var($ip, FILTER_VALIDATE_IP)) {
+        return false;
+    }
+
+    $isPublic = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false;
+
+    return ! $isPublic;
 }
 
 // ── Router protocol implementation (same as MikrotikService) ──────────────────
@@ -168,6 +193,14 @@ if (! $ip || ! $user || ! $pass) {
     header('Content-Type: application/json');
     echo json_encode(['ok' => false, 'error' => 'Missing ip, user, or pass']);
     exit;
+}
+
+if (! agent_is_private_address((string) $ip)) {
+    agent_fail(422, 'Only private network addresses are allowed');
+}
+
+if ($port < 1 || $port > 65535) {
+    agent_fail(422, 'Invalid port');
 }
 
 $proto = new MikrotikAgentProtocol();

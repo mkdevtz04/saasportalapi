@@ -562,7 +562,7 @@
 
             <div class="hero-actions">
                 <a href="{{ route('register') }}" class="btn-hero-primary">
-                    Start Free Trial — 14 Days
+                    Create Your Free Account
                 </a>
                 <a href="{{ route('login') }}" class="btn-hero-ghost">
                     Sign into Dashboard →
@@ -647,12 +647,12 @@
 <div class="stats-bar">
     <div class="stats-bar-inner">
         <div class="stat-item">
-            <div class="stat-num">14 Days</div>
-            <div class="stat-lbl">Free Trial</div>
+            <div class="stat-num">0 TZS</div>
+            <div class="stat-lbl">Monthly fee, free to use</div>
         </div>
         <div class="stat-item">
-            <div class="stat-num">MikroTik</div>
-            <div class="stat-lbl">RouterOS Direct</div>
+            <div class="stat-num">Any MikroTik</div>
+            <div class="stat-lbl">RouterOS v6 and v7</div>
         </div>
         <div class="stat-item">
             <div class="stat-num">5 Networks</div>
@@ -763,45 +763,31 @@
     <div class="section-inner">
         <div class="pricing-header">
             <div class="section-tag">Pricing</div>
-            <h2 class="section-title">Simple, transparent pricing</h2>
-            <p class="section-sub">No hidden fees. A small platform fee is automatically deducted from each transaction — you keep the rest.</p>
+            <h2 class="section-title">Free to use. Pay only when you withdraw.</h2>
+            <p class="section-sub">No subscription and no monthly fee. Customer payments go straight to your wallet in full. A small fee is taken only when you withdraw to mobile money.</p>
         </div>
 
-        <div class="pricing-grid">
-            <div class="price-card">
-                <div class="price-name">Free Trial</div>
-                <div class="price-amount">0 <span>TZS / 14 days</span></div>
-                <div class="price-desc">Try everything, no commitment required.</div>
+        <div class="pricing-grid" style="grid-template-columns:1fr;max-width:420px;">
+            <div class="price-card featured">
+                <div class="price-badge">Everything included</div>
+                <div class="price-name">TrinetPay</div>
+                <div class="price-amount">0 <span>TZS / month</span></div>
+                <div class="price-desc">{{ withdrawal_fee_label() }} fee only on withdrawals.</div>
                 <ul class="price-list">
                     <li>Full dashboard access</li>
-                    <li>MikroTik integration</li>
+                    <li>Works with any MikroTik router</li>
+                    <li>Unlimited routers and packages</li>
                     <li>Voucher generation & printing</li>
                     <li>Agent POS system</li>
                     <li>Mobile money payments</li>
-                    <li>Up to 3 routers</li>
-                </ul>
-                <a href="{{ route('register') }}" class="btn-price-ghost">Start Free Trial</a>
-            </div>
-
-            <div class="price-card featured">
-                <div class="price-badge">Most Popular</div>
-                <div class="price-name">Growth Plan</div>
-                <div class="price-amount">15,000 <span>TZS / month</span></div>
-                <div class="price-desc">Plus a 5% platform fee per successful transaction.</div>
-                <ul class="price-list">
-                    <li>Everything in Trial</li>
-                    <li>Unlimited routers</li>
-                    <li>Unlimited packages & vouchers</li>
-                    <li>Unlimited agents</li>
-                    <li>Priority support</li>
-                    <li>Wallet payouts anytime</li>
+                    <li>Wallet payouts on request</li>
                 </ul>
                 <a href="{{ route('register') }}" class="btn-price-primary">Get Started →</a>
             </div>
         </div>
 
         <p style="text-align:center;margin-top:24px;font-size:13px;color:#475569;">
-            The 5% platform fee covers payment processing and platform maintenance. No additional gateway fees.
+            Voucher sales and agent sales are cash you collect yourself, so they carry no fee at all.
         </p>
     </div>
 </section>
@@ -814,7 +800,7 @@
         <a href="{{ route('register') }}" class="btn-hero-primary">
             Create Your Free Account
         </a>
-        <p class="cta-note">14-day free trial · No credit card · Cancel anytime</p>
+        <p class="cta-note">Free to use · No monthly fee · No credit card</p>
     </div>
 </section>
 

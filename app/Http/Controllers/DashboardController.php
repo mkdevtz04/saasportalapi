@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\TenantWallet;
 use App\Models\Transaction;
+use App\Models\WalletEntry;
 use App\Models\WithdrawalRequest;
+use App\Support\Audit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -63,9 +66,22 @@ class DashboardController extends Controller
             ->groupBy('status')
             ->pluck('total', 'status');
 
+        // Things the owner should act on: routers that stopped reporting, and customers who paid
+        // but never got online.
+        $offlineRouters = $tenant->routers()->where('auth_mode', 'radius')->get()
+            ->filter(fn ($router) => $router->last_seen_at !== null && ! $router->isOnline());
+
+        $renamedRouters = $tenant->routers()->where('auth_mode', 'radius')->where('identity_ok', false)->get();
+
+        $accessProblems = Transaction::where('tenant_id', $tenant->id)
+            ->where('status', 'completed')
+            ->where('provision_status', 'failed')
+            ->where('created_at', '>=', now()->subDays(7))
+            ->count();
+
         return view('dashboard.home', compact(
             'tenant', 'todayRevenue', 'monthRevenue', 'monthCount',
-            'wallet', 'chartDays', 'chartRevenue', 'recentTransactions', 'routerStats'
+            'wallet', 'chartDays', 'chartRevenue', 'recentTransactions', 'routerStats', 'offlineRouters', 'renamedRouters', 'accessProblems'
         ));
     }
 
@@ -81,12 +97,25 @@ class DashboardController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->query('access') === 'failed') {
+            $query->where('status', 'completed')->where('provision_status', 'failed');
+        }
+
         if ($request->filled('phone')) {
             $query->where('phone', 'like', '%' . $request->phone . '%');
         }
 
         if ($request->filled('date')) {
             $query->whereDate('created_at', $request->date);
+        }
+
+        // The reference a customer reads out is the end of the public id.
+        if ($request->filled('ref')) {
+            $query->where('public_id', 'like', '%' . strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string) $request->ref)));
+        }
+
+        if (in_array($request->channel, [Transaction::CHANNEL_PORTAL, Transaction::CHANNEL_VOUCHER], true)) {
+            $query->where('channel', $request->channel);
         }
 
         $transactions = $query->paginate(20)->withQueryString();
@@ -109,6 +138,7 @@ class DashboardController extends Controller
             'brand_color'       => ['nullable', 'string', 'max:7', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'tagline'           => 'nullable|string|max:200',
             'contact_phone'     => 'nullable|string|max:30',
+            'default_language'  => 'required|in:sw,en',
             'withdrawal_number' => 'nullable|string|max:30',
             'logo'              => 'nullable|image|mimes:png,jpg,jpeg,svg|max:2048',
         ]);
@@ -117,6 +147,7 @@ class DashboardController extends Controller
             'brand_color'       => $validated['brand_color'] ?? '#0066cc',
             'tagline'           => $validated['tagline'] ?? null,
             'contact_phone'     => $validated['contact_phone'] ?? null,
+            'default_language'  => $validated['default_language'],
             'withdrawal_number' => $validated['withdrawal_number'] ?? null,
         ];
 
@@ -125,7 +156,17 @@ class DashboardController extends Controller
             $data['custom_logo_path'] = $path;
         }
 
+        $previousNumber = $tenant->settings()->value('withdrawal_number');
+
         $tenant->settings()->updateOrCreate(['tenant_id' => $tenant->id], $data);
+
+        // The payout number is what an attacker would change first, so every change is recorded.
+        if (($data['withdrawal_number'] ?? null) !== $previousNumber) {
+            Audit::record('settings.payout_number_changed', $tenant->id, [
+                'from' => Audit::maskPhone($previousNumber),
+                'to'   => Audit::maskPhone($data['withdrawal_number'] ?? null),
+            ]);
+        }
 
         return back()->with('success', 'Settings saved successfully.');
     }
@@ -161,25 +202,43 @@ class DashboardController extends Controller
             return back()->withErrors(['amount' => 'Insufficient wallet balance.'])->withInput();
         }
 
+        $amount = (int) $validated['amount'];
+        $fee    = WithdrawalRequest::feeFor($amount);
+        $net    = $amount - $fee;
+
         try {
-            DB::transaction(function () use ($tenant, $validated, $wallet) {
+            DB::transaction(function () use ($tenant, $validated, $wallet, $amount, $fee, $net) {
                 $withdrawal = WithdrawalRequest::create([
                     'tenant_id'     => $tenant->id,
-                    'amount'        => $validated['amount'],
+                    'amount'        => $amount,
+                    'fee_amount'    => $fee,
+                    'net_amount'    => $net,
                     'mobile_number' => $validated['mobile_number'],
                     'status'        => 'pending',
                 ]);
 
-                $debited = $wallet->debit($validated['amount']);
+                // The debit re-checks the balance under a row lock, so two requests
+                // sent at the same moment cannot both spend the same money.
+                $debited = $wallet->debit($amount, WalletEntry::WITHDRAWAL, 'WDR-' . $withdrawal->id, [
+                    'fee' => $fee,
+                    'net' => $net,
+                ]);
 
                 if (! $debited) {
                     throw new \RuntimeException('Insufficient balance during transaction.');
                 }
+
+                Audit::record('withdrawal.requested', $tenant->id, [
+                    'amount' => $amount,
+                    'fee'    => $fee,
+                    'net'    => $net,
+                    'to'     => Audit::maskPhone($validated['mobile_number']),
+                ], $withdrawal);
             });
         } catch (\Exception $e) {
             return back()->withErrors(['amount' => 'Withdrawal failed: ' . $e->getMessage()])->withInput();
         }
 
-        return back()->with('success', 'Withdrawal request submitted. Processing within 24 hours.');
+        return back()->with('success', 'Withdrawal request submitted. You will receive TZS ' . number_format($net) . ' after a TZS ' . number_format($fee) . ' fee. Processing within 24 hours.');
     }
 }

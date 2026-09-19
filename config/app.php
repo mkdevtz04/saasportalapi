@@ -123,4 +123,17 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Health check token
+    |--------------------------------------------------------------------------
+    |
+    | /health tells anyone whether the platform is up. A caller that sends this value in the
+    | X-Health-Token header also gets the details. Leave empty to never show details.
+    |
+    */
+
+    'health_token' => env('HEALTH_TOKEN'),
+
 ];

@@ -6,6 +6,7 @@ use App\Models\Tenant;
 use App\Models\TenantPackage;
 use App\Models\TenantRouter;
 use App\Services\MikrotikService;
+use App\Services\ProvisioningScript;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,19 +26,18 @@ class OnboardingController extends Controller
     {
         $tenant = $this->tenant();
 
-        // Load existing router or auto-initialize first router for 1-command provisioning
+        // Load the first router, or create it. New routers connect out to the platform, so
+        // only a name is needed. Nothing has to be opened or reachable on the router.
         $router = $tenant->routers()->first();
 
         if (! $router) {
             $router = TenantRouter::create([
                 'tenant_id'        => $tenant->id,
                 'name'             => $tenant->name . ' Router',
-                'router_ip'        => '192.168.88.1',
-                'username'         => 'trinetpay',
-                'password'         => \Illuminate\Support\Str::random(12),
-                'port'             => 8728,
+                'auth_mode'        => TenantRouter::MODE_RADIUS,
                 'nas_identifier'   => TenantRouter::generateNasIdentifier($tenant->id),
                 'provision_token'  => TenantRouter::generateProvisionToken(),
+                'agent_token'      => TenantRouter::generateAgentToken(),
                 'provision_status' => 'pending',
             ]);
         } else {
@@ -46,7 +46,9 @@ class OnboardingController extends Controller
 
         session(['onboarding_router_id' => $router->id]);
 
-        return view('onboarding.router-script', compact('tenant', 'router'));
+        $command = app(ProvisioningScript::class)->oneLiner($router);
+
+        return view('onboarding.router-script', compact('tenant', 'router', 'command'));
     }
 
     public function storeRouter(Request $request): RedirectResponse
@@ -71,6 +73,7 @@ class OnboardingController extends Controller
         $router = TenantRouter::create([
             'tenant_id'        => $tenant->id,
             'name'             => $request->name,
+            'auth_mode'        => TenantRouter::MODE_API,
             'router_ip'        => $request->router_ip,
             'username'         => $request->username,
             'password'         => $request->password, // model accessor encrypts on write
@@ -152,7 +155,7 @@ class OnboardingController extends Controller
             'packages.*.duration_hours'      => 'required|integer|min:1',
             'packages.*.speed_down_mbps'     => 'required|integer|min:1',
             'packages.*.speed_up_mbps'       => 'required|integer|min:1',
-            'packages.*.mikrotik_profile'    => 'required|string|max:50|regex:/^[a-z0-9_-]+$/i',
+            'packages.*.mikrotik_profile'    => 'nullable|string|max:50|regex:/^[a-z0-9_-]+$/i',
         ]);
 
         // Delete any previously created onboarding packages to avoid duplicates on re-submit
@@ -166,7 +169,7 @@ class OnboardingController extends Controller
                 'duration_hours'   => $pkg['duration_hours'],
                 'speed_down_mbps'  => $pkg['speed_down_mbps'],
                 'speed_up_mbps'    => $pkg['speed_up_mbps'],
-                'mikrotik_profile' => strtolower($pkg['mikrotik_profile']),
+                'mikrotik_profile' => strtolower($pkg['mikrotik_profile'] ?? '') ?: (\Illuminate\Support\Str::slug($pkg['name']) ?: 'package'),
                 'is_active'        => true,
                 'sort_order'       => $index,
             ]);
@@ -204,6 +207,6 @@ class OnboardingController extends Controller
         session()->forget('onboarding_router_id');
 
         return redirect('/dashboard')
-            ->with('success', 'Setup complete! Your portal is live at ' . $tenant->subdomain . '.trinetpay.online');
+            ->with('success', 'Setup complete! Your portal is live at ' . \App\Support\TenantUrls::portalHost($tenant));
     }
 }

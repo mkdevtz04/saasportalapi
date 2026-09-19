@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\TenantPackage;
 use App\Models\Voucher;
+use App\Support\Audit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -97,6 +98,8 @@ class DashboardVoucherController extends Controller
             return back()->withErrors(['quantity' => 'Code collision detected. Please try again.']);
         }
 
+        Audit::record('vouchers.generated', $tenant->id, ['batch' => $batchRef, 'quantity' => $qty, 'package' => $package->name]);
+
         return redirect()->route('dashboard.vouchers.print', $batchRef)
             ->with('success', $qty . ' vouchers generated for "' . $package->name . '".');
     }
@@ -126,6 +129,8 @@ class DashboardVoucherController extends Controller
             ->whereNull('used_at')
             ->whereNull('sold_at')
             ->delete();
+
+        Audit::record('vouchers.batch_deleted', $tenant->id, ['batch' => $batchRef, 'deleted' => $deleted]);
 
         return redirect()->route('dashboard.vouchers.index')
             ->with('success', "{$deleted} unused vouchers from batch deleted.");

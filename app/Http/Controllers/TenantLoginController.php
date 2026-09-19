@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ThrottlesLogins;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -9,6 +10,8 @@ use Illuminate\View\View;
 
 class TenantLoginController extends Controller
 {
+    use ThrottlesLogins;
+
     public function show(): View|RedirectResponse
     {
         if (Auth::guard('tenant')->check()) {
@@ -24,10 +27,15 @@ class TenantLoginController extends Controller
             'password' => 'required|string',
         ]);
 
+        $this->ensureNotLockedOut($request, 'tenant');
+
         if (Auth::guard('tenant')->attempt($credentials, $request->boolean('remember'))) {
+            $this->clearFailedLogins($request, 'tenant');
             $request->session()->regenerate();
             return redirect()->intended(route($this->defaultRoute()));
         }
+
+        $this->recordFailedLogin($request, 'tenant');
 
         return back()
             ->withErrors(['email' => 'These credentials do not match our records.'])

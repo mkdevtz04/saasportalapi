@@ -13,6 +13,7 @@ class TenantSettings extends Model
         'tagline',
         'custom_logo_path',
         'contact_phone',
+        'default_language',
         'withdrawal_number',
     ];
 

@@ -15,7 +15,7 @@ class AdminDashboardController extends Controller
         $stats = [
             'total'     => Tenant::count(),
             'active'    => Tenant::where('status', 'active')->count(),
-            'trial'     => Tenant::where('status', 'trial')->count(),
+            'onboarding' => Tenant::where('status', 'onboarding')->count(),
             'suspended' => Tenant::where('status', 'suspended')->count(),
         ];
 
@@ -27,7 +27,7 @@ class AdminDashboardController extends Controller
         ];
 
         $pendingWithdrawals = WithdrawalRequest::where('status', 'pending')
-            ->selectRaw('count(*) as count, coalesce(sum(amount), 0) as total')
+            ->selectRaw('count(*) as count, coalesce(sum(net_amount), 0) as total')
             ->first();
 
         $recentTenants = Tenant::orderByDesc('created_at')->limit(6)->get();

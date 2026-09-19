@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,9 +11,12 @@ use Illuminate\Support\Str;
 
 class TenantRouter extends Model
 {
+    use BelongsToTenant;
+
     protected $fillable = [
         'tenant_id',
         'name',
+        'auth_mode',
         'router_ip',
         'username',
         'password',
@@ -21,16 +25,30 @@ class TenantRouter extends Model
         'status',
         'last_seen_at',
         'provision_token',
+        'agent_token',
         'provision_status',
+        'provision_note',
+        'offline_alerted_at',
+        'identity_ok',
         'provisioned_at',
+        'routeros_version',
+        'public_ip',
+        'active_users',
+        'router_uptime',
     ];
+
+    public const MODE_API    = 'api';
+    public const MODE_RADIUS = 'radius';
 
     protected function casts(): array
     {
         return [
             'last_seen_at'   => 'datetime',
+            'offline_alerted_at' => 'datetime',
             'provisioned_at' => 'datetime',
             'port'           => 'integer',
+            'active_users'   => 'integer',
+            'identity_ok'    => 'boolean',
         ];
     }
 
@@ -44,18 +62,78 @@ class TenantRouter extends Model
         return $this->hasMany(Transaction::class, 'router_id');
     }
 
-    public function setPasswordAttribute(string $value): void
+    public function commands(): HasMany
     {
-        $this->attributes['password'] = Crypt::encryptString($value);
+        return $this->hasMany(RouterCommand::class, 'router_id');
     }
 
-    public function getPasswordAttribute(string $value): string
+    /** True when the router connects out to the platform instead of being logged in to. */
+    public function isRadius(): bool
     {
+        return $this->auth_mode === self::MODE_RADIUS;
+    }
+
+    public function setPasswordAttribute(?string $value): void
+    {
+        $this->attributes['password'] = $value === null || $value === '' ? null : Crypt::encryptString($value);
+    }
+
+    public function getPasswordAttribute(?string $value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
         try {
             return Crypt::decryptString($value);
         } catch (\Exception) {
             return '';
         }
+    }
+
+    /**
+     * The router API user name, always derived from the tenant name so it is safe to put
+     * in a script. The tn_ prefix also stops a tenant called "admin" from colliding with
+     * the built-in RouterOS admin account.
+     */
+    public static function apiUsernameFor(Tenant $tenant): string
+    {
+        $slug = Str::limit(Str::slug($tenant->name, '_'), 24, '');
+
+        return 'tn_' . ($slug !== '' ? $slug : 'isp');
+    }
+
+    public static function generateAgentToken(): string
+    {
+        return 'trinet_agent_' . Str::random(40);
+    }
+
+    public function getOrGenerateAgentToken(): string
+    {
+        if (empty($this->agent_token)) {
+            $this->agent_token = static::generateAgentToken();
+            $this->save();
+        }
+
+        return $this->agent_token;
+    }
+
+    /** Queue something for the router to do on its next poll. */
+    public function queueCommand(string $type, array $payload = [], ?string $requestedBy = null): RouterCommand
+    {
+        return $this->commands()->create([
+            'tenant_id'    => $this->tenant_id,
+            'type'         => $type,
+            'payload'      => $payload ?: null,
+            'requested_by' => $requestedBy,
+        ]);
+    }
+
+    /** A router that connects out counts as online while its polls keep arriving. */
+    public function isOnline(): bool
+    {
+        return $this->last_seen_at !== null
+            && $this->last_seen_at->gt(now()->subMinutes((int) config('radius.offline_after_minutes', 5)));
     }
 
     public static function generateNasIdentifier(int $tenantId): string

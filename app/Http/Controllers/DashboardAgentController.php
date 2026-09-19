@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AgentWallet;
 use App\Models\TenantUser;
+use App\Support\Audit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -78,6 +79,8 @@ class DashboardAgentController extends Controller
             'TOPUP-' . now()->format('YmdHis'),
             'Top-up by ' . Auth::guard('tenant')->user()->name
         );
+
+        Audit::record('agent.topped_up', $tenant->id, ['agent' => $agent->email, 'amount' => (int) $validated['amount']], $agent);
 
         return back()->with('success', number_format($validated['amount']) . ' TZS added to ' . $agent->name . "'s wallet.");
     }

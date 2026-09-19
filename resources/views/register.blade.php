@@ -186,7 +186,7 @@
 
     <h2>Create your ISP account</h2>
     <p class="subtitle">Set up your hotspot billing portal in minutes.</p>
-    <span class="trial-badge">14-day free trial — no credit card needed</span>
+    <span class="trial-badge">Free to use — no monthly fee</span>
 
     @if ($errors->any())
         <div class="alert-error">

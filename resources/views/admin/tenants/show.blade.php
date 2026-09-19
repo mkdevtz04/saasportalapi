@@ -12,9 +12,13 @@
 <div class="page-header">
     <div>
         <div class="page-title">{{ $tenant->name }}</div>
-        <div class="page-sub">{{ $tenant->subdomain }}.trinetpay.online</div>
+        <div class="page-sub">{{ \App\Support\TenantUrls::portalHost($tenant) }}</div>
     </div>
-    <div style="display:flex;gap:8px;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <form method="POST" action="{{ route('admin.tenants.impersonate', $tenant) }}" onsubmit="return confirm('Open this ISP dashboard as platform support? Every step is recorded.')">
+            @csrf
+            <button type="submit" class="btn btn-secondary"><i class="fa-solid fa-user-shield"></i> Open as ISP</button>
+        </form>
         @if ($tenant->status !== 'suspended')
             <form method="POST" action="{{ route('admin.tenants.suspend', $tenant) }}" onsubmit="return confirm('Suspend this ISP?')">
                 @csrf
@@ -39,16 +43,8 @@
             <dd><span class="badge badge-{{ $tenant->status }}">{{ ucfirst($tenant->status) }}</span></dd>
             <dt>Joined</dt>
             <dd>{{ $tenant->created_at->format('d M Y, H:i') }}</dd>
-            @if ($tenant->trial_ends_at)
-            <dt>Trial Ends</dt>
-            <dd>{{ $tenant->trial_ends_at->format('d M Y') }}
-                @if ($tenant->trial_ends_at->isPast())
-                    <span style="color:#dc2626;font-size:12px;">(expired)</span>
-                @endif
-            </dd>
-            @endif
             <dt>Portal URL</dt>
-            <dd><a href="//{{ $tenant->subdomain }}.trinetpay.online" target="_blank" style="color:#4f46e5;">{{ $tenant->subdomain }}.trinetpay.online ↗</a></dd>
+            <dd><a href="{{ \App\Support\TenantUrls::portal($tenant) }}" target="_blank" style="color:#4f46e5;">{{ \App\Support\TenantUrls::portalHost($tenant) }} ↗</a></dd>
         </dl>
     </div>
 
@@ -81,21 +77,6 @@
 
 </div>
 
-{{-- Monthly fee --}}
-<div class="card">
-    <div class="card-title">Monthly Subscription Fee</div>
-    <form method="POST" action="{{ route('admin.tenants.set-fee', $tenant) }}" class="form-row">
-        @csrf
-        <div class="field" style="flex:1;">
-            <label>Monthly Fee (TZS)</label>
-            <input type="number" name="monthly_fee_tzs" value="{{ $tenant->monthly_fee_tzs ?? '' }}"
-                   placeholder="Leave blank to use platform default ({{ number_format(config('platform.monthly_fee_tzs')) }} TZS)">
-        </div>
-        <button type="submit" class="btn btn-primary">Update Fee</button>
-    </form>
-    <p style="font-size:11px;color:#94a3b8;margin-top:8px;">Platform default: {{ number_format(config('platform.monthly_fee_tzs')) }} TZS/month</p>
-</div>
-
 {{-- Recent Transactions --}}
 <div class="card">
     <div class="card-title">Recent Transactions</div>
@@ -112,8 +93,8 @@
                         <td style="color:#64748b;font-size:12px;">{{ $txn->package?->name ?? '—' }}</td>
                         <td><strong>{{ number_format($txn->amount) }}</strong> TZS</td>
                         <td>
-                            @if ($txn->status === 'success')
-                                <span class="badge badge-paid">Success</span>
+                            @if ($txn->status === 'completed')
+                                <span class="badge badge-paid">Completed</span>
                             @elseif ($txn->status === 'pending')
                                 <span class="badge badge-pending">Pending</span>
                             @else

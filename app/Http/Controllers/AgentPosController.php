@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\AgentWallet;
-use App\Models\TenantWallet;
 use App\Models\Voucher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -90,7 +89,9 @@ class AgentPosController extends Controller
                 'used_by_phone'  => $validated['customer_phone'] ?? null,
             ]);
 
-            // Money: agent wallet → tenant wallet
+            // The agent wallet is a cash tally between the owner and the agent: the agent
+            // handed cash to the owner up front. It is not platform money, so nothing is
+            // credited to the tenant wallet. Only gateway payments ever fill that wallet.
             $debited = $wallet->debit(
                 $package->price,
                 'SALE-' . $voucher->code,
@@ -100,12 +101,6 @@ class AgentPosController extends Controller
             if (! $debited) {
                 throw new \RuntimeException('Wallet debit failed — race condition?');
             }
-
-            $tenantWallet = TenantWallet::firstOrCreate(
-                ['tenant_id' => $tenant->id],
-                ['balance' => 0, 'total_earned' => 0]
-            );
-            $tenantWallet->credit($package->price);
 
             return $voucher;
         });

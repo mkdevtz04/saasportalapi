@@ -13,21 +13,7 @@ class Tenant extends Model
         'subdomain',
         'logo_path',
         'status',
-        'trial_ends_at',
-        'monthly_fee_tzs',
-        'next_billing_at',
-        'last_billed_at',
     ];
-
-    protected function casts(): array
-    {
-        return [
-            'trial_ends_at'   => 'datetime',
-            'next_billing_at' => 'datetime',
-            'last_billed_at'  => 'datetime',
-            'monthly_fee_tzs' => 'integer',
-        ];
-    }
 
     public function users(): HasMany
     {

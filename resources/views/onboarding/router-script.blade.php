@@ -181,15 +181,15 @@
             <div class="step-icon"><i class="fa-solid fa-bolt"></i></div>
             <div>
                 <h2>Connect Your MikroTik Router</h2>
-                <p class="sub">Run this 1-line command in your WinBox terminal & boom — your device will be available!</p>
+                <p class="sub">Paste this one command into your router. It works on any RouterOS version and needs nothing opened on the router.</p>
             </div>
         </div>
 
         <div id="success-banner" class="success-banner">
             <i class="fa-solid fa-circle-check fa-2x"></i>
             <div>
-                <strong style="font-size:16px;">Router Successfully Provisioned!</strong>
-                <p style="font-size:13px;margin:2px 0 0 0;opacity:0.9;">TrinetPay has finished configuring your router and verified the API connection.</p>
+                <strong style="font-size:16px;">Router connected!</strong>
+                <p style="font-size:13px;margin:2px 0 0 0;opacity:0.9;">Your router is set up and has reported back to TrinetPay.</p>
             </div>
         </div>
 
@@ -203,7 +203,7 @@
                 </button>
             </div>
             <div class="command-code-wrap">
-                <div class="command-code" id="provision-command">/tool fetch url="{{ request()->getSchemeAndHttpHost() }}/provision/{{ $router->provision_token }}" dst-path=trinetpay-bootstrap.rsc check-certificate=no; :import trinetpay-bootstrap.rsc; /file remove trinetpay-bootstrap.rsc</div>
+                <div class="command-code" id="provision-command">{{ $command }}</div>
             </div>
         </div>
 
@@ -211,7 +211,12 @@
             <i class="fa-solid fa-circle-info"></i> Open WinBox &rarr; <strong>New Terminal</strong> &rarr; Right Click &rarr; <strong>Paste</strong> &rarr; Hit Enter.
         </p>
 
-        <!-- RodLink Progress Breakdown List -->
+        <div id="failure-note" class="alert alert-error" style="display:none;margin-bottom:14px;padding:12px 14px;border-radius:8px;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;font-size:13px;">
+            <strong>Setup finished with problems.</strong> <span id="failure-text"></span>
+            Make sure the hotspot already exists on the router (<code>/ip hotspot setup</code>) and paste the command again.
+        </div>
+
+        <!-- Progress Breakdown List -->
         <div class="progress-box">
             <div class="progress-box-header">Setup Progress</div>
             <div class="progress-box-sub">The router is being configured. This takes just a few seconds.</div>
@@ -240,8 +245,8 @@
                             <i class="fa-solid {{ $router->provision_status === 'script_downloaded' ? 'fa-spinner fa-spin' : ($router->provision_status === 'completed' ? 'fa-check' : 'fa-floppy-disk') }}"></i>
                         </div>
                         <div class="step-text">
-                            <div class="title">Creating Backup</div>
-                            <div class="desc">Saving an encrypted backup before management changes.</div>
+                            <div class="title">Connecting to the login server</div>
+                            <div class="desc">Setting the router name and pointing it at the TrinetPay login server.</div>
                         </div>
                     </div>
                     <span class="badge-status" id="step-2-badge">
@@ -256,8 +261,8 @@
                             <i class="fa-solid {{ $router->provision_status === 'completed' ? 'fa-check' : 'fa-route' }}"></i>
                         </div>
                         <div class="step-text">
-                            <div class="title">Configuring Hotspot &amp; Walled Garden</div>
-                            <div class="desc">Setting up portal redirect and mobile money gateways.</div>
+                            <div class="title">Hotspot &amp; walled garden</div>
+                            <div class="desc">Letting customers reach your portal and the payment page before they pay.</div>
                         </div>
                     </div>
                     <span class="badge-status" id="step-3-badge">
@@ -272,8 +277,8 @@
                             <i class="fa-solid {{ $router->provision_status === 'completed' ? 'fa-check' : 'fa-lock' }}"></i>
                         </div>
                         <div class="step-text">
-                            <div class="title">Configuring API</div>
-                            <div class="desc">Restricting RouterOS API access to the VPS server.</div>
+                            <div class="title">Login page &amp; agent</div>
+                            <div class="desc">Installing your branded login page and the small agent that reports to TrinetPay.</div>
                         </div>
                     </div>
                     <span class="badge-status" id="step-4-badge">
@@ -288,8 +293,8 @@
                             <i class="fa-solid {{ $router->provision_status === 'completed' ? 'fa-check' : 'fa-network-wired' }}"></i>
                         </div>
                         <div class="step-text">
-                            <div class="title">Verifying Setup</div>
-                            <div class="desc">Verifying the secure API tunnel &amp; handshake from the VPS.</div>
+                            <div class="title">Waiting for the router to report in</div>
+                            <div class="desc">The router contacts TrinetPay when setup is done.</div>
                         </div>
                     </div>
                     <span class="badge-status" id="step-5-badge">
@@ -330,6 +335,13 @@ if (isCompleted) {
             .then(data => {
                 if (data.success) {
                     updateStatusUI(data.status);
+                    const note = document.getElementById('failure-note');
+                    if (data.status === 'failed') {
+                        document.getElementById('failure-text').innerText = data.note || '';
+                        note.style.display = 'block';
+                    } else {
+                        note.style.display = 'none';
+                    }
                     if (data.status === 'completed') {
                         clearInterval(pollInterval);
                         showCompletedUI();

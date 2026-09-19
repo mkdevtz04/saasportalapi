@@ -2,12 +2,21 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Money the platform owes a tenant. The balance is a cached total of the ledger in
+ * wallet_entries, and every change goes through move(), which writes the ledger entry
+ * and updates the balance together under a row lock.
+ */
 class TenantWallet extends Model
 {
+    use BelongsToTenant;
+
     protected $fillable = [
         'tenant_id',
         'balance',
@@ -27,49 +36,81 @@ class TenantWallet extends Model
         return $this->belongsTo(Tenant::class);
     }
 
-    /**
-     * Credit the wallet. Safe to call concurrently — uses a DB lock.
-     */
-    public function credit(int $amount): void
+    public function entries(): HasMany
     {
-        DB::transaction(function () use ($amount) {
-            $wallet = self::lockForUpdate()->find($this->id);
-            $wallet->balance      += $amount;
-            $wallet->total_earned += $amount;
-            $wallet->save();
-
-            $this->balance      = $wallet->balance;
-            $this->total_earned = $wallet->total_earned;
-        });
+        return $this->hasMany(WalletEntry::class, 'tenant_id', 'tenant_id');
     }
 
     /**
-     * Refund (rejected withdrawal — balance only, not total_earned).
+     * Add money. The same type and reference is only ever applied once, so a retried
+     * callback or a double click cannot pay a tenant twice. Returns false if it was
+     * already applied.
      */
-    public function refund(int $amount): void
+    public function credit(int $amount, string $type, string $reference, array $meta = []): bool
     {
-        DB::transaction(function () use ($amount) {
-            $wallet = self::lockForUpdate()->find($this->id);
-            $wallet->balance += $amount;
-            $wallet->save();
-            $this->balance = $wallet->balance;
-        });
+        return $this->move($amount, $type, $reference, $meta);
     }
 
     /**
-     * Debit (when a withdrawal request is approved). Returns false if insufficient balance.
+     * Take money out. Returns false if the balance is too low or the movement was
+     * already applied.
      */
-    public function debit(int $amount): bool
+    public function debit(int $amount, string $type, string $reference, array $meta = []): bool
     {
-        return DB::transaction(function () use ($amount) {
-            $wallet = self::lockForUpdate()->find($this->id);
-            if ($wallet->balance < $amount) {
+        return $this->move(-$amount, $type, $reference, $meta);
+    }
+
+    /**
+     * Give money back after a rejected withdrawal. Does not count as earnings.
+     */
+    public function refund(int $amount, string $reference, array $meta = []): bool
+    {
+        return $this->move($amount, WalletEntry::WITHDRAWAL_REFUND, $reference, $meta);
+    }
+
+    private function move(int $signedAmount, string $type, string $reference, array $meta): bool
+    {
+        return DB::transaction(function () use ($signedAmount, $type, $reference, $meta) {
+            $wallet = self::withoutGlobalScopes()->lockForUpdate()->findOrFail($this->id);
+
+            $alreadyApplied = WalletEntry::withoutGlobalScopes()
+                ->where('tenant_id', $wallet->tenant_id)
+                ->where('type', $type)
+                ->where('reference', $reference)
+                ->exists();
+
+            if ($alreadyApplied || $wallet->balance + $signedAmount < 0) {
+                $this->syncFrom($wallet);
+
                 return false;
             }
-            $wallet->balance -= $amount;
+
+            $wallet->balance += $signedAmount;
+
+            if ($type === WalletEntry::PAYMENT) {
+                $wallet->total_earned += $signedAmount;
+            }
+
             $wallet->save();
-            $this->balance = $wallet->balance;
+
+            WalletEntry::create([
+                'tenant_id'     => $wallet->tenant_id,
+                'type'          => $type,
+                'amount'        => $signedAmount,
+                'balance_after' => $wallet->balance,
+                'reference'     => $reference,
+                'meta'          => $meta ?: null,
+            ]);
+
+            $this->syncFrom($wallet);
+
             return true;
         });
+    }
+
+    private function syncFrom(TenantWallet $fresh): void
+    {
+        $this->balance      = $fresh->balance;
+        $this->total_earned = $fresh->total_earned;
     }
 }

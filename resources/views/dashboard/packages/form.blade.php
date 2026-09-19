@@ -58,10 +58,10 @@
             </div>
 
             <div class="field">
-                <label>MikroTik Profile Name</label>
+                <label>Router Profile Name — optional</label>
                 <input type="text" name="mikrotik_profile" value="{{ old('mikrotik_profile', $package?->mikrotik_profile) }}"
-                       placeholder="hotspot-5mbps" required>
-                <span class="hint">Must match a profile in your router's /ip hotspot user profile</span>
+                       placeholder="Leave blank">
+                <span class="hint">Only used by routers connected by API. Routers set up with the one-command setup use the speed and data limits above.</span>
                 @error('mikrotik_profile') <span class="error">{{ $message }}</span> @enderror
             </div>
 
@@ -74,16 +74,11 @@
             </div>
 
             <div class="field">
-                <label>Validity Type</label>
-                <select name="validity_type">
-                    <option value="strict"      {{ old('validity_type', $package?->validity_type) === 'strict'      ? 'selected' : '' }}>
-                        Strict — starts immediately after payment
-                    </option>
-                    <option value="first_login" {{ old('validity_type', $package?->validity_type) === 'first_login' ? 'selected' : '' }}>
-                        First Login — starts when device first connects
-                    </option>
-                </select>
-                @error('validity_type') <span class="error">{{ $message }}</span> @enderror
+                <label>Validity</label>
+                <input type="hidden" name="validity_type" value="strict">
+                <div style="font-size:13px;color:#475569;padding:10px 0;">
+                    The time starts as soon as the customer pays, or redeems a voucher on the portal.
+                </div>
             </div>
 
         </div>

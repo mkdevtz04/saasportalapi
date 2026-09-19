@@ -33,10 +33,9 @@ class TenantRegistrationController extends Controller
 
         DB::transaction(function () use ($validated, $subdomain) {
             $tenant = Tenant::create([
-                'name'          => $validated['business_name'],
-                'subdomain'     => $subdomain,
-                'status'        => 'trial',
-                'trial_ends_at' => now()->addDays(14),
+                'name'      => $validated['business_name'],
+                'subdomain' => $subdomain,
+                'status'    => 'onboarding',
             ]);
 
             // Empty settings row so tenant always has a settings record to update

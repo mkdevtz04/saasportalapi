@@ -19,6 +19,15 @@ class AgentWalletTransaction extends Model
         'created_at',
     ];
 
+    protected static function booted(): void
+    {
+        // Timestamps are off for this table, and the created_at column has no database
+        // default, so without this every wallet entry fails on strict databases.
+        static::creating(function (AgentWalletTransaction $entry) {
+            $entry->created_at ??= now();
+        });
+    }
+
     protected function casts(): array
     {
         return [

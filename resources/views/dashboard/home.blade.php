@@ -9,6 +9,31 @@
 
 @section('content')
 
+@if ($offlineRouters->isNotEmpty())
+    <div class="alert alert-error">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <strong>{{ $offlineRouters->count() === 1 ? '1 router is' : $offlineRouters->count() . ' routers are' }} offline:</strong>
+        {{ $offlineRouters->pluck('name')->implode(', ') }}. Customers cannot connect there until it is back.
+        <a href="{{ route('dashboard.routers.index') }}" style="color:inherit;font-weight:700;">Check routers</a>
+    </div>
+@endif
+
+@if ($renamedRouters->isNotEmpty())
+    <div class="alert alert-error">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <strong>Customers cannot log in on {{ $renamedRouters->pluck('name')->implode(', ') }}.</strong>
+        The router was renamed. <a href="{{ route('dashboard.routers.edit', $renamedRouters->first()) }}" style="color:inherit;font-weight:700;">See how to fix it</a>
+    </div>
+@endif
+
+@if ($accessProblems > 0)
+    <div class="alert alert-error">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <strong>{{ $accessProblems }} {{ $accessProblems === 1 ? 'customer paid' : 'customers paid' }} but {{ $accessProblems === 1 ? 'is' : 'are' }} not online yet</strong> in the last 7 days.
+        <a href="{{ route('dashboard.transactions', ['access' => 'failed']) }}" style="color:inherit;font-weight:700;">See who</a>
+    </div>
+@endif
+
 <div class="stats-grid">
     <div class="stat-card">
         <span class="stat-icon"><i class="fa-solid fa-calendar"></i></span>

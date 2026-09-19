@@ -39,6 +39,7 @@
 
         <div style="background:#fefce8;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;font-size:13px;color:#92400e;margin-bottom:16px;line-height:1.6;">
             Minimum withdrawal: <strong>5,000 TZS</strong><br>
+            A <strong>{{ withdrawal_fee_label() }}</strong> platform fee is deducted from each withdrawal.<br>
             Processed within <strong>24 hours</strong> to your mobile money.
         </div>
 
@@ -52,6 +53,7 @@
                        placeholder="10000"
                        max="{{ $wallet->balance ?? 0 }}">
                 <span class="hint">Available: {{ number_format($wallet->balance ?? 0) }} TZS</span>
+                <span class="hint" id="netHint" style="display:block;margin-top:4px;font-weight:600;"></span>
                 @error('amount') <span class="error">{{ $message }}</span> @enderror
             </div>
 
@@ -93,6 +95,8 @@
                         <tr>
                             <th>Date</th>
                             <th>Amount</th>
+                            <th>Fee</th>
+                            <th>You receive</th>
                             <th>Mobile</th>
                             <th>Status</th>
                         </tr>
@@ -104,6 +108,8 @@
                                     {{ $req->created_at->format('d M Y') }}
                                 </td>
                                 <td style="font-weight:600;">{{ number_format($req->amount) }} TZS</td>
+                                <td style="font-size:13px;color:#64748b;">{{ number_format($req->fee_amount) }} TZS</td>
+                                <td style="font-weight:600;">{{ number_format($req->net_amount ?? $req->amount) }} TZS</td>
                                 <td style="font-size:13px;">{{ $req->mobile_number }}</td>
                                 <td>
                                     @if ($req->status === 'paid')
@@ -130,3 +136,23 @@
 </div>
 
 @endsection
+
+@push('scripts')
+<script>
+(function () {
+    const feePct = {{ (float) config('platform.withdrawal_fee_pct') }};
+    const input  = document.querySelector('input[name="amount"]');
+    const hint   = document.getElementById('netHint');
+    if (!input || !hint) return;
+
+    function update() {
+        const amount = parseInt(input.value, 10);
+        if (!amount || amount <= 0) { hint.textContent = ''; return; }
+        const fee = Math.round(amount * feePct / 100);
+        hint.textContent = 'Fee ' + fee.toLocaleString() + ' TZS, you receive ' + (amount - fee).toLocaleString() + ' TZS';
+    }
+    input.addEventListener('input', update);
+    update();
+})();
+</script>
+@endpush

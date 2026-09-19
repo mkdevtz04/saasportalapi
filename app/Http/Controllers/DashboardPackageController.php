@@ -7,6 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class DashboardPackageController extends Controller
@@ -79,15 +80,22 @@ class DashboardPackageController extends Controller
 
     private function validated(Request $request): array
     {
-        return $request->validate([
+        $data = $request->validate([
             'name'             => 'required|string|max:100',
             'price'            => 'required|integer|min:100',
             'duration_hours'   => 'required|integer|min:1',
             'speed_down_mbps'  => 'required|integer|min:1|max:1000',
             'speed_up_mbps'    => 'required|integer|min:1|max:1000',
             'data_cap_mb'      => 'nullable|integer|min:1',
-            'mikrotik_profile' => 'required|string|max:100',
-            'validity_type'    => 'required|in:strict,first_login',
+            'mikrotik_profile' => 'nullable|string|max:100',
+            'validity_type'    => 'nullable|in:strict,first_login',
         ]);
+
+        // The router profile only matters for routers connected by API. Everything else is
+        // driven by the speed and data limits above, so a blank profile gets a sensible name.
+        $data['mikrotik_profile'] = Str::limit(Str::slug($data['mikrotik_profile'] ?: $data['name']) ?: 'package', 100, '');
+        $data['validity_type']    = $data['validity_type'] ?? 'strict';
+
+        return $data;
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\Phone;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -34,7 +35,7 @@ class PalmPesaService
             'user_id'        => $this->userId,
             'name'           => $data['name'],
             'email'          => $data['email'] ?? 'customer@trinetpay.online',
-            'phone'          => $this->formatPhone($data['phone']),
+            'phone'          => Phone::international($data['phone']),
             'amount'         => $data['amount'],
             'transaction_id' => $transactionId,
             'address'        => 'Tanzania',
@@ -73,14 +74,5 @@ class PalmPesaService
         ]);
 
         return $response->json() ?? [];
-    }
-
-    private function formatPhone(string $phone): string
-    {
-        $phone = preg_replace('/[^0-9]/', '', $phone);
-        if (strlen($phone) === 10 && $phone[0] === '0') {
-            return '255' . substr($phone, 1);
-        }
-        return $phone;
     }
 }

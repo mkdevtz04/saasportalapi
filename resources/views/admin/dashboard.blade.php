@@ -12,7 +12,7 @@
         <div class="stat-label">Total ISPs</div>
         <div class="stat-value">{{ $stats['total'] }}</div>
         <div class="stat-sub">
-            {{ $stats['active'] }} active · {{ $stats['trial'] }} trial · {{ $stats['suspended'] }} suspended
+            {{ $stats['active'] }} active · {{ $stats['onboarding'] }} setting up · {{ $stats['suspended'] }} suspended
         </div>
     </div>
     <div class="stat-card">
@@ -32,7 +32,7 @@
         <div class="stat-label">ISP Status</div>
         <div class="stat-value" style="font-size:18px;margin-top:8px;">
             <span class="badge badge-active">{{ $stats['active'] }} Active</span>
-            <span class="badge badge-trial" style="margin-left:4px;">{{ $stats['trial'] }} Trial</span>
+            <span class="badge badge-onboarding" style="margin-left:4px;">{{ $stats['onboarding'] }} Setting up</span>
         </div>
         <div class="stat-sub" style="margin-top:6px;">{{ $stats['suspended'] }} suspended</div>
     </div>

@@ -3,11 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\PlatformBillingLog;
-use App\Models\TenantWallet;
 use App\Models\Transaction;
 use App\Models\Voucher;
-use App\Services\MikrotikService;
+use App\Services\AccessGranter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +18,7 @@ class VoucherController extends Controller
         $tenant = tenant();
 
         if (! $tenant) {
-            return response()->json(['ok' => false, 'message' => 'Portal not found.'], 404);
+            return response()->json(['ok' => false, 'message' => __('portal.portal_not_ready')], 404);
         }
 
         $request->validate([
@@ -62,17 +60,17 @@ class VoucherController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return response()->json(['ok' => false, 'message' => 'Something went wrong. Please try again.'], 500);
+            return response()->json(['ok' => false, 'message' => __('portal.voucher_error')], 500);
         }
 
         if (! $voucher) {
-            return response()->json(['ok' => false, 'message' => 'Invalid or already-used voucher code.'], 422);
+            return response()->json(['ok' => false, 'message' => __('portal.voucher_invalid')], 422);
         }
 
         $package = $voucher->package;
 
         if (! $package) {
-            return response()->json(['ok' => false, 'message' => 'Package not found for this voucher.'], 422);
+            return response()->json(['ok' => false, 'message' => __('portal.voucher_no_package')], 422);
         }
 
         // Find the router
@@ -82,98 +80,57 @@ class VoucherController extends Controller
 
         $mikrotikSuccess = false;
 
-        if ($router) {
-            try {
-                $mikrotik = MikrotikService::forRouter($router);
-
-                if ($mikrotik->connect()) {
-                    // Create user with code as both username and password
-                    $mikrotikSuccess = $mikrotik->createHotspotUser(
-                        $code,                      // username
-                        $code,                      // password
-                        $package->mikrotik_profile  // profile name (must match router)
-                    );
-
-                    $mikrotik->disconnect();
-                }
-            } catch (\Exception $e) {
-                Log::error('MikroTik error during voucher redemption', [
-                    'code'    => $code,
-                    'router'  => $router->id ?? null,
-                    'profile' => $package->mikrotik_profile,
-                    'error'   => $e->getMessage(),
-                ]);
-            }
+        if ($router && $router->isRadius()) {
+            // The router connects out to RADIUS, so access is just database rows. It cannot fail
+            // because the router is offline, the customer simply logs in when it is back.
+            app(AccessGranter::class)->grantViaRadius(
+                $router,
+                $package,
+                $code,
+                $code,
+                now()->addHours($package->duration_hours ?? 24),
+                'voucher:' . $voucher->id,
+                $request->input('mac'),
+            );
+            $mikrotikSuccess = true;
+        } elseif ($router) {
+            $mikrotikSuccess = app(AccessGranter::class)->grantViaApi($router, $package, $code, $code);
         } else {
             Log::warning('No router found for voucher redemption', ['code' => $code]);
         }
 
-        // Record the transaction
+        if (! $mikrotikSuccess) {
+            // The customer got no service, so give the voucher back and let them retry.
+            Voucher::whereKey($voucher->id)->update(['used_at' => null, 'used_by_phone' => null]);
+
+            return response()->json([
+                'ok'      => false,
+                'message' => __('portal.voucher_router'),
+            ], 503);
+        }
+
+        // Record the sale for reporting only. A voucher is cash the tenant already collected
+        // offline, so it never credits the tenant wallet and carries no platform fee.
         Transaction::create([
             'tenant_id'    => $tenant->id,
             'router_id'    => $router?->id,
             'package_id'   => $package->id,
-            'phone'        => $request->input('phone'),
+            'phone'        => $request->input('phone') ?? '',
             'amount'       => $package->price ?? 0,
-            'status'       => $mikrotikSuccess ? 'completed' : 'completed_with_warning',
+            'status'       => 'completed',
+            'channel'      => Transaction::CHANNEL_VOUCHER,
             'voucher_code' => $code,
             'expires_at'   => now()->addHours($package->duration_hours ?? 24),
             'customer_mac' => $request->input('mac'),
             'customer_ip'  => $request->ip(),
         ]);
 
-        // Credit the wallet only if price > 0
-        if ($package->price > 0) {
-            $this->creditTenantWallet($tenant->id, $package->price, $code);
-        }
-
-        if (! $mikrotikSuccess) {
-            return response()->json([
-                'ok'      => false,
-                'message' => 'Voucher accepted but failed to connect to the router. Please contact support.',
-                'code'    => $code,
-            ], 500);
-        }
-
         return response()->json([
             'ok'       => true,
             'code'     => $code,
             'package'  => $package->name,
             'duration' => $package->durationLabel(),
-            'message'  => 'Voucher accepted! Connecting you now…',
+            'message'  => __('portal.voucher_ok'),
         ]);
-    }
-
-
-    private function creditTenantWallet(int $tenantId, int $amount, string $voucherCode): void
-    {
-        try {
-            $feePct      = (float) config('platform.fee_pct', 5);
-            $platformFee = (int) round($amount * $feePct / 100);
-            $tenantAmt   = $amount - $platformFee;
-
-            $wallet = TenantWallet::firstOrCreate(
-                ['tenant_id' => $tenantId],
-                ['balance' => 0, 'total_earned' => 0]
-            );
-
-            $wallet->credit($tenantAmt);
-
-            if ($platformFee > 0) {
-                PlatformBillingLog::create([
-                    'tenant_id' => $tenantId,
-                    'type'      => 'revenue_share',
-                    'amount'    => $platformFee,
-                    'reference' => 'VCHR-' . $voucherCode,
-                    'notes'     => $feePct . '% fee on voucher redemption',
-                ]);
-            }
-        } catch (\Exception $e) {
-            Log::error('Failed to credit tenant wallet for voucher', [
-                'tenant_id' => $tenantId,
-                'code'      => $voucherCode,
-                'error'     => $e->getMessage(),
-            ]);
-        }
     }
 }

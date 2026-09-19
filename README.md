@@ -1,58 +1,81 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# TrinetPay
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A hotspot billing platform for small internet providers in Tanzania and East Africa.
 
-## About Laravel
+An ISP signs up, connects their MikroTik router with one pasted command, and immediately has a branded
+payment portal. Customers pay with mobile money, or redeem a printed voucher, and are online in seconds.
+The platform is free to use. The only charge is a small fee taken when an ISP withdraws its earnings.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## How it works
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```
+customer phone -> MikroTik hotspot -> tenant portal (acme.trinetpay.online) -> pays with mobile money (PalmPesa)
+                       |                                                              |
+                       | RADIUS login (router connects OUT)                           | confirmed payment
+                       v                                                              v
+                  FreeRADIUS  <-------------- reads the customer login --------  Laravel (this app)
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+- **Any RouterOS version.** Routers connect out to the platform, so nothing has to be opened on the router,
+  and it works behind another router or a mobile connection.
+- **Money is safe.** Payments are confirmed with the gateway, settled once, and written to an append-only
+  ledger. Voucher and agent sales are cash the ISP already holds and never enter the withdrawable wallet.
+- **Multi-tenant.** Every ISP sees only its own data, enforced in the models and checked by tests.
 
-## Contributing
+## Documents
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+| Read | For |
+|---|---|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the pieces fit, the money rules, what is and is not verified |
+| [deploy/DEPLOY.md](deploy/DEPLOY.md) | Putting it on a server, step by step, with a go-live checklist |
+| [deploy/freeradius/README.md](deploy/freeradius/README.md) | The RADIUS server that logs customers in |
+| [docs/RUNBOOK.md](docs/RUNBOOK.md) | What to do when something goes wrong, and routine jobs |
 
-## Code of Conduct
+## Run it locally
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Needs PHP 8.3 or newer, Composer, and MySQL (or SQLite for a quick look).
 
-## Security Vulnerabilities
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+# set DB_* in .env, then:
+php artisan migrate
+php artisan admin:create you@example.com     # prints a strong password once
+php artisan serve
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Local development has no subdomains, so open the portal of an ISP with `?tenant=<subdomain>`, for example
+`http://localhost:8000/portal?tenant=acme`.
 
-## License
+Run the background pieces in separate terminals:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+php artisan queue:work        # settles access grants and sends SMS receipts
+php artisan schedule:work     # reconciles payments, checks routers, cleans up
+```
+
+## Tests
+
+```bash
+composer install
+vendor/bin/phpunit
+```
+
+The suite is self-contained: it uses an in-memory database, its own encryption key, and fakes every outside
+call (PalmPesa, the SMS provider, routers). It never needs real credentials and cannot reach the real services.
+
+## Useful commands
+
+| Command | What it does |
+|---|---|
+| `php artisan wallet:audit` | Lists any ISP wallet that real payments cannot explain. Run before paying withdrawals. |
+| `php artisan payments:reconcile` | Asks the gateway about payments still pending. Runs every minute on its own. |
+| `php artisan router:heartbeat` | Marks routers online or offline and sends alerts. Runs every five minutes. |
+| `php artisan admin:create <email>` | Creates a platform administrator. |
+| `php artisan data:prune` | Removes old bulk data. Runs daily. Never touches money or the audit trail. |
+
+## Settings that matter
+
+Everything is in `.env.example` with comments. The important ones are the PalmPesa keys, `RADIUS_HOST` and
+`RADIUS_SECRET`, `PLATFORM_WITHDRAWAL_FEE_PCT`, `SMS_DRIVER`, and for production `TRUSTED_PROXIES`.

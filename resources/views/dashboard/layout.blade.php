@@ -387,6 +387,14 @@
            class="nav-item {{ request()->routeIs('dashboard.transactions') ? 'active' : '' }}">
              <span class="icon"><i class="fa-solid fa-credit-card"></i></span> Transactions
         </a>
+        <a href="{{ route('dashboard.sessions') }}"
+           class="nav-item {{ request()->routeIs('dashboard.sessions') ? 'active' : '' }}">
+             <span class="icon"><i class="fa-solid fa-signal"></i></span> Live sessions
+        </a>
+        <a href="{{ route('dashboard.reports') }}"
+           class="nav-item {{ request()->routeIs('dashboard.reports*') ? 'active' : '' }}">
+             <span class="icon"><i class="fa-solid fa-chart-line"></i></span> Reports
+        </a>
 
         <div class="nav-section">Manage</div>
         <a href="{{ route('dashboard.routers.index') }}"
@@ -435,7 +443,7 @@
             <span>{{ $tenant->name }}</span>
         </div>
         <div class="topbar-right">
-                 <a href="//{{ $tenant->subdomain }}.trinetpay.online" target="_blank" class="btn-portal">
+                 <a href="{{ \App\Support\TenantUrls::portal($tenant) }}" target="_blank" class="btn-portal">
                  <i class="fa-solid fa-globe"></i> Live Portal <i class="fa-solid fa-arrow-up-right-from-square"></i>
              </a>
             <div class="user-badge">
@@ -446,6 +454,16 @@
     </header>
 
     <main class="content">
+        @if (session('impersonated_by'))
+            <div class="alert alert-error" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+                <span><i class="fa-solid fa-user-shield"></i> Platform support is viewing this account. Withdrawals and payout changes are switched off.</span>
+                <form method="POST" action="{{ route('impersonation.stop') }}">
+                    @csrf
+                    <button type="submit" class="btn btn-secondary btn-sm">Exit support view</button>
+                </form>
+            </div>
+        @endif
+
         @if (session('success'))
             <div class="alert alert-success"><i class="fa-solid fa-check"></i> {{ session('success') }}</div>
         @endif

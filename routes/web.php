@@ -1,15 +1,21 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminAuditController;
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminImpersonationController;
 use App\Http\Controllers\Admin\AdminLoginController;
+use App\Http\Controllers\Admin\AdminReconciliationController;
 use App\Http\Controllers\Admin\AdminTenantController;
 use App\Http\Controllers\Admin\AdminWithdrawalController;
 use App\Http\Controllers\AgentPosController;
 use App\Http\Controllers\DashboardAgentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DashboardPackageController;
+use App\Http\Controllers\DashboardReportController;
 use App\Http\Controllers\DashboardRouterController;
+use App\Http\Controllers\DashboardSessionController;
 use App\Http\Controllers\DashboardVoucherController;
+use App\Http\Controllers\HealthController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\RouterProvisionController;
@@ -26,9 +32,15 @@ Route::get('/', function () {
 });
 
 // ── 1-Command MikroTik Router Auto-Provisioning Public Endpoints ───────────────
-Route::get('/provision/{token}',          [RouterProvisionController::class, 'downloadScript'])->name('router.provision.script');
-Route::get('/provision/{token}/complete', [RouterProvisionController::class, 'completeProvision'])->name('router.provision.complete');
+Route::middleware('throttle:provision')->group(function () {
+    Route::get('/provision/{token}',            [RouterProvisionController::class, 'downloadScript'])->name('router.provision.script');
+    Route::get('/provision/{token}/login.html', [RouterProvisionController::class, 'loginPage'])->name('router.provision.login');
+    Route::get('/provision/{token}/complete',   [RouterProvisionController::class, 'completeProvision'])->name('router.provision.complete');
+});
 Route::get('/provision/{token}/status',   [RouterProvisionController::class, 'checkStatus'])->name('router.provision.status');
+
+// Uptime monitors call this. Details are only shown with the X-Health-Token header.
+Route::get('/health', HealthController::class)->name('health');
 
 // Auth
 // Named 'login' so Laravel's auth middleware redirects here automatically
@@ -38,7 +50,7 @@ Route::post('/logout',[TenantLoginController::class, 'destroy'])->name('tenant.l
 
 // Registration
 Route::get('/register',  [TenantRegistrationController::class, 'show'])->name('register');
-Route::post('/register', [TenantRegistrationController::class, 'store'])->name('register.store');
+Route::post('/register', [TenantRegistrationController::class, 'store'])->middleware('throttle:register')->name('register.store');
 
 // ── Onboarding wizard ─────────────────────────────────────────────────────────
 Route::middleware('auth:tenant')->prefix('onboarding')->name('onboarding.')->group(function () {
@@ -70,6 +82,9 @@ Route::middleware(['auth:tenant', EnsureOwner::class])->prefix('dashboard')->nam
     Route::get('/routers/{router}/edit',    [DashboardRouterController::class, 'edit'])->name('routers.edit');
     Route::put('/routers/{router}',         [DashboardRouterController::class, 'update'])->name('routers.update');
     Route::delete('/routers/{router}',      [DashboardRouterController::class, 'destroy'])->name('routers.destroy');
+    Route::post('/routers/{router}/command', [DashboardRouterController::class, 'command'])->name('routers.command');
+    Route::post('/routers/{router}/switch',  [DashboardRouterController::class, 'switchToRadius'])->name('routers.switch');
+    Route::post('/routers/{router}/rotate',  [DashboardRouterController::class, 'rotateSecrets'])->name('routers.rotate');
 
     // Packages
     Route::get('/packages',                 [DashboardPackageController::class, 'index'])->name('packages.index');
@@ -80,13 +95,21 @@ Route::middleware(['auth:tenant', EnsureOwner::class])->prefix('dashboard')->nam
     Route::delete('/packages/{package}',    [DashboardPackageController::class, 'destroy'])->name('packages.destroy');
     Route::post('/packages/{package}/toggle', [DashboardPackageController::class, 'toggle'])->name('packages.toggle');
 
+    // Live sessions and usage
+    Route::get('/sessions',              [DashboardSessionController::class, 'index'])->name('sessions');
+    Route::post('/sessions/disconnect',  [DashboardSessionController::class, 'disconnect'])->name('sessions.disconnect');
+
+    // Sales reports
+    Route::get('/reports',        [DashboardReportController::class, 'index'])->name('reports');
+    Route::get('/reports/export', [DashboardReportController::class, 'export'])->name('reports.export');
+
     // Settings
     Route::get('/settings',  [DashboardController::class, 'settings'])->name('settings');
-    Route::post('/settings', [DashboardController::class, 'updateSettings'])->name('settings.update');
+    Route::post('/settings', [DashboardController::class, 'updateSettings'])->middleware('no.impersonation')->name('settings.update');
 
     // Wallet & withdrawals
     Route::get('/wallet',          [DashboardController::class, 'wallet'])->name('wallet');
-    Route::post('/wallet/withdraw',[DashboardController::class, 'requestWithdrawal'])->name('wallet.withdraw');
+    Route::post('/wallet/withdraw',[DashboardController::class, 'requestWithdrawal'])->middleware('no.impersonation')->name('wallet.withdraw');
 
     // Vouchers
     Route::get('/vouchers',                       [DashboardVoucherController::class, 'index'])->name('vouchers.index');
@@ -99,9 +122,13 @@ Route::middleware(['auth:tenant', EnsureOwner::class])->prefix('dashboard')->nam
     Route::get('/agents',                         [DashboardAgentController::class, 'index'])->name('agents.index');
     Route::get('/agents/create',                  [DashboardAgentController::class, 'create'])->name('agents.create');
     Route::post('/agents',                        [DashboardAgentController::class, 'store'])->name('agents.store');
-    Route::post('/agents/{agent}/topup',          [DashboardAgentController::class, 'topup'])->name('agents.topup');
+    Route::post('/agents/{agent}/topup',          [DashboardAgentController::class, 'topup'])->middleware('no.impersonation')->name('agents.topup');
     Route::delete('/agents/{agent}',              [DashboardAgentController::class, 'destroy'])->name('agents.destroy');
 });
+
+// Ends a platform-support session. Available to whoever is being impersonated.
+Route::post('/impersonation/stop', [AdminImpersonationController::class, 'stop'])
+    ->middleware('auth:tenant')->name('impersonation.stop');
 
 // ── Agent POS (any authenticated tenant user) ─────────────────────────────────
 Route::middleware('auth:tenant')->prefix('pos')->name('pos.')->group(function () {
@@ -122,7 +149,12 @@ Route::middleware(EnsureAdmin::class)->prefix('admin')->name('admin.')->group(fu
     Route::get('/tenants/{tenant}',                 [AdminTenantController::class, 'show'])->name('tenants.show');
     Route::post('/tenants/{tenant}/suspend',        [AdminTenantController::class, 'suspend'])->name('tenants.suspend');
     Route::post('/tenants/{tenant}/activate',       [AdminTenantController::class, 'activate'])->name('tenants.activate');
-    Route::post('/tenants/{tenant}/set-fee',        [AdminTenantController::class, 'setFee'])->name('tenants.set-fee');
+
+    // Money checks, audit trail and support access
+    Route::get('/reconciliation',        [AdminReconciliationController::class, 'index'])->name('reconciliation');
+    Route::get('/reconciliation/export', [AdminReconciliationController::class, 'export'])->name('reconciliation.export');
+    Route::get('/audit',                 [AdminAuditController::class, 'index'])->name('audit');
+    Route::post('/tenants/{tenant}/impersonate', [AdminImpersonationController::class, 'start'])->name('tenants.impersonate');
 
     // Withdrawal requests
     Route::get('/withdrawals',                      [AdminWithdrawalController::class, 'index'])->name('withdrawals.index');
@@ -132,4 +164,4 @@ Route::middleware(EnsureAdmin::class)->prefix('admin')->name('admin.')->group(fu
 });
 
 // ── Captive portal (tenant subdomains: {slug}.trinetpay.online) ───────────────
-Route::get('/portal', [PaymentController::class, 'index'])->name('portal');
+Route::get('/portal', [PaymentController::class, 'index'])->middleware('portal.locale')->name('portal');

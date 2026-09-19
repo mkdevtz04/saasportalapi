@@ -1,7 +1,8 @@
 <?php
 
 return [
-    'fee_pct'         => (float) env('PLATFORM_FEE_PCT', 5),
-    'monthly_fee_tzs' => (int)   env('PLATFORM_MONTHLY_FEE', 15000),
-    'trial_days'      => (int)   env('PLATFORM_TRIAL_DAYS', 14),
+    // Percentage kept by the platform from every tenant withdrawal.
+    // Portal payments and voucher sales carry no fee. Falls back to the old
+    // PLATFORM_FEE_PCT variable so an existing .env keeps its value.
+    'withdrawal_fee_pct' => (float) env('PLATFORM_WITHDRAWAL_FEE_PCT', env('PLATFORM_FEE_PCT', 5)),
 ];

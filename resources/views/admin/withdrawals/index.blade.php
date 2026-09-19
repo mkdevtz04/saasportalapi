@@ -36,7 +36,9 @@
             <thead>
                 <tr>
                     <th>ISP</th>
-                    <th>Amount</th>
+                    <th>Requested</th>
+                    <th>Fee</th>
+                    <th>Send</th>
                     <th>Mobile</th>
                     <th>Status</th>
                     <th>Requested</th>
@@ -51,8 +53,16 @@
                             {{ $wr->tenant?->name ?? '—' }}
                         </a>
                     </td>
-                    <td><strong>{{ number_format($wr->amount) }}</strong> <span style="color:#94a3b8;font-size:11px;">TZS</span></td>
-                    <td style="font-family:monospace;font-size:13px;">{{ $wr->mobile_number }}</td>
+                    <td>{{ number_format($wr->amount) }} <span style="color:#94a3b8;font-size:11px;">TZS</span></td>
+                    <td style="color:#64748b;">{{ number_format($wr->fee_amount) }}</td>
+                    <td><strong>{{ number_format($wr->net_amount ?? $wr->amount) }}</strong> <span style="color:#94a3b8;font-size:11px;">TZS</span></td>
+                    <td style="font-family:monospace;font-size:13px;">
+                        {{ $wr->mobile_number }}
+                        @php($saved = $wr->tenant?->settings?->withdrawal_number)
+                        @if ($saved && \App\Support\Phone::international($saved) !== \App\Support\Phone::international($wr->mobile_number))
+                            <br><span class="badge badge-suspended" title="The number saved in the ISP settings is {{ $saved }}">Different from saved number</span>
+                        @endif
+                    </td>
                     <td><span class="badge badge-{{ $wr->status }}">{{ ucfirst($wr->status) }}</span></td>
                     <td style="color:#64748b;font-size:12px;">{{ $wr->created_at->format('d M Y, H:i') }}</td>
                     <td>
@@ -77,7 +87,7 @@
 
                             @elseif ($wr->status === 'approved')
                                 <div class="alert alert-info" style="padding:6px 10px;font-size:12px;margin-bottom:4px;">
-                                    Send <strong>TZS {{ number_format($wr->amount) }}</strong> to {{ $wr->mobile_number }}
+                                    Send <strong>TZS {{ number_format($wr->net_amount ?? $wr->amount) }}</strong> to {{ $wr->mobile_number }}
                                 </div>
                                 <form method="POST" action="{{ route('admin.withdrawals.paid', $wr) }}">
                                     @csrf
@@ -96,7 +106,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:32px 0;">No {{ $status !== 'all' ? $status : '' }} withdrawal requests.</td></tr>
+                <tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:32px 0;">No {{ $status !== 'all' ? $status : '' }} withdrawal requests.</td></tr>
             @endforelse
             </tbody>
         </table>

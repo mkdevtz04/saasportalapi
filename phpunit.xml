@@ -19,6 +19,8 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
+        <env name="APP_KEY" value="base64:MHATGy2j40hT8P9Okq4cDYQnbTB82HmsEZPIZGmi3oo="/>
+        <env name="APP_URL" value="http://localhost"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
@@ -29,6 +31,13 @@
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
+        <env name="PALMPESA_BASE_URL" value="https://palmpesa.test"/>
+        <env name="PALMPESA_API_KEY" value="test-key"/>
+        <env name="PALMPESA_USER_ID" value="test-user"/>
+        <env name="MIKROTIK_RELAY_ENABLED" value="false"/>
+        <env name="RADIUS_HOST" value="203.0.113.10"/>
+        <env name="RADIUS_SECRET" value="test-radius-secret"/>
+        <env name="PLATFORM_WITHDRAWAL_FEE_PCT" value="5"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>

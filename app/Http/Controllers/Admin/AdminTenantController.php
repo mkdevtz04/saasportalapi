@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\PlatformBillingLog;
+use App\Models\RouterCommand;
 use App\Models\Tenant;
 use App\Models\Transaction;
+use App\Support\Audit;
+use App\Services\Radius\RadiusAccess;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -53,26 +56,30 @@ class AdminTenantController extends Controller
         ));
     }
 
-    public function suspend(Tenant $tenant): RedirectResponse
+    public function suspend(Tenant $tenant, RadiusAccess $radius): RedirectResponse
     {
         $tenant->update(['status' => 'suspended']);
+
+        // A suspended ISP loses access at once: every current login is blocked and every
+        // router is told to disconnect its customers on its next check-in.
+        $radius->suspendTenant($tenant->id);
+        Audit::record('tenant.suspended', $tenant->id, [], $tenant);
+        $tenant->routers()->get()->each(function ($router) {
+            if ($router->isRadius()) {
+                $router->queueCommand(RouterCommand::KICK_ALL, [], 'platform admin');
+            }
+        });
+
         return redirect()->route('admin.tenants.show', $tenant)
             ->with('success', $tenant->name . ' has been suspended.');
     }
 
-    public function activate(Tenant $tenant): RedirectResponse
+    public function activate(Tenant $tenant, RadiusAccess $radius): RedirectResponse
     {
         $tenant->update(['status' => 'active']);
+        $radius->resumeTenant($tenant->id);
+        Audit::record('tenant.activated', $tenant->id, [], $tenant);
         return redirect()->route('admin.tenants.show', $tenant)
             ->with('success', $tenant->name . ' is now active.');
-    }
-
-    public function setFee(Tenant $tenant, Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'monthly_fee_tzs' => 'nullable|integer|min:0|max:1000000',
-        ]);
-        $tenant->update(['monthly_fee_tzs' => $validated['monthly_fee_tzs'] ?: null]);
-        return back()->with('success', 'Monthly fee updated.');
     }
 }

@@ -28,44 +28,52 @@
                 <thead>
                     <tr>
                         <th>Name</th>
-                        <th>IP Address</th>
-                        <th>Port</th>
-                        <th>NAS ID</th>
+                        <th>Connection</th>
                         <th>Status</th>
-                        <th>Last Seen</th>
+                        <th>Customers online</th>
+                        <th>Last seen</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($routers as $router)
+                        @php($online = $router->isRadius() ? $router->isOnline() : $router->status === 'online')
                         <tr>
-                            <td style="font-weight:600;">{{ $router->name }}</td>
-                            <td style="font-family:monospace;font-size:13px;">{{ $router->router_ip }}</td>
-                            <td style="color:#64748b;">{{ $router->port }}</td>
-                            <td style="font-family:monospace;font-size:11px;color:#64748b;">{{ $router->nas_identifier }}</td>
                             <td>
-                                <span class="badge badge-{{ $router->status }}">
-                                    {{ ucfirst($router->status) }}
-                                </span>
+                                <a href="{{ route('dashboard.routers.edit', $router) }}" style="font-weight:600;color:#0f172a;text-decoration:none;">{{ $router->name }}</a><br>
+                                <span style="font-family:monospace;font-size:11px;color:#94a3b8;">{{ $router->nas_identifier }}</span>
                             </td>
+                            <td style="font-size:12px;color:#64748b;">
+                                @if ($router->isRadius())
+                                    One-command
+                                    @if ($router->routeros_version) <br>RouterOS {{ $router->routeros_version }} @endif
+                                @else
+                                    API {{ $router->router_ip }}:{{ $router->port }}
+                                @endif
+                            </td>
+                            <td>
+                                @if ($router->provision_status === 'failed')
+                                    <span class="badge badge-danger" title="{{ $router->provision_note }}">Setup incomplete</span>
+                                @elseif ($router->isRadius() && ! $router->last_seen_at)
+                                    <span class="badge badge-unknown">Not connected</span>
+                                @else
+                                    <span class="badge badge-{{ $online ? 'online' : 'offline' }}">{{ $online ? 'Online' : 'Offline' }}</span>
+                                @endif
+                            </td>
+                            <td>{{ $router->isRadius() ? number_format($router->active_users) : '-' }}</td>
                             <td style="color:#64748b;font-size:13px;">
                                 {{ $router->last_seen_at ? $router->last_seen_at->diffForHumans() : 'Never' }}
                             </td>
                             <td>
-                                <div style="display:flex;gap:6px;">
-                                    <button
-                                        class="btn btn-secondary btn-sm"
-                                        onclick="copyProvisionCmd('{{ request()->getSchemeAndHttpHost() }}/provision/{{ $router->getOrGenerateProvisionToken() }}')"
-                                        title="Copy 1-Command Provisioning Code">
-                                        <i class="fa-solid fa-bolt" style="color:#eab308;"></i> Provision Code
-                                    </button>
-                                    <button
-                                        class="btn btn-secondary btn-sm"
-                                        onclick="testRouter(this, '{{ $router->router_ip }}', '{{ $router->username }}', {{ $router->port }})"
-                                        title="Test connection">
-                                        <i class="fa-solid fa-link"></i> Test
-                                    </button>
-                                    <a href="{{ route('dashboard.routers.edit', $router) }}" class="btn btn-secondary btn-sm">Edit</a>
+                                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                                    @if ($router->isRadius())
+                                        <button type="button" class="btn btn-secondary btn-sm"
+                                                data-command="{{ $commands[$router->id] ?? '' }}"
+                                                onclick="copyProvisionCmd(this)" title="Copy the setup command">
+                                            <i class="fa-solid fa-bolt" style="color:#eab308;"></i> Setup command
+                                        </button>
+                                    @endif
+                                    <a href="{{ route('dashboard.routers.edit', $router) }}" class="btn btn-secondary btn-sm">Manage</a>
                                     <form method="POST" action="{{ route('dashboard.routers.destroy', $router) }}"
                                           onsubmit="return confirm('Remove this router?')">
                                         @csrf @method('DELETE')
@@ -85,40 +93,12 @@
 
 @push('scripts')
 <script>
-function testRouter(btn, ip, username, port) {
-    const original = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '⏳ Testing…';
-
-    // We need the password to test — prompt the user
-    const password = prompt('Enter router password to test connection:');
-    if (!password) {
-        btn.disabled = false;
-        btn.innerHTML = original;
-        return;
-    }
-
-    fetch('{{ route('dashboard.routers.test') }}', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-        body: JSON.stringify({ ip, username, password, port })
-    })
-    .then(r => r.json())
-    .then(data => {
-        btn.innerHTML = data.ok ? '<i class="fa-solid fa-check"></i> OK' : '<i class="fa-solid fa-xmark"></i> Failed';
-        setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 3000);
-        if (!data.ok) alert('Test failed: ' + data.message);
-    })
-    .catch(() => {
-        btn.innerHTML = '<i class="fa-solid fa-xmark"></i> Error';
-        setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 3000);
-    });
-}
-
-function copyProvisionCmd(url) {
-    const cmd = `/tool fetch url="${url}" dst-path=trinetpay-bootstrap.rsc check-certificate=no; :import trinetpay-bootstrap.rsc; /file remove trinetpay-bootstrap.rsc`;
+function copyProvisionCmd(btn) {
+    const cmd = btn.dataset.command;
     navigator.clipboard.writeText(cmd).then(() => {
-        alert('Copied 1-Command Provisioning Snippet:\n\n' + cmd + '\n\nPaste this into your MikroTik WinBox Terminal!');
+        const original = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied';
+        setTimeout(() => { btn.innerHTML = original; }, 2000);
     });
 }
 </script>

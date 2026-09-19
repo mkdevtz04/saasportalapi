@@ -83,7 +83,7 @@
         /* ── Badges ─────────────────────────────── */
         .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; }
         .badge-active    { background: #dcfce7; color: #15803d; }
-        .badge-trial     { background: #fef9c3; color: #a16207; }
+        .badge-onboarding { background: #fef9c3; color: #a16207; }
         .badge-suspended { background: #fee2e2; color: #dc2626; }
         .badge-pending   { background: #fef9c3; color: #a16207; }
         .badge-approved  { background: #dbeafe; color: #1d4ed8; }
@@ -175,6 +175,14 @@
         <a href="{{ route('admin.withdrawals.index') }}"
            class="nav-item {{ request()->routeIs('admin.withdrawals.*') ? 'active' : '' }}">
              <span class="icon"><i class="fa-solid fa-money-bill-transfer"></i></span> Withdrawals
+        </a>
+        <a href="{{ route('admin.reconciliation') }}"
+           class="nav-item {{ request()->routeIs('admin.reconciliation*') ? 'active' : '' }}">
+             <span class="icon"><i class="fa-solid fa-scale-balanced"></i></span> Reconciliation
+        </a>
+        <a href="{{ route('admin.audit') }}"
+           class="nav-item {{ request()->routeIs('admin.audit') ? 'active' : '' }}">
+             <span class="icon"><i class="fa-solid fa-clipboard-list"></i></span> Audit trail
         </a>
     </div>
     <div class="sidebar-footer">

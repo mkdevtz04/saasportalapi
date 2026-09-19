@@ -81,8 +81,8 @@
                         <input type="number" name="packages[{{ $i }}][speed_up_mbps]" value="{{ $pkg['speed_up_mbps'] }}" min="1" required>
                     </div>
                     <div class="field">
-                        <label>Profile</label>
-                        <input type="text" name="packages[{{ $i }}][mikrotik_profile]" value="{{ $pkg['mikrotik_profile'] }}" placeholder="bronze" pattern="[a-zA-Z0-9_-]+" required>
+                        <label>Profile <small style="font-weight:400;color:#94a3b8;">(optional)</small></label>
+                        <input type="text" name="packages[{{ $i }}][mikrotik_profile]" value="{{ $pkg['mikrotik_profile'] }}" placeholder="bronze" pattern="[a-zA-Z0-9_-]+">
                     </div>
                      <button type="button" class="btn-remove" onclick="removeRow({{ $i }})" title="Remove"><i class="fa-solid fa-xmark"></i></button>
                 </div>
@@ -112,7 +112,7 @@ function addRow() {
         <div class="field"><label>Hours</label><input type="number" name="packages[${i}][duration_hours]" placeholder="6" min="1" required></div>
         <div class="field"><label>Down</label><input type="number" name="packages[${i}][speed_down_mbps]" placeholder="1" min="1" required></div>
         <div class="field"><label>Up</label><input type="number" name="packages[${i}][speed_up_mbps]" placeholder="1" min="1" required></div>
-        <div class="field"><label>Profile</label><input type="text" name="packages[${i}][mikrotik_profile]" placeholder="custom" pattern="[a-zA-Z0-9_-]+" required></div>
+        <div class="field"><label>Profile <small style="font-weight:400;color:#94a3b8;">(optional)</small></label><input type="text" name="packages[${i}][mikrotik_profile]" placeholder="custom" pattern="[a-zA-Z0-9_-]+"></div>
         <button type="button" class="btn-remove" onclick="removeRow(${i})" title="Remove"><i class="fa-solid fa-xmark"></i></button>
     </div>`;
     document.getElementById('packages-list').insertAdjacentHTML('beforeend', html);

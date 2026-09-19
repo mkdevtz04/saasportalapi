@@ -57,6 +57,16 @@
                 @error('contact_phone') <span class="error">{{ $message }}</span> @enderror
             </div>
 
+            <div class="field" style="margin-bottom:16px;">
+                <label>Portal Language</label>
+                <select name="default_language">
+                    <option value="sw" {{ old('default_language', $settings?->default_language ?? 'sw') === 'sw' ? 'selected' : '' }}>Kiswahili</option>
+                    <option value="en" {{ old('default_language', $settings?->default_language ?? 'sw') === 'en' ? 'selected' : '' }}>English</option>
+                </select>
+                <span class="hint">Language shown first to customers. They can switch between Kiswahili and English on the portal.</span>
+                @error('default_language') <span class="error">{{ $message }}</span> @enderror
+            </div>
+
             <div class="field">
                 <label>Logo</label>
                 @if ($settings?->custom_logo_path)
