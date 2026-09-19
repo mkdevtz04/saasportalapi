@@ -54,7 +54,7 @@
                     <tr>
                         <td>
                             <a href="{{ route('admin.tenants.show', $t) }}" style="font-weight:600;color:#1e293b;text-decoration:none;">{{ $t->name }}</a><br>
-                            <span style="color:#94a3b8;font-size:11px;">{{ $t->subdomain }}.trinetpay.online</span>
+                            <span style="color:#94a3b8;font-size:11px;">{{ \App\Support\TenantUrls::portalHost($t) }}</span>
                         </td>
                         <td style="text-align:right;">
                             <span class="badge badge-{{ $t->status }}">{{ ucfirst($t->status) }}</span><br>

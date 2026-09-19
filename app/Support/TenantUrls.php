@@ -10,13 +10,13 @@ use App\Models\Tenant;
  */
 class TenantUrls
 {
-    /** https://trinetpay.online, no trailing slash. */
+    /** The platform address from APP_URL, for example https://wifikitaa.site, no trailing slash. */
     public static function base(): string
     {
         return rtrim((string) config('app.url'), '/');
     }
 
-    /** trinetpay.online, without a leading "www.". */
+    /** The platform host, for example wifikitaa.site, without a leading "www.". */
     public static function baseHost(): string
     {
         $host = (string) parse_url(self::base(), PHP_URL_HOST);
@@ -30,7 +30,7 @@ class TenantUrls
         return in_array(self::baseHost(), ['localhost', '127.0.0.1'], true);
     }
 
-    /** acme.trinetpay.online, or the plain host during local development. */
+    /** acme.wifikitaa.site, or the plain host during local development. */
     public static function portalHost(Tenant $tenant): string
     {
         return self::isLocal() ? self::baseHost() : $tenant->subdomain . '.' . self::baseHost();

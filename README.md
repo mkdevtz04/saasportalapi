@@ -9,7 +9,7 @@ The platform is free to use. The only charge is a small fee taken when an ISP wi
 ## How it works
 
 ```
-customer phone -> MikroTik hotspot -> tenant portal (acme.trinetpay.online) -> pays with mobile money (PalmPesa)
+customer phone -> MikroTik hotspot -> tenant portal (acme.wifikitaa.site) -> pays with mobile money (PalmPesa)
                        |                                                              |
                        | RADIUS login (router connects OUT)                           | confirmed payment
                        v                                                              v

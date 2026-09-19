@@ -14,7 +14,7 @@
 
 ## Tenants
 
-Each ISP is a tenant. A tenant's portal lives on its own subdomain (`acme.trinetpay.online`). Tenant data is
+Each ISP is a tenant. A tenant's portal lives on its own subdomain (`acme.wifikitaa.site`). Tenant data is
 separated in the models: tenant-owned models filter every query to the tenant of the current request and stamp
 new rows with it. This is on top of the explicit checks in controllers, so a forgotten check cannot leak
 another ISP's rows. The platform admin panel, console commands and queue jobs see every tenant.

@@ -309,9 +309,11 @@
             .substring(0, 40);
     }
 
+    const portalDomain = @json(\App\Support\TenantUrls::baseHost());
+
     businessInput.addEventListener('input', () => {
         const slug = toSlug(businessInput.value);
-        preview.textContent = slug ? `Your portal: ${slug}.trinetpay.online` : '';
+        preview.textContent = slug ? `Your portal: ${slug}.${portalDomain}` : '';
     });
 
     // Trigger on pre-filled value (validation error redirect)

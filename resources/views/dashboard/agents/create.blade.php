@@ -49,7 +49,7 @@
 
         <div style="background:#fefce8;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;font-size:13px;color:#92400e;margin-bottom:20px;line-height:1.6;">
             After creating the agent, you'll need to <strong>top up their wallet</strong> before they can sell vouchers.
-            Agents log in at <strong>trinetpay.online/pos</strong>.
+            Agents log in at <strong>{{ preg_replace('#^https?://#', '', \App\Support\TenantUrls::base()) }}/pos</strong>.
         </div>
 
         <div style="display:flex;gap:10px;">

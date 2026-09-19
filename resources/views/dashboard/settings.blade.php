@@ -10,7 +10,7 @@
         <div class="page-title">Portal Settings</div>
         <div class="page-sub">Customize your customer portal appearance and payout details</div>
     </div>
-         <a href="//{{ $tenant->subdomain }}.trinetpay.online" target="_blank" class="btn btn-secondary">
+         <a href="{{ \App\Support\TenantUrls::portal($tenant) }}" target="_blank" class="btn btn-secondary">
          <i class="fa-solid fa-globe"></i> Preview Portal <i class="fa-solid fa-arrow-up-right-from-square"></i>
      </a>
 </div>
@@ -99,8 +99,8 @@
                 <div class="card-title"><i class="fa-solid fa-globe"></i> Your Portal</div>
                 <div style="font-size:13px;color:#475569;line-height:1.8;">
                     <div><strong>Portal URL:</strong>
-                        <a href="//{{ $tenant->subdomain }}.trinetpay.online" target="_blank"
-                           style="color:#2563eb;">{{ $tenant->subdomain }}.trinetpay.online</a>
+                        <a href="{{ \App\Support\TenantUrls::portal($tenant) }}" target="_blank"
+                           style="color:#2563eb;">{{ \App\Support\TenantUrls::portalHost($tenant) }}</a>
                     </div>
                     <div><strong>Status:</strong>
                         <span class="badge badge-{{ $tenant->status === 'active' ? 'success' : 'warning' }}">
@@ -118,7 +118,7 @@
                     Set this as the redirect URL in your hotspot server profile:
                 </p>
                 <code style="display:block;background:#1e293b;color:#e2e8f0;padding:10px 14px;border-radius:6px;font-size:12px;word-break:break-all;">
-                    http://{{ $tenant->subdomain }}.trinetpay.online/portal
+                    {{ \App\Support\TenantUrls::portal($tenant) }}
                 </code>
             </div>
         </div>

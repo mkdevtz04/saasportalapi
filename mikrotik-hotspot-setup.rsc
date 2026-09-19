@@ -8,8 +8,8 @@
 /ip dhcp-server network set [find] gateway=192.168.88.1 dns-server=192.168.88.1
 
 # Let unpaid clients reach the external portal and payment provider.
-/ip hotspot walled-garden add dst-host=trinetpay.online comment="TRINET portal"
-/ip hotspot walled-garden add dst-host=www.trinetpay.online comment="TRINET portal www"
+/ip hotspot walled-garden add dst-host=wifikitaa.site comment="TRINET portal"
+/ip hotspot walled-garden add dst-host=www.wifikitaa.site comment="TRINET portal www"
 /ip hotspot walled-garden add dst-host=palmpesa.drmlelwa.co.tz comment="PalmPesa payment API"
 
 # These are the plans. Laravel selects the profile, then creates one WiFi token.

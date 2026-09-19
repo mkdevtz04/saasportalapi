@@ -2,11 +2,11 @@
 
 What to do when something goes wrong, and the jobs to do regularly. Written to be followed at 2 a.m.
 
-The quick check for everything: open `https://trinetpay.online/health` with the `X-Health-Token` header. It tells
+The quick check for everything: open `https://wifikitaa.site/health` with the `X-Health-Token` header. It tells
 you which part is unhappy: database, scheduler, queue, payments.
 
 ```bash
-curl -s -H "X-Health-Token: $HEALTH_TOKEN" https://trinetpay.online/health
+curl -s -H "X-Health-Token: $HEALTH_TOKEN" https://wifikitaa.site/health
 ```
 
 ## Someone says "I paid but I am not online"

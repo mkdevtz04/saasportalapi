@@ -25,7 +25,7 @@ use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureOwner;
 use Illuminate\Support\Facades\Route;
 
-// ── Main domain: trinetpay.online ─────────────────────────────────────────────
+// ── Main domain (APP_URL) ─────────────────────────────────────────────
 
 Route::get('/', function () {
     return view('welcome');
@@ -163,5 +163,5 @@ Route::middleware(EnsureAdmin::class)->prefix('admin')->name('admin.')->group(fu
     Route::post('/withdrawals/{withdrawal}/reject', [AdminWithdrawalController::class, 'reject'])->name('withdrawals.reject');
 });
 
-// ── Captive portal (tenant subdomains: {slug}.trinetpay.online) ───────────────
+// ── Captive portal (tenant subdomains: {slug}.<your domain>) ───────────────
 Route::get('/portal', [PaymentController::class, 'index'])->middleware('portal.locale')->name('portal');

@@ -277,26 +277,56 @@ class HardeningTest extends TestCase
             ->assertRedirect(route('admin.dashboard'));
     }
 
-    public function test_the_seeder_never_creates_an_account_with_a_default_or_weak_password(): void
+    private function clearAdminEnv(): void
     {
         putenv('ADMIN_EMAIL');
         putenv('ADMIN_PASSWORD');
         unset($_ENV['ADMIN_EMAIL'], $_ENV['ADMIN_PASSWORD'], $_SERVER['ADMIN_EMAIL'], $_SERVER['ADMIN_PASSWORD']);
+    }
+
+    private function setAdminEnv(string $email, string $password): void
+    {
+        putenv("ADMIN_EMAIL={$email}");
+        putenv("ADMIN_PASSWORD={$password}");
+        $_ENV['ADMIN_EMAIL'] = $_SERVER['ADMIN_EMAIL'] = $email;
+        $_ENV['ADMIN_PASSWORD'] = $_SERVER['ADMIN_PASSWORD'] = $password;
+    }
+
+    public function test_on_a_live_server_the_seeder_never_creates_an_account_with_a_default_or_weak_password(): void
+    {
+        $this->app['env'] = 'production';
+        $this->clearAdminEnv();
 
         $this->artisan('db:seed', ['--class' => \Database\Seeders\PlatformAdminSeeder::class])->assertSuccessful();
-        $this->assertSame(0, \App\Models\PlatformAdmin::count());
+        $this->assertSame(0, \App\Models\PlatformAdmin::count(), 'no default account on a live server');
 
-        putenv('ADMIN_EMAIL=boss@example.test');
-        putenv('ADMIN_PASSWORD=changeme123');   // the old default: only 11 characters
-        $_ENV['ADMIN_EMAIL'] = $_SERVER['ADMIN_EMAIL'] = 'boss@example.test';
-        $_ENV['ADMIN_PASSWORD'] = $_SERVER['ADMIN_PASSWORD'] = 'changeme123';
+        $this->setAdminEnv('boss@example.test', 'changeme123');   // the old default: only 11 characters
+        $this->artisan('db:seed', ['--class' => \Database\Seeders\PlatformAdminSeeder::class])->assertSuccessful();
+        $this->assertSame(0, \App\Models\PlatformAdmin::count(), 'a weak password is refused on a live server');
+
+        $this->setAdminEnv('boss@example.test', 'a-long-enough-password');
+        $this->artisan('db:seed', ['--class' => \Database\Seeders\PlatformAdminSeeder::class])->assertSuccessful();
+        $this->assertSame(1, \App\Models\PlatformAdmin::count());
+
+        $this->clearAdminEnv();
+    }
+
+    public function test_on_a_local_machine_the_seeder_creates_the_familiar_admin_and_you_can_sign_in(): void
+    {
+        $this->app['env'] = 'local';
+        $this->clearAdminEnv();
 
         $this->artisan('db:seed', ['--class' => \Database\Seeders\PlatformAdminSeeder::class])->assertSuccessful();
-        $this->assertSame(0, \App\Models\PlatformAdmin::count());
 
-        putenv('ADMIN_EMAIL');
-        putenv('ADMIN_PASSWORD');
-        unset($_ENV['ADMIN_EMAIL'], $_ENV['ADMIN_PASSWORD'], $_SERVER['ADMIN_EMAIL'], $_SERVER['ADMIN_PASSWORD']);
+        $this->assertSame(['admin@trinetpay.online'], \App\Models\PlatformAdmin::pluck('email')->all());
+
+        $this->post('/admin/login', ['email' => 'admin@trinetpay.online', 'password' => 'changeme123'])
+            ->assertRedirect(route('admin.dashboard'));
+        $this->assertAuthenticated('admin');
+
+        // Running it again changes nothing and does not duplicate the account.
+        $this->artisan('db:seed', ['--class' => \Database\Seeders\PlatformAdminSeeder::class])->assertSuccessful();
+        $this->assertSame(1, \App\Models\PlatformAdmin::count());
     }
 
     // ── Housekeeping ─────────────────────────────────────────────────────────

@@ -5,14 +5,28 @@ FreeRADIUS. It also works with FreeRADIUS on its own server, as long as it can r
 
 ## 0. Before you start
 
-- A domain (`trinetpay.online`) and a **wildcard DNS record** `*.trinetpay.online` pointing at the server, so
+- A domain (`wifikitaa.site`) and a **wildcard DNS record** `*.wifikitaa.site` pointing at the server, so
   every ISP subdomain works.
-- A **wildcard HTTPS certificate** for `trinetpay.online` and `*.trinetpay.online`. A wildcard certificate can
+- A **wildcard HTTPS certificate** for `wifikitaa.site` and `*.wifikitaa.site`. A wildcard certificate can
   only be issued with a DNS challenge, for example `certbot` with your DNS provider's plugin.
 - A **public IPv4 address** on that server for RADIUS (UDP 1812 and 1813).
 - PalmPesa merchant credentials.
 
 Ports to open: 80 and 443 (web), UDP 1812 and 1813 (RADIUS). Keep MySQL closed to the internet.
+
+### Cloudflare
+
+`wifikitaa.site` is served through Cloudflare. That changes four things:
+
+- **Wildcard record.** Add a DNS record named `*` next to the main one, pointing at the same server. Without it
+  `acme.wifikitaa.site` does not resolve, so ISP portals and the router login page's "Buy WiFi" link fail.
+  Check with `nslookup zz-test.wifikitaa.site`, which must return an address.
+- **RADIUS cannot go through Cloudflare.** Its proxy only carries web traffic. `RADIUS_HOST` must be the
+  server's real public IP address, never the domain, and UDP 1812/1813 must reach that address directly.
+- **Proxy address.** Set `TRUSTED_PROXIES=*` (or Cloudflare's address ranges) so the login and voucher limits see
+  the visitor, not Cloudflare. Without it every visitor looks like one person.
+- **HTTPS mode.** Use SSL mode "Full (strict)" with an origin certificate on the server. The universal
+  certificate covers `wifikitaa.site` and `*.wifikitaa.site`, one level of subdomain only.
 
 ## 1. Install
 
@@ -39,7 +53,7 @@ Edit `.env`. These must be set, the file explains each one:
 
 | Setting | Value |
 |---|---|
-| `APP_ENV`, `APP_DEBUG`, `APP_URL` | `production`, `false`, `https://trinetpay.online` |
+| `APP_ENV`, `APP_DEBUG`, `APP_URL` | `production`, `false`, `https://wifikitaa.site` |
 | `DB_*` | the MySQL database and user (create them first) |
 | `SESSION_SECURE_COOKIE` | `true` |
 | `QUEUE_CONNECTION` | `database` |
@@ -97,7 +111,7 @@ once before launch, and keep a copy of the backups on another machine.
 
 ## 7. Monitoring
 
-Point an uptime monitor at `https://trinetpay.online/health`. It returns `ok`, `degraded` (something needs
+Point an uptime monitor at `https://wifikitaa.site/health`. It returns `ok`, `degraded` (something needs
 attention, the site still works) or `down` (HTTP 503). Send the `X-Health-Token` header to see the details:
 database, scheduler heartbeat, queue backlog, payments stuck pending, customers who paid without access.
 
@@ -105,7 +119,7 @@ database, scheduler heartbeat, queue backlog, payments stuck pending, customers 
 
 - [ ] `.env` has `APP_DEBUG=false` and a real `APP_KEY` that is backed up somewhere safe. Losing it makes
       stored router passwords unreadable.
-- [ ] HTTPS works for `trinetpay.online` and a test subdomain. Headers show `Strict-Transport-Security`.
+- [ ] HTTPS works for `wifikitaa.site` and a test subdomain. Headers show `Strict-Transport-Security`.
 - [ ] `php artisan schedule:list` shows the jobs, and `/health` says `ok` after a minute.
 - [ ] The queue worker is running: `sudo supervisorctl status`.
 - [ ] A test payment of the smallest amount settles, credits a wallet, and shows in `wallet:audit` as OK.

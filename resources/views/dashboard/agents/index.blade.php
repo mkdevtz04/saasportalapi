@@ -76,7 +76,7 @@
             Share this URL with your agents. They log in using their email and password.
         </p>
         <code style="display:block;background:#1e293b;color:#e2e8f0;padding:10px 14px;border-radius:6px;font-size:13px;">
-            https://trinetpay.online/pos
+            {{ \App\Support\TenantUrls::base() }}/pos
         </code>
     </div>
 @endif

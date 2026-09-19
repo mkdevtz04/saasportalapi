@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Support\Phone;
+use App\Support\TenantUrls;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -34,7 +35,7 @@ class PalmPesaService
         $payload = [
             'user_id'        => $this->userId,
             'name'           => $data['name'],
-            'email'          => $data['email'] ?? 'customer@trinetpay.online',
+            'email'          => $data['email'] ?? 'customer@' . (TenantUrls::isLocal() ? 'example.com' : TenantUrls::baseHost()),
             'phone'          => Phone::international($data['phone']),
             'amount'         => $data['amount'],
             'transaction_id' => $transactionId,
