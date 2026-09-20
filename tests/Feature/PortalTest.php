@@ -8,6 +8,7 @@ use App\Models\Transaction;
 use App\Models\Voucher;
 use App\Services\PaymentSettlement;
 use App\Services\Sms\BeemSmsGateway;
+use App\Services\Sms\KilakonaSmsGateway;
 use App\Support\HotspotUrl;
 use App\Support\Phone;
 use App\Support\TenantUrls;
@@ -17,35 +18,14 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
 use RuntimeException;
 use Tests\Concerns\BuildsTenants;
+use Tests\Concerns\CapturesSms;
 use Tests\TestCase;
 
 class PortalTest extends TestCase
 {
     use BuildsTenants;
+    use CapturesSms;
     use RefreshDatabase;
-
-    /** An SMS gateway that remembers what it was asked to send. */
-    private function captureSms(bool $accept = true): object
-    {
-        $fake = new class ($accept) implements SmsGateway {
-            public array $sent = [];
-
-            public function __construct(private bool $accept)
-            {
-            }
-
-            public function send(string $to, string $message): bool
-            {
-                $this->sent[] = ['to' => $to, 'message' => $message];
-
-                return $this->accept;
-            }
-        };
-
-        $this->app->instance(SmsGateway::class, $fake);
-
-        return $fake;
-    }
 
     // ── One portal per ISP ───────────────────────────────────────────────────
 
@@ -670,6 +650,54 @@ class PortalTest extends TestCase
         Http::fake(fn () => throw new \Illuminate\Http\Client\ConnectionException('offline'));
 
         $this->assertFalse((new BeemSmsGateway('key', 'secret', 'TRINETPAY'))->send('255712345678', 'Hello'));
+    }
+
+    public function test_the_kilakona_gateway_sends_what_it_was_given_and_reports_the_answer(): void
+    {
+        Http::fake([
+            'sms.kilakona.test/*' => Http::sequence()
+                ->push(['success' => true])
+                ->push(['success' => false, 'message' => 'Invalid'], 200)
+                ->push('down', 500),
+        ]);
+        $gateway = new KilakonaSmsGateway('key', 'secret', 'mktech', 'https://sms.kilakona.test/send');
+
+        $this->assertTrue($gateway->send('255695493670', 'Hello'));
+        $this->assertFalse($gateway->send('255695493670', 'Hello'));
+        $this->assertFalse($gateway->send('255695493670', 'Hello'));
+
+        Http::assertSent(function (Request $request) {
+            $data = $request->data();
+
+            return $request->url() === 'https://sms.kilakona.test/send'
+                && $request->hasHeader('api_key', 'key')
+                && $request->hasHeader('api_secret', 'secret')
+                && $data['senderName'] === 'mktech'
+                && $data['recipientNumber'] === '255695493670'
+                && $data['message'] === 'Hello';
+        });
+    }
+
+    public function test_kilakona_sends_nothing_at_all_until_its_address_is_configured(): void
+    {
+        Http::fake();
+
+        $this->assertFalse((new KilakonaSmsGateway('key', 'secret', 'mktech', ''))->send('255695493670', 'Hi'));
+        Http::assertNothingSent();
+    }
+
+    public function test_kilakona_never_throws_when_the_network_is_down(): void
+    {
+        Http::fake(fn () => throw new \Illuminate\Http\Client\ConnectionException('offline'));
+
+        $this->assertFalse((new KilakonaSmsGateway('key', 'secret', 'mktech', 'https://sms.kilakona.test/send'))->send('255695493670', 'Hi'));
+    }
+
+    public function test_choosing_kilakona_in_the_config_selects_that_gateway(): void
+    {
+        config(['sms.driver' => 'kilakona', 'sms.kilakona.endpoint' => 'https://sms.kilakona.test/send']);
+
+        $this->assertInstanceOf(KilakonaSmsGateway::class, $this->app->make(SmsGateway::class));
     }
 
     public function test_the_default_sms_driver_sends_nothing(): void

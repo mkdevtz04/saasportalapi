@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Contracts\SmsGateway;
 use App\Services\Sms\BeemSmsGateway;
+use App\Services\Sms\KilakonaSmsGateway;
 use App\Services\Sms\LogSmsGateway;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -23,6 +24,12 @@ class AppServiceProvider extends ServiceProvider
                     (string) config('sms.beem.api_key'),
                     (string) config('sms.beem.secret'),
                     (string) config('sms.sender_id'),
+                ),
+                'kilakona' => new KilakonaSmsGateway(
+                    (string) config('sms.kilakona.api_key'),
+                    (string) config('sms.kilakona.secret'),
+                    (string) config('sms.sender_id'),
+                    (string) config('sms.kilakona.endpoint'),
                 ),
                 default => new LogSmsGateway(),
             };

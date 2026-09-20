@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\NotifyAdminWithdrawalJob;
 use App\Models\TenantWallet;
 use App\Models\Transaction;
 use App\Models\WalletEntry;
@@ -11,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -206,8 +208,10 @@ class DashboardController extends Controller
         $fee    = WithdrawalRequest::feeFor($amount);
         $net    = $amount - $fee;
 
+        $withdrawal = null;
+
         try {
-            DB::transaction(function () use ($tenant, $validated, $wallet, $amount, $fee, $net) {
+            DB::transaction(function () use ($tenant, $validated, $wallet, $amount, $fee, $net, &$withdrawal) {
                 $withdrawal = WithdrawalRequest::create([
                     'tenant_id'     => $tenant->id,
                     'amount'        => $amount,
@@ -237,6 +241,15 @@ class DashboardController extends Controller
             });
         } catch (\Exception $e) {
             return back()->withErrors(['amount' => 'Withdrawal failed: ' . $e->getMessage()])->withInput();
+        }
+
+        // Only once the money is actually held. Queued, so a slow or unreachable SMS provider
+        // cannot keep the ISP waiting, and a failure to even queue it is no reason to refuse a
+        // request that has already gone through: the admin panel still shows it.
+        try {
+            NotifyAdminWithdrawalJob::dispatch($withdrawal->id);
+        } catch (\Throwable $e) {
+            Log::warning('Could not queue the withdrawal alert', ['withdrawal_id' => $withdrawal->id, 'error' => $e->getMessage()]);
         }
 
         return back()->with('success', 'Withdrawal request submitted. You will receive TZS ' . number_format($net) . ' after a TZS ' . number_format($fee) . ' fee. Processing within 24 hours.');

@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Contracts\SmsGateway;
+use App\Jobs\NotifyAdminWithdrawalJob;
 use App\Models\AgentWallet;
 use App\Models\PlatformBillingLog;
 use App\Models\TenantWallet;
@@ -10,6 +12,7 @@ use App\Models\Voucher;
 use App\Models\WithdrawalRequest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\BuildsTenants;
+use Tests\Concerns\CapturesSms;
 use Tests\TestCase;
 
 /**
@@ -19,6 +22,7 @@ use Tests\TestCase;
 class WalletRulesTest extends TestCase
 {
     use BuildsTenants;
+    use CapturesSms;
     use RefreshDatabase;
 
     private function makeVoucher($tenant, $package, string $code = 'TNTESTCODE1'): Voucher
@@ -159,6 +163,79 @@ class WalletRulesTest extends TestCase
         $this->assertSame(500, $withdrawal->fee_amount);
         $this->assertSame(9500, $withdrawal->net_amount);
         $this->assertSame('pending', $withdrawal->status);
+    }
+
+    // ── Telling the admin about a withdrawal ─────────────────────────────────
+
+    public function test_asking_to_withdraw_texts_the_platform_admin(): void
+    {
+        config(['platform.alert_phone' => '0695493670']);
+        $sms    = $this->captureSms();
+        $tenant = $this->makeTenant('acme', ['name' => 'Jagadi WiFi']);
+        $owner  = $this->makeOwner($tenant);
+        $this->makeWallet($tenant, 20000);
+
+        $this->actingAs($owner, 'tenant')
+            ->post('/dashboard/wallet/withdraw', ['amount' => 10000, 'mobile_number' => '0712345678'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertCount(1, $sms->sent);
+        $this->assertSame('255695493670', $sms->sent[0]['to']);
+        $this->assertStringContainsString('Jagadi WiFi', $sms->sent[0]['message']);
+        $this->assertStringContainsString('10,000', $sms->sent[0]['message']);
+        $this->assertStringContainsString('9,500', $sms->sent[0]['message']);
+
+        // The payout number is in the admin panel, so the text only carries enough to recognise it.
+        $this->assertStringNotContainsString('0712345678', $sms->sent[0]['message']);
+        $this->assertStringContainsString('071*****78', $sms->sent[0]['message']);
+    }
+
+    public function test_no_admin_number_means_no_text_and_no_failed_withdrawal(): void
+    {
+        config(['platform.alert_phone' => '']);
+        $sms    = $this->captureSms();
+        $tenant = $this->makeTenant();
+        $owner  = $this->makeOwner($tenant);
+        $this->makeWallet($tenant, 20000);
+
+        $this->actingAs($owner, 'tenant')
+            ->post('/dashboard/wallet/withdraw', ['amount' => 10000, 'mobile_number' => '0712345678'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame([], $sms->sent);
+        $this->assertSame('pending', WithdrawalRequest::firstOrFail()->status);
+    }
+
+    public function test_a_withdrawal_goes_through_even_when_the_sms_provider_is_down(): void
+    {
+        config(['platform.alert_phone' => '0695493670']);
+        $this->captureSms(accept: false);
+        $tenant = $this->makeTenant();
+        $owner  = $this->makeOwner($tenant);
+        $this->makeWallet($tenant, 20000);
+
+        // The alert is queued, so the ISP is never left waiting on the SMS provider.
+        $this->actingAs($owner, 'tenant')
+            ->post('/dashboard/wallet/withdraw', ['amount' => 10000, 'mobile_number' => '0712345678'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(10000, TenantWallet::where('tenant_id', $tenant->id)->value('balance'));
+        $this->assertSame('pending', WithdrawalRequest::firstOrFail()->status);
+    }
+
+    public function test_an_alert_for_a_withdrawal_already_dealt_with_is_dropped(): void
+    {
+        config(['platform.alert_phone' => '0695493670']);
+        $sms     = $this->captureSms();
+        $tenant  = $this->makeTenant();
+        $request = WithdrawalRequest::create([
+            'tenant_id' => $tenant->id, 'amount' => 10000, 'fee_amount' => 500,
+            'net_amount' => 9500, 'mobile_number' => '0712345678', 'status' => 'paid',
+        ]);
+
+        (new NotifyAdminWithdrawalJob($request->id))->handle($this->app->make(SmsGateway::class));
+
+        $this->assertSame([], $sms->sent);
     }
 
     public function test_a_tenant_cannot_withdraw_more_than_the_wallet_holds_or_below_the_minimum(): void
