@@ -173,8 +173,8 @@
 
                 <div class="field">
                     <label>API Password {{ $router ? '(leave blank to keep current)' : '' }}</label>
-                    <input type="password" name="password" placeholder="{{ $router ? '••••••••' : 'Leave blank to generate one' }}"
-                           autocomplete="new-password">
+                    <x-password-input name="password" placeholder="{{ $router ? '••••••••' : 'Leave blank to generate one' }}"
+                           autocomplete="new-password" />
                     @error('password') <span class="error">{{ $message }}</span> @enderror
                 </div>
             </div>

@@ -265,26 +265,24 @@
 
         <div class="field">
             <label for="password">Password</label>
-            <input
-                type="password"
+            <x-password-input
                 id="password"
                 name="password"
                 placeholder="At least 8 characters"
                 autocomplete="new-password"
                 class="{{ $errors->has('password') ? 'error' : '' }}"
-            >
+            />
             @error('password') <div class="error-msg">{{ $message }}</div> @enderror
         </div>
 
         <div class="field">
             <label for="password_confirmation">Confirm Password</label>
-            <input
-                type="password"
+            <x-password-input
                 id="password_confirmation"
                 name="password_confirmation"
                 placeholder="Repeat your password"
                 autocomplete="new-password"
-            >
+            />
         </div>
 
         <button type="submit" class="btn" id="submit-btn">Create My Account</button>

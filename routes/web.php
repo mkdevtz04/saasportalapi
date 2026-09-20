@@ -18,6 +18,7 @@ use App\Http\Controllers\DashboardVoucherController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RouterProvisionController;
 use App\Http\Controllers\TenantLoginController;
 use App\Http\Controllers\TenantRegistrationController;
@@ -129,6 +130,18 @@ Route::middleware(['auth:tenant', EnsureOwner::class])->prefix('dashboard')->nam
 // Ends a platform-support session. Available to whoever is being impersonated.
 Route::post('/impersonation/stop', [AdminImpersonationController::class, 'stop'])
     ->middleware('auth:tenant')->name('impersonation.stop');
+
+// ── Your own account (owners and agents alike) ────────────────────────────────
+// Outside the dashboard group on purpose: agents work in the POS and still need their own
+// name, sign-in email and password. Support may look but never change credentials.
+Route::middleware('auth:tenant')->prefix('profile')->name('profile.')->group(function () {
+    Route::get('/', [ProfileController::class, 'edit'])->name('edit');
+
+    Route::middleware(['no.impersonation', 'throttle:profile'])->group(function () {
+        Route::put('/',          [ProfileController::class, 'update'])->name('update');
+        Route::put('/password',  [ProfileController::class, 'updatePassword'])->name('password');
+    });
+});
 
 // ── Agent POS (any authenticated tenant user) ─────────────────────────────────
 Route::middleware('auth:tenant')->prefix('pos')->name('pos.')->group(function () {

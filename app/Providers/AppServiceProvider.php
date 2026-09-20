@@ -61,5 +61,9 @@ class AppServiceProvider extends ServiceProvider
 
         // Setup downloads for a router. Tokens are long and random, this only slows guessing.
         RateLimiter::for('provision', fn (Request $request) => Limit::perMinute(60)->by('provision:' . $request->ip()));
+
+        // Changing your own email or password asks for the current one. Someone who found an
+        // unlocked screen should not be able to sit and guess it.
+        RateLimiter::for('profile', fn (Request $request) => Limit::perMinute(6)->by('profile:' . ($request->user('tenant')?->id ?? $request->ip())));
     }
 }

@@ -15,7 +15,7 @@
         h2 { font-size: 20px; font-weight: 700; color: #111; margin-bottom: 20px; }
         .field { margin-bottom: 16px; }
         label { display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 6px; }
-        input[type=email], input[type=password] { width: 100%; padding: 11px 14px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 15px; color: #111; outline: none; background: #fafafa; }
+        input[type=email], input[type=password], input[type=text] { width: 100%; padding: 11px 14px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 15px; color: #111; outline: none; background: #fafafa; }
         input:focus { border-color: #0066cc; background: #fff; }
         .error-msg { font-size: 12px; color: #e53e3e; margin-top: 4px; }
         .remember { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #555; margin-bottom: 4px; }
@@ -53,7 +53,7 @@
         </div>
         <div class="field">
             <label for="password">Password</label>
-            <input type="password" id="password" name="password" placeholder="Your password" autocomplete="current-password">
+            <x-password-input id="password" name="password" placeholder="Your password" autocomplete="current-password" />
         </div>
         <label class="remember">
             <input type="checkbox" name="remember"> Remember me

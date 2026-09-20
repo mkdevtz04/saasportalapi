@@ -54,7 +54,7 @@
                 </div>
                 <div class="field">
                     <label>API Password</label>
-                    <input type="password" name="password" id="password" value="{{ old('password') }}" placeholder="••••••••" required autocomplete="new-password">
+                    <x-password-input name="password" id="password" value="{{ old('password') }}" placeholder="••••••••" required autocomplete="new-password" />
                 </div>
             </div>
 

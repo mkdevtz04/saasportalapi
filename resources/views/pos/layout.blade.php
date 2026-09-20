@@ -74,6 +74,18 @@
             margin-bottom: 12px;
         }
 
+        /* Page heading and form fields, for the pages here that are not the till itself */
+        .page-header { margin-bottom: 16px; }
+        .page-title  { font-size: 20px; font-weight: 700; color: #0f172a; }
+        .page-sub    { font-size: 13px; color: #64748b; margin-top: 4px; }
+
+        .field label { font-size: 13px; font-weight: 600; color: #374151; display: block; margin-bottom: 6px; }
+        .field input {
+            width: 100%; padding: 10px 12px;
+            border: 1px solid #d1d5db; border-radius: 7px; font-size: 14px;
+        }
+        .field input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px #2563eb22; }
+
         /* Package grid */
         .package-grid {
             display: grid;
@@ -193,6 +205,7 @@
         <div class="wallet-badge" id="walletBadge">
             {{ number_format($wallet->balance ?? 0) }} TZS
         </div>
+        <a href="{{ route('profile.edit') }}" class="logout-btn" style="text-decoration:none;">My account</a>
         <form method="POST" action="{{ route('tenant.logout') }}" style="display:inline;">
             @csrf
             <button type="submit" class="logout-btn">Sign out</button>

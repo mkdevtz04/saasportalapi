@@ -423,6 +423,10 @@
            class="nav-item {{ request()->routeIs('dashboard.settings') ? 'active' : '' }}">
              <span class="icon"><i class="fa-solid fa-gear"></i></span> Settings
         </a>
+        <a href="{{ route('profile.edit') }}"
+           class="nav-item {{ request()->routeIs('profile.*') ? 'active' : '' }}">
+             <span class="icon"><i class="fa-solid fa-user"></i></span> My account
+        </a>
     </div>
 
     <div class="sidebar-footer">

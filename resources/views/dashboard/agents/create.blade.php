@@ -37,13 +37,13 @@
 
             <div class="field">
                 <label>Password</label>
-                <input type="password" name="password" autocomplete="new-password" required>
+                <x-password-input name="password" autocomplete="new-password" required />
                 @error('password') <span class="error">{{ $message }}</span> @enderror
             </div>
 
             <div class="field">
                 <label>Confirm Password</label>
-                <input type="password" name="password_confirmation" required>
+                <x-password-input name="password_confirmation" required />
             </div>
         </div>
 

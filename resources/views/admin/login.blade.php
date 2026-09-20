@@ -73,7 +73,7 @@
         </div>
         <div class="field">
             <label>Password</label>
-            <input type="password" name="password" required>
+            <x-password-input name="password" required />
         </div>
         <button type="submit" class="btn">Sign in to Admin</button>
     </form>
