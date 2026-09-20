@@ -1,4 +1,4 @@
-<div class="brand-top"><a href="/">TrinetPay</a></div>
+<div class="brand-top"><a href="/">Wifikitaa</a></div>
 <div class="steps">
     <div class="step {{ $current >= 1 ? ($current > 1 ? 'done' : 'active') : 'upcoming' }}">
         <div class="step-num">{!! $current > 1 ? '<i class="fa-solid fa-check"></i>' : '1' !!}</div>

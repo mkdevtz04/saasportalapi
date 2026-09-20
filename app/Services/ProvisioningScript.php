@@ -470,6 +470,14 @@ label{display:block;font-size:11px;font-weight:900;letter-spacing:.08em;text-tra
 input[name="code"]{width:100%;height:48px;padding:0 14px;font-size:16px;border:1.5px solid #b8c2d1;outline:none;background:#fbfdff;color:#040a17}
 .btn{display:block;width:100%;height:48px;margin-top:12px;background:#040a17;color:#fff;border:0;font-size:13px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
 .footer{padding:14px 28px;background:#f7f9fb;border-top:1px solid #e5e9f0;font-size:11px;color:#667085;text-align:center}
+@media (max-width:420px){
+  .page{padding:0}
+  .card{border-left:0;border-right:0}
+  .header{padding:20px 16px}
+  .body{padding:20px 16px}
+  .footer{padding:12px 16px}
+  .brand{font-size:19px}
+}
 </style>
 </head>
 <body>

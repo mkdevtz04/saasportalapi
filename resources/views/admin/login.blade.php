@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login — TrinetPay</title>
+    <title>Admin Login — Wifikitaa</title>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -51,12 +51,17 @@
         }
         .btn:hover { background: #fff; color: #2561e8; }
         .error { background: #450a0a; border: 1px solid #7f1d1d; border-radius: 8px; padding: 10px 12px; color: #fca5a5; font-size: 13px; margin-bottom: 14px; }
+
+        @media (max-width: 420px) {
+            body { padding: 16px 12px; }
+            .card { width: 100%; padding: 28px 20px; }
+        }
     </style>
 </head>
 <body>
 <div class="card">
     <div class="logo">
-        <div class="logo-name">TrinetPay</div>
+        <div class="logo-name">Wifikitaa</div>
         <div class="logo-sub">Platform Administration</div>
     </div>
     <h1>Admin Sign In</h1>

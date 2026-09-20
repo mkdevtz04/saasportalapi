@@ -3,6 +3,17 @@
 @section('title', 'Wallet')
 @section('breadcrumb', 'Wallet')
 
+@push('head')
+<style>
+    /* The withdraw form beside the history on a desktop, stacked on a phone. */
+    .wallet-split { display: grid; grid-template-columns: 1fr 1.6fr; gap: 20px; align-items: start; }
+
+    @media (max-width: 900px) {
+        .wallet-split { grid-template-columns: 1fr; }
+    }
+</style>
+@endpush
+
 @section('content')
 
 <div class="page-header">
@@ -13,7 +24,7 @@
 </div>
 
 {{-- Balance cards --}}
-<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px;">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:20px;">
     <div class="stat-card" style="border-left:4px solid #22c55e;">
         <div class="stat-label">Available Balance</div>
         <div class="stat-value" style="color:#15803d;">{{ number_format($wallet->balance ?? 0) }}</div>
@@ -31,7 +42,7 @@
     </div>
 </div>
 
-<div style="display:grid;grid-template-columns:1fr 1.6fr;gap:20px;align-items:start;">
+<div class="wallet-split">
 
     {{-- Request withdrawal form --}}
     <div class="card">

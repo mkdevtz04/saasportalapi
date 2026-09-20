@@ -36,7 +36,7 @@
 
             <div class="field" style="margin-bottom:20px;">
                 <label>Quantity</label>
-                <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:10px;">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(56px,1fr));gap:8px;margin-bottom:10px;">
                     @foreach ([10, 25, 50, 100, 200] as $qty)
                         <button type="button" class="btn btn-secondary qty-btn"
                                 onclick="setQty({{ $qty }})">{{ $qty }}</button>

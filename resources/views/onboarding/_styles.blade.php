@@ -13,6 +13,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .step-line { flex: 1; height: 2px; background: #e2e8f0; margin: 0 8px; }
 .step-line.done { background: #2561e8; }
 .brand-top { text-align: center; margin-bottom: 24px; }
+
+@media (max-width: 560px) {
+    body { padding: 20px 12px 32px; }
+    .card { padding: 22px 16px; border-radius: 12px; }
+    /* Four labels will not fit beside four circles, so the numbers carry the progress. */
+    .step-label { display: none; }
+    .step { flex: 0 0 auto; }
+    .steps { justify-content: space-between; margin-bottom: 20px; }
+}
 .brand-top a { font-size: 22px; font-weight: 800; color: #2561e8; text-decoration: none; }
 .card { background: #fff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); padding: 36px; }
 .card-header { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 28px; }

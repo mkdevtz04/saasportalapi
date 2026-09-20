@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign In — TrinetPay</title>
+    <title>Sign In — Wifikitaa</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -24,12 +24,17 @@
         .link-row { text-align: center; margin-top: 18px; font-size: 14px; color: #666; }
         .link-row a { color: #2561e8; font-weight: 600; text-decoration: none; }
         .alert { background: #fff5f5; border: 1px solid #fca5a5; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; font-size: 13px; color: #c53030; }
+
+        @media (max-width: 420px) {
+            body { padding: 16px 12px; }
+            .card { padding: 28px 20px; border-radius: 12px; }
+        }
     </style>
 </head>
 <body>
 <div class="card">
     <div class="logo">
-        <h1>TrinetPay</h1>
+        <h1>Wifikitaa</h1>
         <p>ISP Management Portal</p>
     </div>
 

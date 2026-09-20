@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TrinetPay — Hotspot Billing Made Simple</title>
+    <title>Wifikitaa — Hotspot Billing Made Simple</title>
     <meta name="description" content="The easiest way for small ISPs in Tanzania to manage hotspot billing, voucher sales, and agent networks.">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -513,6 +513,15 @@
             .features-grid { grid-template-columns: 1fr; }
             .stat-item { padding: 4px 16px; }
         }
+
+        @media (max-width: 480px) {
+            .hero { padding: 56px 5% 44px; min-height: 0; }
+            .hero h1 { letter-spacing: -0.5px; }
+            .hero-sub { font-size: 15px; }
+            .section-title { letter-spacing: -0.5px; }
+            .hero-actions > a { flex: 1 1 100%; text-align: center; }
+            .stat-item { border-right: none; padding: 8px 14px; }
+        }
     </style>
 </head>
 <body>
@@ -520,8 +529,7 @@
 {{-- ── Navbar ──────────────────────────────────────── --}}
 <nav class="nav">
     <div class="nav-logo">
-        <div class="logo-mark">T</div>
-        <div class="logo-text">Trinet<span>Pay</span></div>
+        <div class="logo-text">Wifi<span>kitaa</span></div>
     </div>
 
     <div class="nav-links">
@@ -549,7 +557,7 @@
             <h1>Hotspot Billing<br><span class="highlight">Made Simple</span></h1>
 
             <p class="hero-sub">
-                TrinetPay helps small ISPs manage hotspot payments, generate vouchers,
+                wifikitaa helps small ISPs manage hotspot payments, generate vouchers,
                 and run an agent sales network — all through one dashboard.
                 Works with MikroTik, accepts mobile money.
             </p>
@@ -575,7 +583,7 @@
                 </div>
                 <div class="mockup-body">
                     <div class="mockup-sidebar">
-                        <div class="mockup-logo-row"><span>TrinetPay</span></div>
+                        <div class="mockup-logo-row"><span>Wifikitaa</span></div>
                         <div class="mock-nav-item active"></div>
                         <div class="mock-nav-item"></div>
                         <div class="mock-nav-item"></div>
@@ -665,7 +673,7 @@
         <div class="features-header">
             <div class="section-tag">Features</div>
             <h2 class="section-title">Everything you need to run a hotspot business</h2>
-            <p class="section-sub">From customer payments to agent commissions — TrinetPay handles the full billing lifecycle.</p>
+            <p class="section-sub">From customer payments to agent commissions — wifikitaa handles the full billing lifecycle.</p>
         </div>
 
         <div class="features-grid">
@@ -702,7 +710,7 @@
             <div class="feature-card">
                 <div class="feature-icon"><i class="fa-solid fa-coins"></i></div>
                 <h3>Instant Wallet Payouts</h3>
-                <p>Your earnings accumulate in your TrinetPay wallet. Request a withdrawal to your mobile money number at any time — no waiting for month-end settlements.</p>
+                <p>Your earnings accumulate in your wifikitaa wallet. Request a withdrawal to your mobile money number at any time — no waiting for month-end settlements.</p>
             </div>
         </div>
     </div>
@@ -727,7 +735,7 @@
         <div style="text-align:center;">
             <div class="section-tag">How it works</div>
             <h2 class="section-title">Up and running in under 10 minutes</h2>
-            <p class="section-sub" style="margin:0 auto;">No technical expertise required. If you can log in to MikroTik, you can set up TrinetPay.</p>
+            <p class="section-sub" style="margin:0 auto;">No technical expertise required. If you can log in to MikroTik, you can set up Wifikitaa.</p>
         </div>
 
         <div class="how-grid">
@@ -764,7 +772,7 @@
         <div class="pricing-grid" style="grid-template-columns:1fr;max-width:420px;">
             <div class="price-card featured">
                 <div class="price-badge">Everything included</div>
-                <div class="price-name">TrinetPay</div>
+                <div class="price-name">Wifikitaa</div>
                 <div class="price-amount">0 <span>TZS / month</span></div>
                 <div class="price-desc">{{ withdrawal_fee_label() }} fee only on withdrawals.</div>
                 <ul class="price-list">
@@ -790,7 +798,7 @@
 <section class="cta-section">
     <div class="section-inner">
         <h2>Ready to grow your hotspot business?</h2>
-        <p>Join ISPs across Tanzania using TrinetPay to automate billing and maximize revenue.</p>
+        <p>Join ISPs across Tanzania using Wifikitaa to automate billing and maximize revenue.</p>
         <a href="{{ route('register') }}" class="btn-hero-primary">
             Create Your Free Account
         </a>
@@ -803,8 +811,7 @@
     <div class="footer-inner">
         <div class="footer-logo">
             <div class="nav-logo">
-                <div class="logo-mark" style="width:28px;height:28px;font-size:13px;">T</div>
-                <div class="logo-text" style="font-size:16px;">Trinet<span>Pay</span></div>
+                <div class="logo-text" style="color:white;font-size:16px;">Wifikitaa</div>
             </div>
             <p>Hotspot billing for Tanzanian ISPs.</p>
         </div>
@@ -817,7 +824,7 @@
         </div>
 
         <div class="footer-copy">
-            &copy; {{ date('Y') }} TrinetPay. All rights reserved.
+            &copy; {{ date('Y') }} Wifikitaa. All rights reserved.
         </div>
     </div>
 </footer>

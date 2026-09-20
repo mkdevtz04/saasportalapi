@@ -116,7 +116,23 @@
             z-index: 50;
         }
 
-        .topbar-left { font-weight: 600; color: #334155; font-size: 15px; }
+        .topbar-left { font-weight: 600; color: #334155; font-size: 15px; display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .topbar-left > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* Only on small screens, where the sidebar becomes a drawer. */
+        .nav-toggle {
+            display: none; align-items: center; justify-content: center;
+            width: 36px; height: 36px; flex: 0 0 auto;
+            background: none; border: 1px solid #e2e8f0; border-radius: 8px;
+            color: #040a17; font-size: 16px; cursor: pointer;
+        }
+        .nav-toggle:hover { background: #f1f5f9; }
+
+        .sidebar-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(4, 10, 23, 0.55); z-index: 150;
+        }
+        .sidebar-overlay.is-open { display: block; }
         .topbar-left span { color: #94a3b8; font-weight: 400; margin-left: 6px; font-size: 13px; }
 
         .topbar-right {
@@ -215,7 +231,8 @@
         .stat-icon  { float: right; font-size: 28px; margin-top: -4px; }
 
         /* ── Tables ─────────────────────────────────── */
-        .table-wrap { overflow-x: auto; }
+        .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .table-wrap table { min-width: 620px; }
 
         table { width: 100%; border-collapse: collapse; font-size: 14px; }
         thead th {
@@ -362,9 +379,36 @@
         .empty-state p { font-size: 14px; }
 
         /* ── Responsive ──────────────────────────────── */
+        /* The sidebar becomes a drawer: it slides in over the page instead of
+           taking a quarter of a phone screen away from the content. */
         @media (max-width: 900px) {
+            .sidebar {
+                position: fixed; top: 0; left: 0; bottom: 0;
+                height: 100%; z-index: 200;
+                transform: translateX(-100%);
+                transition: transform 0.22s ease;
+                box-shadow: 0 0 40px rgba(4, 10, 23, 0.45);
+            }
+            .sidebar.is-open { transform: translateX(0); }
+            .nav-toggle { display: inline-flex; }
+
+            .topbar { padding: 0 14px; }
+            .content { padding: 18px 14px; }
+            .page-header { flex-wrap: wrap; gap: 12px; }
+
             .stats-grid { grid-template-columns: 1fr 1fr; }
-            .form-grid { grid-template-columns: 1fr; }
+            .form-grid, .form-grid.cols-3 { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 560px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .page-title { font-size: 19px; }
+            .topbar-left { font-size: 14px; }
+            .topbar-left > span { display: none; }
+            .btn-portal .btn-portal-label { display: none; }
+            .user-badge span { display: none; }
+            .card { padding: 16px 14px; }
+            .content { padding: 14px 12px; }
         }
     </style>
     @stack('head')
@@ -374,7 +418,7 @@
 {{-- Sidebar --}}
 <nav class="sidebar">
     <div class="sidebar-brand">
-        <div class="brand-name">TrinetPay</div>
+        <div class="brand-name">Wifikitaa</div>
         <div class="brand-sub">{{ $tenant->name }}</div>
     </div>
 
@@ -443,12 +487,15 @@
 <div class="main">
     <header class="topbar">
         <div class="topbar-left">
+            <button type="button" class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false">
+                <i class="fa-solid fa-bars"></i>
+            </button>
             @yield('breadcrumb', 'Dashboard')
             <span>{{ $tenant->name }}</span>
         </div>
         <div class="topbar-right">
                  <a href="{{ \App\Support\TenantUrls::portal($tenant) }}" target="_blank" class="btn-portal">
-                 <i class="fa-solid fa-globe"></i> Live Portal <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                 <i class="fa-solid fa-globe"></i> <span class="btn-portal-label">Live Portal</span> <i class="fa-solid fa-arrow-up-right-from-square"></i>
              </a>
             <div class="user-badge">
                 <div class="user-avatar">{{ strtoupper(substr(Auth::guard('tenant')->user()->name, 0, 1)) }}</div>
@@ -481,6 +528,32 @@
         @yield('content')
     </main>
 </div>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<script>
+    (function () {
+        var toggle  = document.getElementById('navToggle');
+        var sidebar = document.querySelector('.sidebar');
+        var overlay = document.getElementById('sidebarOverlay');
+
+        if (! toggle || ! sidebar || ! overlay) { return; }
+
+        function setOpen(open) {
+            sidebar.classList.toggle('is-open', open);
+            overlay.classList.toggle('is-open', open);
+            toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+        }
+
+        toggle.addEventListener('click', function () { setOpen(! sidebar.classList.contains('is-open')); });
+        overlay.addEventListener('click', function () { setOpen(false); });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { setOpen(false); } });
+
+        // Tapping a link navigates away, so the drawer must not be left open behind the new page.
+        sidebar.addEventListener('click', function (e) { if (e.target.closest('a')) { setOpen(false); } });
+    })();
+</script>
 
 @stack('scripts')
 </body>

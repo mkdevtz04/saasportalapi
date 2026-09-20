@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Withdrawal Setup — TrinetPay</title>
+    <title>Withdrawal Setup — Wifikitaa</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     @include('onboarding._styles')
 </head>
@@ -27,8 +27,8 @@
         @endif
 
         <div class="info-box" style="margin-bottom:24px;">
-            <strong>How payments work on TrinetPay:</strong><br>
-            All your customers' payments are collected through the TrinetPay platform account.
+            <strong>How payments work on Wifikitaa:</strong><br>
+            All your customers' payments are collected through the Wifikitaa platform account.
             Your earnings are tracked in your dashboard wallet and you can request a withdrawal
             to your mobile money number at any time. Withdrawals are processed within 24 hours.
             There is no monthly fee. A <strong>{{ withdrawal_fee_label() }}</strong> fee is taken from each withdrawal, and only then.
@@ -48,14 +48,14 @@
                     autocomplete="tel"
                     style="font-size:18px;letter-spacing:1px;"
                 >
-                <span class="hint">This is where TrinetPay will send your earnings when you request a withdrawal.</span>
+                <span class="hint">This is where Wifikitaa will send your earnings when you request a withdrawal.</span>
             </div>
 
             <div class="field" style="margin-top:16px;">
                 <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-weight:400;">
                     <input type="checkbox" name="agree_terms" required style="margin-top:3px;flex-shrink:0;">
                     <span style="font-size:14px;color:#555;line-height:1.5;">
-                        I understand that customer payments are collected by TrinetPay and credited to my dashboard wallet.
+                        I understand that customer payments are collected by Wifikitaa and credited to my dashboard wallet.
                         I can request withdrawals at any time from my dashboard.
                     </span>
                 </label>

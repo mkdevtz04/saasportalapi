@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Up — TrinetPay</title>
+    <title>Sign Up — Wifikitaa</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -175,12 +175,17 @@
             border-top: 1px solid #eee;
             margin: 24px 0 0;
         }
+
+        @media (max-width: 420px) {
+            body { padding: 16px 12px; }
+            .card { padding: 28px 20px; border-radius: 12px; }
+        }
     </style>
 </head>
 <body>
 <div class="card">
     <div class="logo">
-        <h1>TrinetPay</h1>
+        <h1>Wifikitaa</h1>
         <p>WiFi Hotspot Billing Platform</p>
     </div>
 

@@ -41,6 +41,15 @@ html,body{min-height:100%;background:#eef3f7;font-family:Arial,Helvetica,sans-se
 .btn:hover:not(:disabled){filter:brightness(1.12)}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .footer{padding:12px 28px;background:#f7f9fb;border-top:1px solid #e5e9f0;font-size:11px;color:#667085;text-align:center}
+@media (max-width:420px){
+  .page{padding:0}
+  .card{border-left:0;border-right:0}
+  .header{padding:18px 16px}
+  .body{padding:20px 16px}
+  .footer{padding:12px 16px}
+  .brand{font-size:18px}
+  .modal-box{padding:28px 20px}
+}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(20,32,51,.88);z-index:100;align-items:center;justify-content:center;padding:20px}
 .modal-overlay.show{display:flex}
 .modal-box{background:#fff;padding:36px 28px;max-width:360px;width:100%;text-align:center;animation:up .25s ease}

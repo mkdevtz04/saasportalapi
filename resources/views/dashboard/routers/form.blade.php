@@ -167,7 +167,7 @@
                 <div class="field">
                     <label>API Username</label>
                     <input type="text" name="username" value="{{ old('username', $router?->username) }}" placeholder="Leave blank to create one for you" autocomplete="off">
-                    @unless ($router) <span class="hint">Blank: TrinetPay creates a login named after your business.</span> @endunless
+                    @unless ($router) <span class="hint">Blank: Wifikitaa creates a login named after your business.</span> @endunless
                     @error('username') <span class="error">{{ $message }}</span> @enderror
                 </div>
 

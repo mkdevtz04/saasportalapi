@@ -33,7 +33,7 @@
     </div>
 </div>
 
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;">
 
     {{-- Info --}}
     <div class="card">
@@ -51,7 +51,7 @@
     {{-- Revenue --}}
     <div class="card">
         <div class="card-title">Revenue Summary</div>
-        <div class="stats-grid" style="grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">
             <div class="stat-card" style="padding:14px;">
                 <div class="stat-label">This Month</div>
                 <div class="stat-value" style="font-size:18px;">{{ number_format($monthRevenue) }}</div>

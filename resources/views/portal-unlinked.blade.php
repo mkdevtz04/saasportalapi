@@ -23,6 +23,14 @@ html,body{min-height:100%;background:#eef3f7;font-family:Arial,Helvetica,sans-se
 .lead + .lead{padding-top:16px;border-top:1px solid #e5e9f0}
 .lead strong{display:block;font-size:12px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:#b45309;margin-bottom:6px}
 .footer{padding:13px 28px;background:#f7f9fb;border-top:1px solid #e5e9f0;font-size:11px;color:#667085;text-align:center}
+@media (max-width:420px){
+  .page{padding:0}
+  .card{border-left:0;border-right:0}
+  .header{padding:20px 16px}
+  .body{padding:20px 16px}
+  .footer{padding:12px 16px}
+  .brand{font-size:17px}
+}
 </style>
 </head>
 <body>

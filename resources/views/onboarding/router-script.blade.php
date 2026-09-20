@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1-Command Router Setup — TrinetPay</title>
+    <title>1-Command Router Setup — Wifikitaa</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     @include('onboarding._styles')
     <style>
@@ -189,7 +189,7 @@
             <i class="fa-solid fa-circle-check fa-2x"></i>
             <div>
                 <strong style="font-size:16px;">Router connected!</strong>
-                <p style="font-size:13px;margin:2px 0 0 0;opacity:0.9;">Your router is set up and has reported back to TrinetPay.</p>
+                <p style="font-size:13px;margin:2px 0 0 0;opacity:0.9;">Your router is set up and has reported back to Wifikitaa.</p>
             </div>
         </div>
 
@@ -278,7 +278,7 @@
                         </div>
                         <div class="step-text">
                             <div class="title">Login page &amp; agent</div>
-                            <div class="desc">Installing your branded login page and the small agent that reports to TrinetPay.</div>
+                            <div class="desc">Installing your branded login page and the small agent that reports to Wifikitaa.</div>
                         </div>
                     </div>
                     <span class="badge-status" id="step-4-badge">
@@ -294,7 +294,7 @@
                         </div>
                         <div class="step-text">
                             <div class="title">Waiting for the router to report in</div>
-                            <div class="desc">The router contacts TrinetPay when setup is done.</div>
+                            <div class="desc">The router contacts Wifikitaa when setup is done.</div>
                         </div>
                     </div>
                     <span class="badge-status" id="step-5-badge">

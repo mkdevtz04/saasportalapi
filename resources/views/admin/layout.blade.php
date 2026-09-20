@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Admin') — TrinetPay</title>
+    <title>@yield('title', 'Admin') — Wifikitaa</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -49,7 +49,20 @@
             display: flex; align-items: center; justify-content: space-between;
             position: sticky; top: 0; z-index: 50;
         }
-        .topbar-left  { font-weight: 600; color: #e7eefc; font-size: 14px; }
+        .topbar-left  { font-weight: 600; color: #e7eefc; font-size: 14px; display: flex; align-items: center; gap: 10px; min-width: 0; }
+
+        /* Only on small screens, where the sidebar becomes a drawer. */
+        .nav-toggle {
+            display: none; align-items: center; justify-content: center;
+            width: 34px; height: 34px; flex: 0 0 auto;
+            background: none; border: 1px solid #2561e8; border-radius: 8px;
+            color: #e7eefc; font-size: 15px; cursor: pointer;
+        }
+        .sidebar-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(4, 10, 23, 0.6); z-index: 150;
+        }
+        .sidebar-overlay.is-open { display: block; }
         .topbar-right { display: flex; align-items: center; gap: 10px; }
         .admin-badge  { color: #e7eefc; font-size: 12px; }
 
@@ -69,7 +82,8 @@
         .stat-icon  { float: right; font-size: 26px; margin-top: -4px; }
 
         /* ── Tables ─────────────────────────────── */
-        .table-wrap { overflow-x: auto; }
+        .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .table-wrap table { min-width: 620px; }
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
         thead th {
             text-align: left; padding: 9px 12px;
@@ -152,7 +166,26 @@
         .info-list dd { font-size: 14px; color: #040a17; margin-bottom: 14px; font-weight: 500; }
 
         @media (max-width: 900px) {
+            .sidebar {
+                position: fixed; top: 0; left: 0; bottom: 0;
+                height: 100%; z-index: 200;
+                transform: translateX(-100%);
+                transition: transform 0.22s ease;
+                box-shadow: 0 0 40px rgba(4, 10, 23, 0.5);
+            }
+            .sidebar.is-open { transform: translateX(0); }
+            .nav-toggle { display: inline-flex; }
+
+            .topbar { padding: 0 14px; }
+            .content { padding: 18px 14px; }
+            .page-header { flex-wrap: wrap; gap: 12px; }
             .stats-grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        @media (max-width: 560px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .content { padding: 14px 12px; }
+            .admin-badge { display: none; }
         }
     </style>
 </head>
@@ -160,7 +193,7 @@
 
 <nav class="sidebar">
     <div class="sidebar-brand">
-        <div class="brand-name">TrinetPay</div>
+        <div class="brand-name">Wifikitaa</div>
         <div class="brand-sub">Platform Admin</div>
     </div>
     <div class="sidebar-nav">
@@ -197,7 +230,12 @@
 
 <div class="main">
     <header class="topbar">
-        <div class="topbar-left">@yield('breadcrumb', 'Dashboard')</div>
+        <div class="topbar-left">
+            <button type="button" class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            @yield('breadcrumb', 'Dashboard')
+        </div>
         <div class="topbar-right">
             <span class="admin-badge"><i class="fa-solid fa-bolt"></i> {{ Auth::guard('admin')->user()->name }}</span>
         </div>
@@ -219,6 +257,30 @@
         @yield('content')
     </main>
 </div>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<script>
+    (function () {
+        var toggle  = document.getElementById('navToggle');
+        var sidebar = document.querySelector('.sidebar');
+        var overlay = document.getElementById('sidebarOverlay');
+
+        if (! toggle || ! sidebar || ! overlay) { return; }
+
+        function setOpen(open) {
+            sidebar.classList.toggle('is-open', open);
+            overlay.classList.toggle('is-open', open);
+            toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+        }
+
+        toggle.addEventListener('click', function () { setOpen(! sidebar.classList.contains('is-open')); });
+        overlay.addEventListener('click', function () { setOpen(false); });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { setOpen(false); } });
+        sidebar.addEventListener('click', function (e) { if (e.target.closest('a')) { setOpen(false); } });
+    })();
+</script>
 
 @stack('scripts')
 </body>

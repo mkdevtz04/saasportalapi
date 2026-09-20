@@ -18,7 +18,7 @@
 <form method="POST" action="{{ route('dashboard.settings.update') }}" enctype="multipart/form-data">
     @csrf
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;">
 
         {{-- Branding --}}
         <div class="card">
