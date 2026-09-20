@@ -95,11 +95,14 @@ class ProvisioningScript
 } on-error={ :set failed ($failed . "login-page,") }
 
 # 6. Agent: reports to the platform every minute and picks up commands.
+#    The ftp policy is what lets the agent write the reply to a file. Without it every poll
+#    fails with "cannot open file: permission denied" and the router never hears about a
+#    customer who has paid or used a voucher.
 :do {
   /system script remove [find where name="trinetpay-agent"]
-  /system script add name="trinetpay-agent" policy=read,write,policy,test,reboot source={{AGENT_SOURCE}}
+  /system script add name="trinetpay-agent" policy=ftp,read,write,policy,test,reboot source={{AGENT_SOURCE}}
   /system scheduler remove [find where name="trinetpay-agent"]
-  /system scheduler add name="trinetpay-agent" interval={{INTERVAL}} start-time=startup policy=read,write,policy,test,reboot comment="TrinetPay" on-event="/system script run trinetpay-agent"
+  /system scheduler add name="trinetpay-agent" interval={{INTERVAL}} start-time=startup policy=ftp,read,write,policy,test,reboot comment="TrinetPay" on-event="/system script run trinetpay-agent"
 } on-error={ :set failed ($failed . "agent,") }
 
 # 7. Tell the platform we are done, and which steps did not work.
@@ -162,11 +165,14 @@ RSC, [
 } on-error={ :set failed ($failed . "login-page,") }
 
 # 4. Agent: calls the platform every few seconds and creates customers' hotspot users.
+#    The ftp policy is what lets the agent write the reply to a file. Without it every poll
+#    fails with "cannot open file: permission denied" and the router never hears about a
+#    customer who has paid or used a voucher.
 :do {
   /system script remove [find where name="trinetpay-agent"]
-  /system script add name="trinetpay-agent" policy=read,write,policy,test,reboot source={{AGENT_SOURCE}}
+  /system script add name="trinetpay-agent" policy=ftp,read,write,policy,test,reboot source={{AGENT_SOURCE}}
   /system scheduler remove [find where name="trinetpay-agent"]
-  /system scheduler add name="trinetpay-agent" interval={{INTERVAL}} start-time=startup policy=read,write,policy,test,reboot comment="TrinetPay" on-event="/system script run trinetpay-agent"
+  /system scheduler add name="trinetpay-agent" interval={{INTERVAL}} start-time=startup policy=ftp,read,write,policy,test,reboot comment="TrinetPay" on-event="/system script run trinetpay-agent"
 } on-error={ :set failed ($failed . "agent,") }
 
 # 5. Tell the platform we are done, and which steps did not work.

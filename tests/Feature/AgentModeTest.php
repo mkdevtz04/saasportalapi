@@ -83,6 +83,19 @@ class AgentModeTest extends TestCase
         $this->assertStringNotContainsString('/system identity set', $script, 'the router is not renamed in this mode');
     }
 
+    public function test_the_agent_is_allowed_to_write_the_file_it_reads_commands_from(): void
+    {
+        $this->agentRouter($this->makeTenant('testisp'));
+
+        $script = $this->get('/provision/tok-agent')->assertOk()->getContent();
+
+        // The agent polls with /tool fetch into a file. Writing that file needs the ftp policy;
+        // without it every poll dies with "cannot open file: permission denied", the router never
+        // hears about a paid or redeemed code, and the customer is told their code is invalid.
+        $this->assertStringContainsString('/system script add name="trinetpay-agent" policy=ftp,read,write,policy,test,reboot', $script);
+        $this->assertStringContainsString('start-time=startup policy=ftp,read,write,policy,test,reboot', $script);
+    }
+
     public function test_every_setup_step_reports_its_own_failure(): void
     {
         $this->agentRouter($this->makeTenant('testisp'));

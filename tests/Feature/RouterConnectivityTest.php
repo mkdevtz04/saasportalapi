@@ -103,6 +103,8 @@ class RouterConnectivityTest extends TestCase
         $this->assertStringContainsString('dst-host="cdnjs.cloudflare.com"', $script);
         $this->assertStringContainsString('https://trinetpay.test/provision/trinet_prov_tok/login.html', $script);
         $this->assertStringContainsString('/api/agent/trinet_agent_tok/poll', $script);
+        // The agent writes each poll's reply to a file, which needs the ftp policy.
+        $this->assertStringContainsString('policy=ftp,read,write,policy,test,reboot', $script);
         $this->assertStringContainsString('/provision/trinet_prov_tok/complete\?failed=', $script);
 
         $this->assertStringNotContainsString('/ip service enable api', $script, 'the router must not open its API');
