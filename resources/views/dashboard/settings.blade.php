@@ -100,14 +100,14 @@
                 <div style="font-size:13px;color:#475569;line-height:1.8;">
                     <div><strong>Portal URL:</strong>
                         <a href="{{ \App\Support\TenantUrls::portal($tenant) }}" target="_blank"
-                           style="color:#2563eb;">{{ \App\Support\TenantUrls::portalHost($tenant) }}</a>
+                           style="color:#2563eb;">{{ \App\Support\TenantUrls::portalLabel($tenant) }}</a>
                     </div>
                     <div><strong>Status:</strong>
                         <span class="badge badge-{{ $tenant->status === 'active' ? 'success' : 'warning' }}">
                             {{ ucfirst($tenant->status) }}
                         </span>
                     </div>
-                    <div><strong>Subdomain:</strong> {{ $tenant->subdomain }}</div>
+                    <div><strong>Portal key:</strong> {{ \App\Support\TenantUrls::portalKey($tenant) }}</div>
                 </div>
             </div>
 

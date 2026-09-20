@@ -99,7 +99,7 @@ class RouterConnectivityTest extends TestCase
         $this->assertStringContainsString('/system identity set name="' . $router->nas_identifier . '"', $script);
         $this->assertStringContainsString('/radius add address="203.0.113.10" secret="test-radius-secret"', $script);
         $this->assertStringContainsString('use-radius=yes', $script);
-        $this->assertStringContainsString('dst-host="testisp.trinetpay.test"', $script);
+        $this->assertStringContainsString('dst-host="trinetpay.test"', $script);
         $this->assertStringContainsString('dst-host="cdnjs.cloudflare.com"', $script);
         $this->assertStringContainsString('https://trinetpay.test/provision/trinet_prov_tok/login.html', $script);
         $this->assertStringContainsString('/api/agent/trinet_agent_tok/poll', $script);
@@ -189,7 +189,7 @@ class RouterConnectivityTest extends TestCase
 
         $this->assertStringContainsString('Juma &lt;b&gt;WiFi&lt;/b&gt;', $html);
         $this->assertStringNotContainsString('<b>WiFi</b>', $html);
-        $this->assertStringContainsString('https://testisp.trinetpay.test/portal?mac=$(mac-esc)', $html);
+        $this->assertStringContainsString('https://trinetpay.test/portal/testisp?mac=$(mac-esc)', $html);
         $this->assertStringContainsString('nas=' . $router->nas_identifier, $html);
         $this->assertStringContainsString('action="$(link-login-only)"', $html);
     }

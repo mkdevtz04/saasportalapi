@@ -10,6 +10,7 @@ use App\Services\PalmPesaService;
 use App\Services\PaymentSettlement;
 use App\Support\HotspotUrl;
 use App\Support\Phone;
+use App\Support\TenantUrls;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -24,12 +25,18 @@ class PaymentController extends Controller
 
     public function index(Request $request): View
     {
-        $tenant   = tenant();
-        $packages = $tenant
-            ? $tenant->packages()->where('is_active', true)->orderBy('sort_order')->orderBy('price')->get()
-            : collect();
+        $tenant = tenant();
 
-        $settings = $tenant?->settings;
+        // No ISP behind the link means no packages to sell, no wallet to credit and no router to
+        // open. Saying so is the only honest answer; a blank portal would just take a payment
+        // nobody could be paid for.
+        if (! $tenant) {
+            return view('portal-unlinked', ['locale' => app()->getLocale()]);
+        }
+
+        $packages = $tenant->packages()->where('is_active', true)->orderBy('sort_order')->orderBy('price')->get();
+
+        $settings = $tenant->settings;
 
         $hotspot = [
             'mac'             => $this->clean($request->query('mac'), 17),
@@ -44,7 +51,7 @@ class PaymentController extends Controller
 
         $activeVoucher = null;
 
-        if ($tenant && $hotspot['mac']) {
+        if ($hotspot['mac']) {
             $activeVoucher = Transaction::where('tenant_id', $tenant->id)
                 ->where('customer_mac', $hotspot['mac'])
                 ->where('status', 'completed')
@@ -56,11 +63,13 @@ class PaymentController extends Controller
         $locale       = app()->getLocale();
         $contactPhone = $settings?->contact_phone;
 
+        // Which ISP this page is selling for. The page sends it back on every call it makes, so a
+        // payment started here can only ever be credited to this ISP, whichever way they arrived.
+        $portalKey = TenantUrls::portalKey($tenant);
+
         // The language links are rebuilt from the cleaned values only, so nothing forged in the
         // incoming address is ever echoed back into the page.
-        $tenantParam = preg_match('/^[a-z0-9-]{1,63}$/', (string) $request->query('tenant')) ? $request->query('tenant') : null;
         $portalQuery = array_filter([
-            'tenant'          => $tenantParam,
             'mac'             => $hotspot['mac'],
             'ip'              => $hotspot['ip'],
             'link-login-only' => $hotspot['link_login_only'],
@@ -68,7 +77,7 @@ class PaymentController extends Controller
             'nas'             => $hotspot['nas'],
         ]);
 
-        return view('portal', compact('tenant', 'packages', 'settings', 'hotspot', 'activeVoucher', 'locale', 'contactPhone', 'portalQuery'));
+        return view('portal', compact('tenant', 'packages', 'settings', 'hotspot', 'activeVoucher', 'locale', 'contactPhone', 'portalQuery', 'portalKey'));
     }
 
     public function initiate(Request $request): JsonResponse

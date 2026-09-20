@@ -45,8 +45,9 @@ php artisan admin:create you@example.com     # prints a strong password once
 php artisan serve
 ```
 
-Local development has no subdomains, so open the portal of an ISP with `?tenant=<subdomain>`, for example
-`http://localhost:8000/portal?tenant=acme`.
+Every ISP has their own portal address, `/portal/<their key>`, for example
+`http://localhost:8000/portal/acme`. The key is the ISP's subdomain slug. A link that names no ISP sells
+nothing, because a payment with no ISP behind it has no packages, no wallet to credit and no router to open.
 
 Run the background pieces in separate terminals:
 

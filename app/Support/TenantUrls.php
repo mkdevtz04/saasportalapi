@@ -7,6 +7,11 @@ use App\Models\Tenant;
 /**
  * Public addresses of the platform and of a tenant's portal, always built from the
  * configured APP_URL and never from the request's Host header, which a caller controls.
+ *
+ * Every ISP gets their own portal address. It is a path on the platform host,
+ * https://wifikitaa.site/portal/acme, so a new ISP needs no DNS record and no extra
+ * certificate, and the routers only ever have to reach one host. The older
+ * acme.wifikitaa.site form still opens the same portal for anyone already using it.
  */
 class TenantUrls
 {
@@ -30,19 +35,31 @@ class TenantUrls
         return in_array(self::baseHost(), ['localhost', '127.0.0.1'], true);
     }
 
-    /** acme.wifikitaa.site, or the plain host during local development. */
-    public static function portalHost(Tenant $tenant): string
+    /** The piece of the portal address that says which ISP this is. */
+    public static function portalKey(Tenant $tenant): string
     {
-        return self::isLocal() ? self::baseHost() : $tenant->subdomain . '.' . self::baseHost();
+        return (string) $tenant->subdomain;
     }
 
-    /** The captive portal address for a tenant. */
+    /**
+     * The host a customer's phone must be able to reach before paying, which the router
+     * setup puts in the walled garden. Portals live on the platform host, so it is the same
+     * one for every ISP.
+     */
+    public static function portalHost(Tenant $tenant): string
+    {
+        return self::baseHost();
+    }
+
+    /** The captive portal address for one ISP. This is the link that goes on their routers. */
     public static function portal(Tenant $tenant): string
     {
-        $scheme = (string) (parse_url(self::base(), PHP_URL_SCHEME) ?: 'https');
-        $port   = parse_url(self::base(), PHP_URL_PORT);
-        $url    = $scheme . '://' . self::portalHost($tenant) . ($port ? ':' . $port : '') . '/portal';
+        return self::base() . '/portal/' . rawurlencode(self::portalKey($tenant));
+    }
 
-        return self::isLocal() ? $url . '?tenant=' . urlencode($tenant->subdomain) : $url;
+    /** The same address without the scheme, for printing on a page or a voucher. */
+    public static function portalLabel(Tenant $tenant): string
+    {
+        return (string) preg_replace('#^https?://#', '', self::portal($tenant));
     }
 }

@@ -30,7 +30,7 @@ class RouterProvisionTest extends TestCase
         $response = $this->get('/provision/trinet_prov_token123')->assertOk();
 
         $script = $response->getContent();
-        $this->assertStringContainsString('testisp.trinetpay.test', $script);
+        $this->assertStringContainsString('dst-host="trinetpay.test"', $script);
         $this->assertStringContainsString($router->nas_identifier, $script);
         $this->assertStringContainsString('https://trinetpay.test/provision/trinet_prov_token123/complete', $script);
         $this->assertStringContainsString('text/plain', $response->headers->get('Content-Type'));

@@ -70,7 +70,7 @@ class AgentModeTest extends TestCase
         $script = $this->get('/provision/tok-agent')->assertOk()->getContent();
 
         $this->assertStringContainsString('use-radius=no login-by=cookie,http-pap', $script);
-        $this->assertStringContainsString('dst-host="testisp.wifikitaa.test"', $script);
+        $this->assertStringContainsString('dst-host="wifikitaa.test"', $script);
         $this->assertStringContainsString('dst-host="cdnjs.cloudflare.com"', $script);
         $this->assertStringContainsString('https://wifikitaa.test/provision/tok-agent/login.html', $script);
         $this->assertStringContainsString('/api/agent/agent-tok/poll', $script);

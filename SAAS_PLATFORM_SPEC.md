@@ -8,7 +8,7 @@ monthly subscriptions, per-ISP payment keys). Those were dropped, and this file 
 
 A hotspot billing platform for small ISPs in Tanzania and East Africa, priced in TZS and built around local mobile
 money. An ISP signs up, connects a MikroTik router with one pasted command, sets its packages and payout number,
-and has a working portal on its own subdomain (`acme.wifikitaa.site`).
+and has a working portal at its own address (`wifikitaa.site/portal/acme`).
 
 ## Decisions
 

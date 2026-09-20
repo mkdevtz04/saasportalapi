@@ -31,7 +31,7 @@ export const options = {
 
 export default function () {
   // A customer opens the portal from the router login page.
-  const portal = http.get(`${BASE}/portal?tenant=${TENANT}&lang=sw`, { tags: { kind: 'portal' } });
+  const portal = http.get(`${BASE}/portal/${TENANT}?lang=sw`, { tags: { kind: 'portal' } });
   check(portal, { 'portal loads': (r) => r.status === 200 });
 
   sleep(2);

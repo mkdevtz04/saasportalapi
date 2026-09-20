@@ -10,6 +10,7 @@ use App\Services\PaymentSettlement;
 use App\Services\Sms\BeemSmsGateway;
 use App\Support\HotspotUrl;
 use App\Support\Phone;
+use App\Support\TenantUrls;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -44,6 +45,145 @@ class PortalTest extends TestCase
         $this->app->instance(SmsGateway::class, $fake);
 
         return $fake;
+    }
+
+    // ── One portal per ISP ───────────────────────────────────────────────────
+
+    public function test_each_isp_has_their_own_portal_address_and_sees_only_their_own_packages(): void
+    {
+        $juma = $this->makeTenant('juma', ['name' => 'Juma WiFi']);
+        $asha = $this->makeTenant('asha', ['name' => 'Asha WiFi']);
+        $this->makePackage($juma, ['name' => 'Juma Daily', 'price' => 1000]);
+        $this->makePackage($asha, ['name' => 'Asha Daily', 'price' => 2000]);
+
+        $this->get('/portal/juma')->assertOk()->assertSee('Juma Daily')->assertDontSee('Asha Daily');
+        $this->get('/portal/asha')->assertOk()->assertSee('Asha Daily')->assertDontSee('Juma Daily');
+    }
+
+    public function test_the_portal_address_of_an_isp_is_their_own_key_on_the_platform_host(): void
+    {
+        config(['app.url' => 'https://wifikitaa.test']);
+        $tenant = $this->makeTenant('juma');
+
+        $this->assertSame('https://wifikitaa.test/portal/juma', TenantUrls::portal($tenant));
+        $this->assertSame('wifikitaa.test/portal/juma', TenantUrls::portalLabel($tenant));
+
+        // Portals live on the platform host, so a router only has to let that one through.
+        $this->assertSame('wifikitaa.test', TenantUrls::portalHost($tenant));
+    }
+
+    public function test_a_payment_started_on_one_isps_portal_belongs_to_that_isp(): void
+    {
+        $juma    = $this->makeTenant('juma');
+        $asha    = $this->makeTenant('asha');
+        $package = $this->makePackage($juma, ['price' => 1000]);
+        $this->makePackage($asha, ['price' => 2000]);
+        $this->fakeExternalServices();
+
+        // The page sends its own key back on every call, the way the portal page does.
+        $this->postJson('/api/payment/initiate', ['phone' => '0712345678', 'package_id' => $package->id], ['X-Portal-Tenant' => 'juma'])
+            ->assertOk();
+
+        $payment = Transaction::firstOrFail();
+        $this->assertSame($juma->id, $payment->tenant_id);
+        $this->assertSame(0, $asha->transactions()->count());
+    }
+
+    public function test_an_isp_portal_cannot_sell_another_isps_package(): void
+    {
+        $juma = $this->makeTenant('juma');
+        $asha = $this->makeTenant('asha');
+        $this->makePackage($juma);
+        $ashaPackage = $this->makePackage($asha, ['name' => 'Asha Daily']);
+        $this->fakeExternalServices();
+
+        $this->postJson('/api/payment/initiate', ['phone' => '0712345678', 'package_id' => $ashaPackage->id], ['X-Portal-Tenant' => 'juma'])
+            ->assertStatus(404);
+
+        $this->assertSame(0, Transaction::count());
+    }
+
+    public function test_a_voucher_is_only_accepted_by_the_portal_of_the_isp_that_issued_it(): void
+    {
+        $juma    = $this->makeTenant('juma');
+        $asha    = $this->makeTenant('asha');
+        $package = $this->makePackage($juma);
+        $this->makeRouter($juma, ['auth_mode' => 'radius', 'router_ip' => null, 'username' => null, 'password' => null]);
+        $this->makeRouter($asha, ['auth_mode' => 'radius', 'router_ip' => null, 'username' => null, 'password' => null]);
+        Voucher::create(['tenant_id' => $juma->id, 'package_id' => $package->id, 'code' => 'TNJUMA0001']);
+        $this->fakeExternalServices();
+
+        $this->postJson('/api/voucher/redeem', ['code' => 'TNJUMA0001'], ['X-Portal-Tenant' => 'asha'])->assertStatus(422);
+        $this->assertNull(Voucher::firstOrFail()->used_at);
+
+        $this->postJson('/api/voucher/redeem', ['code' => 'TNJUMA0001'], ['X-Portal-Tenant' => 'juma'])->assertOk();
+        $this->assertNotNull(Voucher::firstOrFail()->used_at);
+    }
+
+    public function test_a_router_that_names_itself_reaches_its_own_isps_portal(): void
+    {
+        $juma   = $this->makeTenant('juma');
+        $asha   = $this->makeTenant('asha');
+        $router = $this->makeRouter($juma);
+        $this->makeRouter($asha);
+        $this->makePackage($juma, ['name' => 'Juma Daily']);
+        $this->makePackage($asha, ['name' => 'Asha Daily']);
+
+        $this->get('/portal?nas=' . $router->nas_identifier)
+            ->assertOk()
+            ->assertSee('Juma Daily')
+            ->assertDontSee('Asha Daily');
+    }
+
+    public function test_an_unknown_or_empty_router_name_never_falls_through_to_another_isp(): void
+    {
+        $tenant = $this->makeTenant('juma');
+        $this->makeRouter($tenant, ['nas_identifier' => '']);
+        $this->makePackage($tenant, ['name' => 'Juma Daily']);
+
+        foreach (['/portal', '/portal?nas=', '/portal?nas=nas-does-not-exist'] as $link) {
+            $this->get($link)->assertOk()->assertDontSee('Juma Daily');
+        }
+    }
+
+    public function test_a_portal_link_that_names_no_isp_refuses_to_sell_instead_of_showing_a_blank_shop(): void
+    {
+        $this->makeTenant('juma');
+
+        $this->get('/portal')
+            ->assertOk()
+            ->assertSee('This link is not connected to a provider')
+            ->assertSee('Kiungo hiki hakijaunganishwa');
+
+        $this->postJson('/api/payment/initiate', ['phone' => '0712345678', 'package_id' => 1])->assertStatus(422);
+        $this->postJson('/api/voucher/redeem', ['code' => 'TNJUMA0001'])->assertStatus(404);
+    }
+
+    public function test_a_portal_key_that_belongs_to_nobody_sells_nothing(): void
+    {
+        $this->makeTenant('juma');
+
+        $this->get('/portal/notanisp')->assertOk()->assertSee('This link is not connected to a provider');
+    }
+
+    public function test_naming_an_isp_in_a_request_never_reaches_their_dashboard(): void
+    {
+        $juma  = $this->makeTenant('juma');
+        $asha  = $this->makeTenant('asha');
+        $owner = $this->makeOwner($asha);
+        $this->makePackage($juma, ['name' => 'Juma Daily']);
+        $this->actingAs($owner, 'tenant');
+
+        $this->get('/dashboard/packages?tenant=juma')->assertOk()->assertDontSee('Juma Daily');
+        $this->get('/dashboard/packages', ['X-Portal-Tenant' => 'juma'])->assertOk()->assertDontSee('Juma Daily');
+    }
+
+    public function test_a_suspended_isp_sells_nothing_on_their_own_portal_address(): void
+    {
+        $tenant = $this->makeTenant('juma', ['status' => 'suspended']);
+        $this->makePackage($tenant, ['name' => 'Juma Daily']);
+
+        $this->get('/portal/juma')->assertStatus(503)->assertDontSee('Juma Daily');
     }
 
     // ── Login address safety ─────────────────────────────────────────────────

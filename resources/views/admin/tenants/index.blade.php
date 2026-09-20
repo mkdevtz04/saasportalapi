@@ -47,7 +47,7 @@
                 <tr>
                     <td>
                         <a href="{{ route('admin.tenants.show', $tenant) }}" style="font-weight:600;color:#0f172a;text-decoration:none;">{{ $tenant->name }}</a><br>
-                        <span style="color:#94a3b8;font-size:11px;">{{ \App\Support\TenantUrls::portalHost($tenant) }}</span>
+                        <span style="color:#94a3b8;font-size:11px;">{{ \App\Support\TenantUrls::portalLabel($tenant) }}</span>
                     </td>
                     <td><span class="badge badge-{{ $tenant->status }}">{{ ucfirst($tenant->status) }}</span></td>
                     <td style="color:#64748b;font-size:12px;">{{ $tenant->created_at->format('d M Y') }}</td>

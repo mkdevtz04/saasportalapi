@@ -313,7 +313,7 @@
 
     businessInput.addEventListener('input', () => {
         const slug = toSlug(businessInput.value);
-        preview.textContent = slug ? `Your portal: ${slug}.${portalDomain}` : '';
+        preview.textContent = slug ? `Your portal: ${portalDomain}/portal/${slug}` : '';
     });
 
     // Trigger on pre-filled value (validation error redirect)

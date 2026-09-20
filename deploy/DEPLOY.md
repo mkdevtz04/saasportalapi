@@ -5,10 +5,10 @@ FreeRADIUS. It also works with FreeRADIUS on its own server, as long as it can r
 
 ## 0. Before you start
 
-- A domain (`wifikitaa.site`) and a **wildcard DNS record** `*.wifikitaa.site` pointing at the server, so
-  every ISP subdomain works.
-- A **wildcard HTTPS certificate** for `wifikitaa.site` and `*.wifikitaa.site`. A wildcard certificate can
-  only be issued with a DNS challenge, for example `certbot` with your DNS provider's plugin.
+- A domain (`wifikitaa.site`). ISP portals are paths on it (`wifikitaa.site/portal/acme`), so one record and
+  one certificate cover every ISP.
+- An **HTTPS certificate** for `wifikitaa.site`. A wildcard record and certificate for `*.wifikitaa.site` are
+  only needed if you also want the older `acme.wifikitaa.site` portal addresses to keep resolving.
 - A **public IPv4 address** on that server for RADIUS (UDP 1812 and 1813).
 - PalmPesa merchant credentials.
 
@@ -18,9 +18,9 @@ Ports to open: 80 and 443 (web), UDP 1812 and 1813 (RADIUS). Keep MySQL closed t
 
 `wifikitaa.site` is served through Cloudflare. That changes four things:
 
-- **Wildcard record.** Add a DNS record named `*` next to the main one, pointing at the same server. Without it
-  `acme.wifikitaa.site` does not resolve, so ISP portals and the router login page's "Buy WiFi" link fail.
-  Check with `nslookup zz-test.wifikitaa.site`, which must return an address.
+- **Wildcard record (optional).** ISP portals are paths on the main host, so the main record is enough. Add a
+  DNS record named `*` next to it only to keep the older `acme.wifikitaa.site` addresses resolving. Check with
+  `nslookup zz-test.wifikitaa.site`, which must then return an address.
 - **RADIUS cannot go through Cloudflare.** Its proxy only carries web traffic. `RADIUS_HOST` must be the
   server's real public IP address, never the domain, and UDP 1812/1813 must reach that address directly.
 - **Proxy address.** Set `TRUSTED_PROXIES=*` (or Cloudflare's address ranges) so the login and voucher limits see
@@ -119,7 +119,8 @@ database, scheduler heartbeat, queue backlog, payments stuck pending, customers 
 
 - [ ] `.env` has `APP_DEBUG=false` and a real `APP_KEY` that is backed up somewhere safe. Losing it makes
       stored router passwords unreadable.
-- [ ] HTTPS works for `wifikitaa.site` and a test subdomain. Headers show `Strict-Transport-Security`.
+- [ ] HTTPS works for `wifikitaa.site`, and `/portal/<an ISP key>` shows that ISP's packages. Headers show
+      `Strict-Transport-Security`.
 - [ ] `php artisan schedule:list` shows the jobs, and `/health` says `ok` after a minute.
 - [ ] The queue worker is running: `sudo supervisorctl status`.
 - [ ] A test payment of the smallest amount settles, credits a wallet, and shows in `wallet:audit` as OK.

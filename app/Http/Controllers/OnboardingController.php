@@ -207,6 +207,6 @@ class OnboardingController extends Controller
         session()->forget('onboarding_router_id');
 
         return redirect('/dashboard')
-            ->with('success', 'Setup complete! Your portal is live at ' . \App\Support\TenantUrls::portalHost($tenant));
+            ->with('success', 'Setup complete! Your portal is live at ' . \App\Support\TenantUrls::portalLabel($tenant));
     }
 }

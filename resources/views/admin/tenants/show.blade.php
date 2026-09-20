@@ -12,7 +12,7 @@
 <div class="page-header">
     <div>
         <div class="page-title">{{ $tenant->name }}</div>
-        <div class="page-sub">{{ \App\Support\TenantUrls::portalHost($tenant) }}</div>
+        <div class="page-sub">{{ \App\Support\TenantUrls::portalLabel($tenant) }}</div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <form method="POST" action="{{ route('admin.tenants.impersonate', $tenant) }}" onsubmit="return confirm('Open this ISP dashboard as platform support? Every step is recorded.')">
@@ -44,7 +44,7 @@
             <dt>Joined</dt>
             <dd>{{ $tenant->created_at->format('d M Y, H:i') }}</dd>
             <dt>Portal URL</dt>
-            <dd><a href="{{ \App\Support\TenantUrls::portal($tenant) }}" target="_blank" style="color:#4f46e5;">{{ \App\Support\TenantUrls::portalHost($tenant) }} ↗</a></dd>
+            <dd><a href="{{ \App\Support\TenantUrls::portal($tenant) }}" target="_blank" style="color:#4f46e5;">{{ \App\Support\TenantUrls::portalLabel($tenant) }} ↗</a></dd>
         </dl>
     </div>
 

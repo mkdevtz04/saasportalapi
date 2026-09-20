@@ -84,8 +84,8 @@ html,body{min-height:100%;background:#eef3f7;font-family:Arial,Helvetica,sans-se
         <div class="sub">{{ $settings?->tagline ?: __('portal.default_tagline') }}</div>
       </div>
       <div class="lang" aria-label="{{ __('portal.language') }}">
-        <a href="{{ route('portal', $portalQuery + ['lang' => 'sw']) }}" class="{{ $locale === 'sw' ? 'on' : '' }}">SW</a>
-        <a href="{{ route('portal', $portalQuery + ['lang' => 'en']) }}" class="{{ $locale === 'en' ? 'on' : '' }}">EN</a>
+        <a href="{{ route('portal.tenant', $portalQuery + ['portal_key' => $portalKey, 'lang' => 'sw']) }}" class="{{ $locale === 'sw' ? 'on' : '' }}">SW</a>
+        <a href="{{ route('portal.tenant', $portalQuery + ['portal_key' => $portalKey, 'lang' => 'en']) }}" class="{{ $locale === 'en' ? 'on' : '' }}">EN</a>
       </div>
     </div>
 
@@ -168,6 +168,7 @@ html,body{min-height:100%;background:#eef3f7;font-family:Arial,Helvetica,sans-se
 const hotspot = @json($hotspot ?? []);
 const T       = @json(__('portal'));
 const LANG    = @json($locale);
+const TENANT  = @json($portalKey);   // the ISP this page sells for; sent back on every call
 const CONTACT = @json($contactPhone);
 const ACTIVE  = @json($activeVoucher ? ['token' => $activeVoucher->voucher_code, 'package' => $activeVoucher->package?->name ?? 'WiFi'] : null);
 const csrf    = document.querySelector('meta[name="csrf-token"]').content;
@@ -194,7 +195,8 @@ function api(path, options) {
   options.headers = Object.assign({
     'Accept': 'application/json',
     'X-CSRF-TOKEN': csrf,
-    'X-Portal-Lang': LANG
+    'X-Portal-Lang': LANG,
+    'X-Portal-Tenant': TENANT
   }, options.headers || {});
   return fetch(path, options).then(res => res.json());
 }

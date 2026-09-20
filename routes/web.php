@@ -163,5 +163,13 @@ Route::middleware(EnsureAdmin::class)->prefix('admin')->name('admin.')->group(fu
     Route::post('/withdrawals/{withdrawal}/reject', [AdminWithdrawalController::class, 'reject'])->name('withdrawals.reject');
 });
 
-// ── Captive portal (tenant subdomains: {slug}.<your domain>) ───────────────
-Route::get('/portal', [PaymentController::class, 'index'])->middleware('portal.locale')->name('portal');
+// ── Captive portal ────────────────────────────────────────────────────────────
+// Every ISP has their own address, /portal/{their key}, which is what their routers link to.
+// Plain /portal still works for routers that identify themselves with ?nas=, and for the
+// older {key}.<your domain> subdomains.
+Route::middleware('portal.locale')->group(function () {
+    Route::get('/portal',              [PaymentController::class, 'index'])->name('portal');
+    Route::get('/portal/{portal_key}', [PaymentController::class, 'index'])
+        ->where('portal_key', '[A-Za-z0-9-]{1,63}')
+        ->name('portal.tenant');
+});
