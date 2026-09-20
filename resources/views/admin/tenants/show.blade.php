@@ -2,8 +2,8 @@
 
 @section('title', $tenant->name)
 @section('breadcrumb')
-    <a href="{{ route('admin.tenants.index') }}" style="color:#818cf8;text-decoration:none;">ISPs</a>
-    <span style="color:#4c4a89;margin:0 6px;">/</span>
+    <a href="{{ route('admin.tenants.index') }}" style="color:#e7eefc;text-decoration:none;">ISPs</a>
+    <span style="color:#2561e8;margin:0 6px;">/</span>
     {{ $tenant->name }}
 @endsection
 
@@ -44,7 +44,7 @@
             <dt>Joined</dt>
             <dd>{{ $tenant->created_at->format('d M Y, H:i') }}</dd>
             <dt>Portal URL</dt>
-            <dd><a href="{{ \App\Support\TenantUrls::portal($tenant) }}" target="_blank" style="color:#4f46e5;">{{ \App\Support\TenantUrls::portalLabel($tenant) }} ↗</a></dd>
+            <dd><a href="{{ \App\Support\TenantUrls::portal($tenant) }}" target="_blank" style="color:#2561e8;">{{ \App\Support\TenantUrls::portalLabel($tenant) }} ↗</a></dd>
         </dl>
     </div>
 
@@ -69,7 +69,7 @@
             </div>
             <div class="stat-card" style="padding:14px;">
                 <div class="stat-label">Platform Earned</div>
-                <div class="stat-value" style="font-size:18px;color:#7c3aed;">{{ number_format($platformEarnings) }}</div>
+                <div class="stat-value" style="font-size:18px;color:#2561e8;">{{ number_format($platformEarnings) }}</div>
                 <div class="stat-sub">TZS from fees</div>
             </div>
         </div>

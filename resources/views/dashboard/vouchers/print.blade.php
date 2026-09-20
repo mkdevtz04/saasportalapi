@@ -10,7 +10,7 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: #f1f5f9;
-            color: #1e293b;
+            color: #040a17;
             padding: 20px;
         }
 
@@ -34,8 +34,8 @@
             font-weight: 600; cursor: pointer; border: none;
             text-decoration: none; transition: all 0.15s;
         }
-        .btn-primary { background: #2563eb; color: #fff; }
-        .btn-primary:hover { background: #1d4ed8; }
+        .btn-primary { background: #2561e8; color: #fff; }
+        .btn-primary:hover { background: #040a17; }
         .btn-secondary { background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; }
 
         /* Voucher grid */
@@ -70,7 +70,7 @@
         .vc-package {
             font-size: 13px;
             font-weight: 600;
-            color: #1e293b;
+            color: #040a17;
             margin-bottom: 2px;
         }
 
@@ -85,7 +85,7 @@
             font-size: 18px;
             font-weight: 800;
             letter-spacing: 2px;
-            color: #0f172a;
+            color: #040a17;
             background: #f8fafc;
             border: 1px dashed #cbd5e1;
             border-radius: 6px;

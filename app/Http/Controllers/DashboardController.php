@@ -146,7 +146,7 @@ class DashboardController extends Controller
         ]);
 
         $data = [
-            'brand_color'       => $validated['brand_color'] ?? '#0066cc',
+            'brand_color'       => $validated['brand_color'] ?? '#2561e8',
             'tagline'           => $validated['tagline'] ?? null,
             'contact_phone'     => $validated['contact_phone'] ?? null,
             'default_language'  => $validated['default_language'],

@@ -42,7 +42,7 @@
                         <tr id="row-{{ $pkg->id }}">
                             <td style="color:#94a3b8;font-size:12px;">{{ $pkg->sort_order }}</td>
                             <td style="font-weight:600;">{{ $pkg->name }}</td>
-                            <td style="font-weight:700;color:#0f172a;">{{ number_format($pkg->price) }} TZS</td>
+                            <td style="font-weight:700;color:#040a17;">{{ number_format($pkg->price) }} TZS</td>
                             <td>{{ $pkg->durationLabel() }}</td>
                             <td>↓ {{ $pkg->speed_down_mbps }}Mbps / ↑ {{ $pkg->speed_up_mbps }}Mbps</td>
                             <td style="font-family:monospace;font-size:12px;color:#475569;">{{ $pkg->mikrotik_profile }}</td>

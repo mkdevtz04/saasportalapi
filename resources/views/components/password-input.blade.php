@@ -42,7 +42,7 @@
         color: #94a3b8; cursor: pointer; line-height: 0;
     }
     .pw-eye:hover { color: #475569; background: #f1f5f9; }
-    .pw-eye:focus-visible { outline: 2px solid #2563eb; outline-offset: 1px; }
+    .pw-eye:focus-visible { outline: 2px solid #2561e8; outline-offset: 1px; }
     .pw-eye svg { width: 18px; height: 18px; display: block; }
 
     /* One icon at a time: the open eye while hidden, the crossed-out one while showing. */

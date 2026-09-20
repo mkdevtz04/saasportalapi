@@ -15,8 +15,8 @@
         .pkg-header span { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#64748b; }
         .btn-remove { background:none; border:1px solid #fca5a5; color:#e53e3e; border-radius:6px; padding:8px 10px; cursor:pointer; font-size:16px; line-height:1; margin-top:20px; }
         .btn-remove:hover { background:#fff5f5; }
-        .btn-add { background:#f0f9ff; border:1.5px dashed #60a5fa; color:#2563eb; border-radius:8px; padding:10px 20px; font-size:14px; font-weight:600; cursor:pointer; margin-top:8px; }
-        .btn-add:hover { background:#dbeafe; }
+        .btn-add { background:#f0f9ff; border:1.5px dashed #2561e8; color:#2561e8; border-radius:8px; padding:10px 20px; font-size:14px; font-weight:600; cursor:pointer; margin-top:8px; }
+        .btn-add:hover { background:#e7eefc; }
         .profile-hint { font-size:11px; color:#64748b; margin-top:6px; }
         @media(max-width:768px){
             .pkg-header { display:none; }

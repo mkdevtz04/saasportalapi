@@ -33,7 +33,7 @@
         <div class="stat-value">{{ number_format($platform['paid_out']) }}</div>
         <div class="stat-sub">TZS, withdrawals marked paid, after fees</div>
     </div>
-    <div class="stat-card" style="border-left:4px solid #6366f1;">
+    <div class="stat-card" style="border-left:4px solid #2561e8;">
         <div class="stat-label">Expected PalmPesa balance</div>
         <div class="stat-value">{{ number_format($platform['expected_cash']) }}</div>
         <div class="stat-sub">TZS before PalmPesa's own charges. Compare with the real balance.</div>
@@ -75,7 +75,7 @@
             <tbody>
             @forelse ($tenants as $row)
                 <tr>
-                    <td><a href="{{ route('admin.tenants.show', $row['tenant_id']) }}" style="font-weight:600;color:#0f172a;text-decoration:none;">{{ $row['name'] }}</a></td>
+                    <td><a href="{{ route('admin.tenants.show', $row['tenant_id']) }}" style="font-weight:600;color:#040a17;text-decoration:none;">{{ $row['name'] }}</a></td>
                     <td>{{ number_format($row['collected']) }}</td>
                     <td>{{ number_format($row['withdrawn']) }}</td>
                     <td><strong>{{ number_format($row['balance']) }}</strong></td>

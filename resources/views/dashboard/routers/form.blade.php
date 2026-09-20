@@ -11,7 +11,7 @@
     <div>
         <div class="page-title">{{ $router ? $router->name : 'Add New Router' }}</div>
         <div class="page-sub">
-            <a href="{{ route('dashboard.routers.index') }}" style="color:#2563eb;text-decoration:none;">← Back to routers</a>
+            <a href="{{ route('dashboard.routers.index') }}" style="color:#2561e8;text-decoration:none;">← Back to routers</a>
         </div>
     </div>
 </div>
@@ -82,17 +82,17 @@
             </div>
         @endif
 
-        <div style="background:#1e1e2e;border:1px solid #313244;border-radius:10px;padding:20px;margin-bottom:20px;color:#cdd6f4;max-width:900px;">
+        <div style="background:#040a17;border:1px solid #2561e8;border-radius:10px;padding:20px;margin-bottom:20px;color:#e7eefc;max-width:900px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-                <div style="font-size:13px;font-weight:700;color:#89b4fa;text-transform:uppercase;letter-spacing:0.5px;">
+                <div style="font-size:13px;font-weight:700;color:#2561e8;text-transform:uppercase;letter-spacing:0.5px;">
                     <i class="fa-solid fa-bolt"></i> Setup command
                 </div>
-                <button type="button" class="btn btn-secondary btn-sm" onclick="copyProvisionCmd(this)" style="background:#313244;color:#cdd6f4;border:none;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="copyProvisionCmd(this)" style="background:#2561e8;color:#e7eefc;border:none;">
                     <i class="fa-solid fa-copy"></i> Copy
                 </button>
             </div>
             <div style="background:#11111b;border:1px solid #45475a;padding:12px;border-radius:6px;font-family:monospace;font-size:12px;color:#a6e3a1;word-break:break-all;" id="provisionCmd">{{ $command }}</div>
-            <p style="font-size:11px;color:#9399b2;margin-top:8px;margin-bottom:0;">
+            <p style="font-size:11px;color:#94a3b8;margin-top:8px;margin-bottom:0;">
                 Open WinBox, choose New Terminal, paste this and press Enter. It connects the router to the login server,
                 sets up the walled garden and installs your branded login page. The hotspot must already exist on the router.
             </p>

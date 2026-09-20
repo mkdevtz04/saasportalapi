@@ -10,12 +10,12 @@
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-            --indigo: #4f46e5;
-            --indigo-dark: #4338ca;
-            --purple: #7c3aed;
-            --indigo-light: #e0e7ff;
-            --dark: #0f172a;
-            --dark-2: #1e293b;
+            --indigo: #2561e8;
+            --indigo-dark: #040a17;
+            --purple: #2561e8;
+            --indigo-light: #e7eefc;
+            --dark: #040a17;
+            --dark-2: #040a17;
             --mid: #334155;
             --muted: #64748b;
             --light: #94a3b8;
@@ -51,7 +51,7 @@
 
         .logo-mark {
             width: 34px; height: 34px;
-            background: linear-gradient(135deg, var(--indigo), var(--purple));
+            background: var(--indigo);
             border-radius: 8px;
             display: flex; align-items: center; justify-content: center;
             color: #fff; font-weight: 800; font-size: 16px; letter-spacing: -1px;
@@ -95,7 +95,7 @@
 
         /* ── Hero ───────────────────────────────────────────── */
         .hero {
-            background: linear-gradient(160deg, #0f0a1e 0%, #1a1250 40%, #1e1b6e 70%, #2d1b6e 100%);
+            background: #040a17;
             min-height: 620px;
             display: flex; align-items: center;
             padding: 80px 5% 60px;
@@ -106,16 +106,12 @@
         .hero::before {
             content: '';
             position: absolute; inset: 0;
-            background-image:
-                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99,102,241,0.3) 0%, transparent 60%),
-                radial-gradient(ellipse 60% 40% at 80% 80%, rgba(124,58,237,0.2) 0%, transparent 60%);
+            background-image: none;
         }
 
         .hero-grid {
             position: absolute; inset: 0; opacity: 0.04;
-            background-image:
-                linear-gradient(rgba(255,255,255,1) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px);
+            background-image: none;
             background-size: 40px 40px;
         }
 
@@ -129,13 +125,13 @@
             display: inline-flex; align-items: center; gap: 6px;
             background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.4);
             border-radius: 99px; padding: 4px 12px;
-            font-size: 12px; font-weight: 600; color: #a5b4fc;
+            font-size: 12px; font-weight: 600; color: #e7eefc;
             margin-bottom: 20px; letter-spacing: 0.3px;
         }
 
         .hero-badge .dot {
             width: 6px; height: 6px; border-radius: 50%;
-            background: #a5b4fc; animation: pulse 2s infinite;
+            background: #e7eefc; animation: pulse 2s infinite;
         }
 
         @keyframes pulse {
@@ -150,9 +146,7 @@
         }
 
         .hero h1 .highlight {
-            background: linear-gradient(90deg, #a5b4fc, #c4b5fd);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #fff;
         }
 
         .hero-sub {
@@ -222,14 +216,14 @@
         }
 
         .mockup-sidebar {
-            background: #111827; border-radius: 8px; padding: 10px;
+            background: #040a17; border-radius: 8px; padding: 10px;
         }
 
         .mockup-logo-row {
             padding: 4px 6px 10px; margin-bottom: 8px;
             border-bottom: 1px solid rgba(255,255,255,0.06);
         }
-        .mockup-logo-row span { font-size: 11px; font-weight: 700; color: #818cf8; }
+        .mockup-logo-row span { font-size: 11px; font-weight: 700; color: #e7eefc; }
 
         .mock-nav-item {
             height: 24px; border-radius: 4px; margin-bottom: 3px;
@@ -244,13 +238,13 @@
         }
 
         .mock-stat {
-            background: #111827; border-radius: 6px; padding: 8px 10px;
+            background: #040a17; border-radius: 6px; padding: 8px 10px;
         }
         .mock-stat-label { height: 6px; width: 60%; background: rgba(255,255,255,0.15); border-radius: 3px; margin-bottom: 6px; }
         .mock-stat-value { height: 14px; width: 70%; background: rgba(255,255,255,0.3); border-radius: 3px; }
 
         .mock-chart {
-            background: #111827; border-radius: 6px; padding: 10px; flex: 1;
+            background: #040a17; border-radius: 6px; padding: 10px; flex: 1;
             display: flex; align-items: flex-end; gap: 5px; min-height: 80px;
         }
 
@@ -263,7 +257,7 @@
         .mock-bar:nth-child(5) { background: rgba(99,102,241,0.7); }
         .mock-bar:nth-child(7) { background: rgba(124,58,237,0.8); }
 
-        .mock-table { background: #111827; border-radius: 6px; overflow: hidden; }
+        .mock-table { background: #040a17; border-radius: 6px; overflow: hidden; }
         .mock-table-header { height: 22px; background: rgba(255,255,255,0.04); display: flex; gap: 4px; padding: 0 8px; align-items: center; }
         .mock-th { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.2); }
         .mock-row { display: flex; gap: 4px; padding: 5px 8px; border-top: 1px solid rgba(255,255,255,0.04); align-items: center; }
@@ -330,7 +324,7 @@
         }
 
         .feature-card:hover {
-            border-color: #c7d2fe; background: #fff;
+            border-color: #e7eefc; background: #fff;
             transform: translateY(-3px);
             box-shadow: 0 12px 30px rgba(99,102,241,0.08);
         }
@@ -359,7 +353,7 @@
         .how-grid::before {
             content: '';
             position: absolute; top: 28px; left: calc(33.33% + 28px); right: calc(33.33% + 28px);
-            height: 1px; background: linear-gradient(90deg, var(--indigo), var(--purple));
+            height: 1px; background: var(--indigo);
             opacity: 0.3;
         }
 
@@ -367,7 +361,7 @@
 
         .step-num {
             width: 56px; height: 56px; border-radius: 50%;
-            background: linear-gradient(135deg, var(--indigo), var(--purple));
+            background: var(--indigo);
             color: #fff; font-size: 20px; font-weight: 800;
             display: flex; align-items: center; justify-content: center;
             margin: 0 auto 20px; box-shadow: 0 8px 20px rgba(79,70,229,0.3);
@@ -402,32 +396,32 @@
         .pricing { background: var(--dark); }
 
         .pricing-header { text-align: center; margin-bottom: 48px; }
-        .pricing-header .section-tag { background: rgba(99,102,241,0.2); color: #a5b4fc; }
+        .pricing-header .section-tag { background: rgba(99,102,241,0.2); color: #e7eefc; }
         .pricing-header .section-title { color: #fff; }
         .pricing-header .section-sub { color: #64748b; margin: 0 auto; }
 
         .pricing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 760px; margin: 0 auto; }
 
         .price-card {
-            background: #1e293b; border: 1px solid #334155;
+            background: #040a17; border: 1px solid #334155;
             border-radius: 16px; padding: 32px;
         }
 
         .price-card.featured {
-            background: linear-gradient(135deg, #312e81, #4c1d95);
-            border-color: #6d28d9;
+            background: #040a17;
+            border-color: #040a17;
             position: relative;
         }
 
         .price-badge {
             position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
-            background: linear-gradient(90deg, var(--indigo), var(--purple));
+            background: var(--indigo);
             color: #fff; font-size: 11px; font-weight: 700;
             padding: 4px 14px; border-radius: 99px; white-space: nowrap;
         }
 
         .price-name { font-size: 13px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
-        .price-card.featured .price-name { color: #a5b4fc; }
+        .price-card.featured .price-name { color: #e7eefc; }
 
         .price-amount { font-size: 36px; font-weight: 800; color: #fff; letter-spacing: -1px; }
         .price-amount span { font-size: 16px; color: #64748b; font-weight: 500; }
@@ -438,7 +432,7 @@
         .price-list { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
         .price-list li { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #94a3b8; }
         .price-list li::before { content: '✓'; color: #22c55e; font-weight: 700; font-size: 14px; }
-        .price-card.featured .price-list li { color: #c4b5fd; }
+        .price-card.featured .price-list li { color: #e7eefc; }
         .price-card.featured .price-list li::before { color: #86efac; }
 
         .btn-price-ghost {
@@ -450,7 +444,7 @@
 
         .btn-price-primary {
             display: block; text-align: center; padding: 11px;
-            border-radius: 9px; background: linear-gradient(135deg, var(--indigo), var(--purple));
+            border-radius: 9px; background: var(--indigo);
             color: #fff; font-size: 14px; font-weight: 700; transition: all 0.2s;
             box-shadow: 0 4px 15px rgba(99,102,241,0.4);
         }
@@ -458,7 +452,7 @@
 
         /* ── CTA section ────────────────────────────────────── */
         .cta-section {
-            background: linear-gradient(135deg, var(--indigo), var(--purple));
+            background: var(--indigo);
             padding: 80px 5%; text-align: center;
         }
 
@@ -481,7 +475,7 @@
 
         /* ── Footer ─────────────────────────────────────────── */
         .footer {
-            background: var(--dark); border-top: 1px solid #1e293b;
+            background: var(--dark); border-top: 1px solid #040a17;
             padding: 40px 5%;
         }
 
@@ -721,9 +715,9 @@
         <div class="int-chip"><div class="int-dot" style="background:#f97316"></div> PalmPesa</div>
         <div class="int-chip"><div class="int-dot" style="background:#15803d"></div> M-Pesa</div>
         <div class="int-chip"><div class="int-dot" style="background:#dc2626"></div> Airtel Money</div>
-        <div class="int-chip"><div class="int-dot" style="background:#2563eb"></div> Tigo Pesa</div>
-        <div class="int-chip"><div class="int-dot" style="background:#7c3aed"></div> Halotel</div>
-        <div class="int-chip"><div class="int-dot" style="background:#0ea5e9"></div> MikroTik RouterOS</div>
+        <div class="int-chip"><div class="int-dot" style="background:#2561e8"></div> Tigo Pesa</div>
+        <div class="int-chip"><div class="int-dot" style="background:#2561e8"></div> Halotel</div>
+        <div class="int-chip"><div class="int-dot" style="background:#2561e8"></div> MikroTik RouterOS</div>
     </div>
 </div>
 

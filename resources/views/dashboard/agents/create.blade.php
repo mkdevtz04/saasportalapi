@@ -8,7 +8,7 @@
 <div class="page-header">
     <div>
         <div class="page-title">Add Sales Agent</div>
-        <div class="page-sub"><a href="{{ route('dashboard.agents.index') }}" style="color:#2563eb;text-decoration:none;">← Back to agents</a></div>
+        <div class="page-sub"><a href="{{ route('dashboard.agents.index') }}" style="color:#2561e8;text-decoration:none;">← Back to agents</a></div>
     </div>
 </div>
 

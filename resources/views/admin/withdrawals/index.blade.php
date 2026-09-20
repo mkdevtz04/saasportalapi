@@ -49,7 +49,7 @@
             @forelse ($withdrawals as $wr)
                 <tr>
                     <td>
-                        <a href="{{ route('admin.tenants.show', $wr->tenant) }}" style="font-weight:600;color:#0f172a;text-decoration:none;">
+                        <a href="{{ route('admin.tenants.show', $wr->tenant) }}" style="font-weight:600;color:#040a17;text-decoration:none;">
                             {{ $wr->tenant?->name ?? '—' }}
                         </a>
                     </td>

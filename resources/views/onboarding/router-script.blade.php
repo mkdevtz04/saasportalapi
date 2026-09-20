@@ -8,11 +8,11 @@
     @include('onboarding._styles')
     <style>
         .one-command-card {
-            background: linear-gradient(135deg, #1e1e2e 0%, #181825 100%);
+            background: #040a17;
             border-radius: 12px;
             padding: 24px;
             margin: 20px 0;
-            border: 1px solid #313244;
+            border: 1px solid #2561e8;
             box-shadow: 0 10px 25px rgba(0,0,0,0.15);
         }
         .one-command-header {
@@ -24,7 +24,7 @@
         .one-command-title {
             font-size: 14px;
             font-weight: 700;
-            color: #89b4fa;
+            color: #2561e8;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             display: flex;
@@ -32,7 +32,7 @@
             gap: 8px;
         }
         .copy-btn {
-            background: #89b4fa;
+            background: #2561e8;
             color: #11111b;
             border: none;
             padding: 8px 18px;
@@ -45,7 +45,7 @@
             align-items: center;
             gap: 6px;
         }
-        .copy-btn:hover { background: #b4befe; transform: translateY(-1px); }
+        .copy-btn:hover { background: #e7eefc; transform: translateY(-1px); }
         .command-code-wrap {
             background: #11111b;
             border-radius: 8px;
@@ -74,7 +74,7 @@
         .progress-box-header {
             font-size: 15px;
             font-weight: 700;
-            color: #1e293b;
+            color: #040a17;
             margin-bottom: 4px;
         }
         .progress-box-sub {
@@ -99,7 +99,7 @@
         }
         .progress-step.active {
             background: #eff6ff;
-            border-color: #93c5fd;
+            border-color: #2561e8;
             box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08);
         }
         .progress-step.completed {
@@ -124,7 +124,7 @@
             transition: all 0.3s ease;
         }
         .progress-step.active .step-icon-wrap {
-            background: #3b82f6;
+            background: #2561e8;
             color: #ffffff;
         }
         .progress-step.completed .step-icon-wrap {
@@ -134,7 +134,7 @@
         .step-text .title {
             font-size: 14px;
             font-weight: 600;
-            color: #1e293b;
+            color: #040a17;
         }
         .step-text .desc {
             font-size: 12px;
@@ -150,8 +150,8 @@
             color: #64748b;
         }
         .progress-step.active .badge-status {
-            background: #dbeafe;
-            color: #1d4ed8;
+            background: #e7eefc;
+            color: #040a17;
         }
         .progress-step.completed .badge-status {
             background: #dcfce7;
@@ -160,7 +160,7 @@
 
         .success-banner {
             display: none;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            background: #10b981;
             color: white;
             padding: 16px 20px;
             border-radius: 10px;

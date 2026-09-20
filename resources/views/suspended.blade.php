@@ -37,7 +37,7 @@
         h1 {
             font-size: 22px;
             font-weight: 700;
-            color: #111;
+            color: #040a17;
             margin-bottom: 12px;
         }
 
@@ -49,7 +49,7 @@
 
         .business-name {
             font-weight: 700;
-            color: #111;
+            color: #040a17;
         }
 
         .contact {
@@ -61,7 +61,7 @@
         }
 
         .contact a {
-            color: #0066cc;
+            color: #2561e8;
             text-decoration: none;
             font-weight: 600;
         }

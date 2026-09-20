@@ -8,7 +8,7 @@
 <div class="page-header">
     <div>
         <div class="page-title">Generate Voucher Batch</div>
-        <div class="page-sub"><a href="{{ route('dashboard.vouchers.index') }}" style="color:#2563eb;text-decoration:none;">← Back to vouchers</a></div>
+        <div class="page-sub"><a href="{{ route('dashboard.vouchers.index') }}" style="color:#2561e8;text-decoration:none;">← Back to vouchers</a></div>
     </div>
 </div>
 

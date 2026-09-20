@@ -10,7 +10,7 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #f0f4f8;
-            color: #1e293b;
+            color: #040a17;
             min-height: 100vh;
             display: flex;
         }
@@ -18,44 +18,44 @@
         /* ── Sidebar ──────────────────────────── */
         .sidebar {
             width: 220px; min-width: 220px;
-            background: #1e1b4b;
+            background: #040a17;
             display: flex; flex-direction: column;
             min-height: 100vh; position: sticky; top: 0; height: 100vh; overflow-y: auto;
         }
-        .sidebar-brand { padding: 20px 20px 16px; border-bottom: 1px solid #312e81; }
-        .brand-name { color: #a5b4fc; font-size: 17px; font-weight: 800; letter-spacing: -0.3px; }
+        .sidebar-brand { padding: 20px 20px 16px; border-bottom: 1px solid #2561e8; }
+        .brand-name { color: #e7eefc; font-size: 17px; font-weight: 800; letter-spacing: -0.3px; }
         .brand-sub  { color: #6b7280; font-size: 10px; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
         .sidebar-nav { flex: 1; padding: 12px 0; }
         .nav-section {
             padding: 6px 16px 2px; font-size: 10px; font-weight: 600;
-            color: #4c4a89; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 8px;
+            color: #2561e8; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 8px;
         }
         .nav-item {
             display: flex; align-items: center; gap: 10px;
-            padding: 9px 20px; color: #818cf8; text-decoration: none;
+            padding: 9px 20px; color: #e7eefc; text-decoration: none;
             font-size: 13px; font-weight: 500; transition: all 0.15s;
             border-left: 3px solid transparent;
         }
-        .nav-item:hover  { background: #2d2a6e; color: #c7d2fe; }
-        .nav-item.active { background: #312e81; color: #a5b4fc; border-left-color: #818cf8; }
+        .nav-item:hover  { background: #040a17; color: #e7eefc; }
+        .nav-item.active { background: #2561e8; color: #e7eefc; border-left-color: #e7eefc; }
         .nav-item .icon  { font-size: 15px; width: 18px; text-align: center; }
-        .sidebar-footer  { padding: 12px 0; border-top: 1px solid #312e81; }
+        .sidebar-footer  { padding: 12px 0; border-top: 1px solid #2561e8; }
 
         /* ── Main ─────────────────────────────── */
         .main { flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
         .topbar {
-            background: #1e1b4b; border-bottom: 1px solid #312e81;
+            background: #040a17; border-bottom: 1px solid #2561e8;
             padding: 0 28px; height: 56px;
             display: flex; align-items: center; justify-content: space-between;
             position: sticky; top: 0; z-index: 50;
         }
-        .topbar-left  { font-weight: 600; color: #a5b4fc; font-size: 14px; }
+        .topbar-left  { font-weight: 600; color: #e7eefc; font-size: 14px; }
         .topbar-right { display: flex; align-items: center; gap: 10px; }
-        .admin-badge  { color: #818cf8; font-size: 12px; }
+        .admin-badge  { color: #e7eefc; font-size: 12px; }
 
         .content { padding: 28px; flex: 1; }
         .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
-        .page-title  { font-size: 21px; font-weight: 700; color: #0f172a; }
+        .page-title  { font-size: 21px; font-weight: 700; color: #040a17; }
         .page-sub    { font-size: 13px; color: #64748b; margin-top: 2px; }
 
         /* ── Cards + stats (shared with dashboard) ── */
@@ -64,7 +64,7 @@
         .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
         .stat-card  { background: #fff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 18px; }
         .stat-label { font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-        .stat-value { font-size: 24px; font-weight: 800; color: #0f172a; margin: 5px 0 3px; }
+        .stat-value { font-size: 24px; font-weight: 800; color: #040a17; margin: 5px 0 3px; }
         .stat-sub   { font-size: 11px; color: #94a3b8; }
         .stat-icon  { float: right; font-size: 26px; margin-top: -4px; }
 
@@ -86,7 +86,7 @@
         .badge-onboarding { background: #fef9c3; color: #a16207; }
         .badge-suspended { background: #fee2e2; color: #dc2626; }
         .badge-pending   { background: #fef9c3; color: #a16207; }
-        .badge-approved  { background: #dbeafe; color: #1d4ed8; }
+        .badge-approved  { background: #e7eefc; color: #040a17; }
         .badge-paid      { background: #dcfce7; color: #15803d; }
         .badge-rejected  { background: #fee2e2; color: #dc2626; }
         .badge-muted     { background: #f1f5f9; color: #64748b; }
@@ -97,8 +97,8 @@
             padding: 7px 14px; border-radius: 7px; font-size: 13px;
             font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: all 0.15s;
         }
-        .btn-primary   { background: #4f46e5; color: #fff; }
-        .btn-primary:hover { background: #4338ca; }
+        .btn-primary   { background: #2561e8; color: #fff; }
+        .btn-primary:hover { background: #040a17; }
         .btn-success   { background: #dcfce7; color: #15803d; }
         .btn-success:hover { background: #bbf7d0; }
         .btn-danger    { background: #fee2e2; color: #dc2626; }
@@ -113,9 +113,9 @@
         .filter-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
         .filter-bar input, .filter-bar select {
             padding: 7px 12px; border: 1px solid #d1d5db; border-radius: 7px;
-            font-size: 13px; color: #1e293b; background: #fff;
+            font-size: 13px; color: #040a17; background: #fff;
         }
-        .filter-bar input:focus, .filter-bar select:focus { outline: none; border-color: #4f46e5; }
+        .filter-bar input:focus, .filter-bar select:focus { outline: none; border-color: #2561e8; }
 
         /* ── Status tabs ─────────────────────────── */
         .status-tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
@@ -123,23 +123,23 @@
             padding: 5px 14px; border-radius: 99px; font-size: 12px; font-weight: 600;
             text-decoration: none; color: #64748b; background: #f1f5f9; border: 1px solid #e2e8f0;
         }
-        .status-tab.active { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+        .status-tab.active { background: #2561e8; color: #fff; border-color: #2561e8; }
 
         /* ── Alerts ──────────────────────────────── */
         .alert { padding: 11px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
         .alert-success { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
         .alert-error   { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-        .alert-info    { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+        .alert-info    { background: #eff6ff; color: #040a17; border: 1px solid #e7eefc; }
 
         /* ── Forms ──────────────────────────────── */
         .field { display: flex; flex-direction: column; gap: 5px; }
         .field label { font-size: 12px; font-weight: 600; color: #374151; }
         .field input, .field select, .field textarea {
             padding: 8px 11px; border: 1px solid #d1d5db; border-radius: 7px;
-            font-size: 13px; color: #1e293b; background: #fff;
+            font-size: 13px; color: #040a17; background: #fff;
         }
         .field input:focus, .field select:focus, .field textarea:focus {
-            outline: none; border-color: #4f46e5; box-shadow: 0 0 0 3px #4f46e522;
+            outline: none; border-color: #2561e8; box-shadow: 0 0 0 3px #2561e822;
         }
         .form-row { display: flex; gap: 12px; align-items: flex-end; }
 
@@ -149,7 +149,7 @@
 
         /* ── Info list ───────────────────────────── */
         .info-list dt { font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
-        .info-list dd { font-size: 14px; color: #1e293b; margin-bottom: 14px; font-weight: 500; }
+        .info-list dd { font-size: 14px; color: #040a17; margin-bottom: 14px; font-weight: 500; }
 
         @media (max-width: 900px) {
             .stats-grid { grid-template-columns: 1fr 1fr; }

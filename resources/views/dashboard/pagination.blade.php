@@ -15,7 +15,7 @@
         @if (is_array($element))
             @foreach ($element as $page => $url)
                 @if ($page == $paginator->currentPage())
-                    <span style="padding:6px 12px;border-radius:6px;font-size:13px;font-weight:600;background:#2563eb;color:#fff;">{{ $page }}</span>
+                    <span style="padding:6px 12px;border-radius:6px;font-size:13px;font-weight:600;background:#2561e8;color:#fff;">{{ $page }}</span>
                 @else
                     <a href="{{ $url }}" style="padding:6px 12px;border-radius:6px;font-size:13px;font-weight:500;background:#f1f5f9;color:#334155;text-decoration:none;">{{ $page }}</a>
                 @endif

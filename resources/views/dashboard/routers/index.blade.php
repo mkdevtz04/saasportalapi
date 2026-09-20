@@ -40,7 +40,7 @@
                         @php($online = $router->runsAgent() ? $router->isOnline() : $router->status === 'online')
                         <tr>
                             <td>
-                                <a href="{{ route('dashboard.routers.edit', $router) }}" style="font-weight:600;color:#0f172a;text-decoration:none;">{{ $router->name }}</a><br>
+                                <a href="{{ route('dashboard.routers.edit', $router) }}" style="font-weight:600;color:#040a17;text-decoration:none;">{{ $router->name }}</a><br>
                                 <span style="font-family:monospace;font-size:11px;color:#94a3b8;">{{ $router->nas_identifier }}</span>
                             </td>
                             <td style="font-size:12px;color:#64748b;">

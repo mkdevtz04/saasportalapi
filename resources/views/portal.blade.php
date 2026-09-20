@@ -9,9 +9,9 @@
 <title>{{ $tenant?->name ?? 'WiFi' }} — {{ __('portal.title') }}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-:root { --brand: {{ preg_match('/^#[0-9a-fA-F]{6}$/', (string) $settings?->brand_color) ? $settings->brand_color : '#0b7a75' }}; }
+:root { --brand: {{ preg_match('/^#[0-9a-fA-F]{6}$/', (string) $settings?->brand_color) ? $settings->brand_color : '#2561e8' }}; }
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{min-height:100%;background:#eef3f7;font-family:Arial,Helvetica,sans-serif;color:#142033}
+html,body{min-height:100%;background:#eef3f7;font-family:Arial,Helvetica,sans-serif;color:#040a17}
 .page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
 .card{width:100%;max-width:480px;background:#fff;border:1px solid #d8dee8;box-shadow:0 16px 48px rgba(20,32,51,.14)}
 .header{padding:24px 28px;border-bottom:2px solid var(--brand);display:flex;gap:14px;align-items:center}
@@ -27,13 +27,13 @@ html,body{min-height:100%;background:#eef3f7;font-family:Arial,Helvetica,sans-se
 .packages{border:1px solid #d8dee8;margin-bottom:20px}
 .package{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-top:1px solid #d8dee8;cursor:pointer;transition:background .15s}
 .package:first-child{border-top:0}
-.package:hover{background:#f5f8ff}
+.package:hover{background:#e7eefc}
 .package.selected{background:#e8f4f4;border-left:4px solid var(--brand);padding-left:12px}
 .pkg-name{font-size:15px;font-weight:900}
 .pkg-desc{font-size:12px;color:#667085;margin-top:2px}
 .price{font-size:15px;font-weight:900;color:var(--brand);white-space:nowrap}
 .field-lbl{display:block;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#344054;margin-bottom:7px}
-.field-input{width:100%;height:50px;padding:0 14px;font-size:17px;border:1.5px solid #b8c2d1;outline:none;background:#fbfdff;color:#142033}
+.field-input{width:100%;height:50px;padding:0 14px;font-size:17px;border:1.5px solid #b8c2d1;outline:none;background:#fbfdff;color:#040a17}
 .field-input:focus{border-color:var(--brand);box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 15%,transparent)}
 .field-hint{font-size:11px;color:#8a96a3;margin-top:6px}
 .error{margin-top:12px;padding:10px 13px;background:#fff1f1;border-left:4px solid #c62828;color:#a81717;font-size:13px;font-weight:700}
@@ -57,13 +57,13 @@ html,body{min-height:100%;background:#eef3f7;font-family:Arial,Helvetica,sans-se
 .token-lbl{font-size:11px;color:#667085;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
 .token-val{font-size:26px;font-weight:900;color:var(--brand);letter-spacing:4px;font-family:monospace}
 .m-btn{display:block;width:100%;padding:13px;margin-top:8px;background:#fff;border:1.5px solid #d8dee8;color:#344054;font-family:Arial,sans-serif;font-size:13px;font-weight:700;cursor:pointer}
-.m-btn:hover{border-color:var(--brand);color:#142033}
+.m-btn:hover{border-color:var(--brand);color:#040a17}
 .m-btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
 .no-packages{padding:24px;text-align:center;color:#667085;font-size:14px}
 .tabs{display:flex;border-bottom:2px solid #e5e9f0;margin-bottom:20px}
 .tab{flex:1;padding:11px 0;text-align:center;font-size:12px;font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:#667085;cursor:pointer;transition:all .15s;border-bottom:3px solid transparent;margin-bottom:-2px}
 .tab.active{color:var(--brand);border-bottom-color:var(--brand)}
-.vc-input{width:100%;height:50px;padding:0 14px;font-size:22px;font-weight:900;letter-spacing:4px;text-transform:uppercase;border:1.5px solid #b8c2d1;outline:none;background:#fbfdff;color:#142033;font-family:monospace;text-align:center}
+.vc-input{width:100%;height:50px;padding:0 14px;font-size:22px;font-weight:900;letter-spacing:4px;text-transform:uppercase;border:1.5px solid #b8c2d1;outline:none;background:#fbfdff;color:#040a17;font-family:monospace;text-align:center}
 .vc-input:focus{border-color:var(--brand);box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 15%,transparent)}
 .welcome{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:18px 20px;margin-bottom:20px}
 </style>

@@ -437,7 +437,7 @@ RSC, [
     {
         $tenant = $router->tenant;
         $color  = (string) ($tenant->settings?->brand_color ?? '');
-        $color  = preg_match('/^#[0-9a-fA-F]{6}$/', $color) ? $color : '#0b7a75';
+        $color  = preg_match('/^#[0-9a-fA-F]{6}$/', $color) ? $color : '#2561e8';
 
         $portal = TenantUrls::portal($tenant);
         $join   = str_contains($portal, '?') ? '&amp;' : '?';
@@ -456,7 +456,7 @@ RSC, [
 <title>{{NAME}} - WiFi</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{min-height:100%;background:#eef3f7;font-family:Arial,Helvetica,sans-serif;color:#142033}
+html,body{min-height:100%;background:#eef3f7;font-family:Arial,Helvetica,sans-serif;color:#040a17}
 .page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
 .card{width:100%;max-width:420px;background:#fff;border:1px solid #d8dee8;box-shadow:0 16px 48px rgba(20,32,51,.14)}
 .header{padding:26px 28px 20px;border-bottom:3px solid {{COLOR}}}
@@ -467,8 +467,8 @@ html,body{min-height:100%;background:#eef3f7;font-family:Arial,Helvetica,sans-se
 .buy{display:block;text-align:center;padding:16px;background:{{COLOR}};color:#fff;font-size:14px;font-weight:900;text-decoration:none;letter-spacing:.04em;text-transform:uppercase}
 .divider{margin:24px 0 18px;border:0;border-top:1px solid #e5e9f0}
 label{display:block;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#344054;margin-bottom:7px}
-input[name="code"]{width:100%;height:48px;padding:0 14px;font-size:16px;border:1.5px solid #b8c2d1;outline:none;background:#fbfdff;color:#142033}
-.btn{display:block;width:100%;height:48px;margin-top:12px;background:#142033;color:#fff;border:0;font-size:13px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+input[name="code"]{width:100%;height:48px;padding:0 14px;font-size:16px;border:1.5px solid #b8c2d1;outline:none;background:#fbfdff;color:#040a17}
+.btn{display:block;width:100%;height:48px;margin-top:12px;background:#040a17;color:#fff;border:0;font-size:13px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
 .footer{padding:14px 28px;background:#f7f9fb;border-top:1px solid #e5e9f0;font-size:11px;color:#667085;text-align:center}
 </style>
 </head>

@@ -52,7 +52,7 @@
         <div class="stat-label">Wallet Balance</div>
         <div class="stat-value">{{ number_format($wallet?->balance ?? 0) }}</div>
         <div class="stat-sub">
-            <a href="{{ route('dashboard.wallet') }}" style="color:#2563eb;text-decoration:none;">Request withdrawal →</a>
+            <a href="{{ route('dashboard.wallet') }}" style="color:#2561e8;text-decoration:none;">Request withdrawal →</a>
         </div>
     </div>
     <div class="stat-card">
@@ -136,8 +136,8 @@ new Chart(ctx, {
         datasets: [{
             label: 'Revenue (TZS)',
             data: @json($chartRevenue),
-            backgroundColor: '#3b82f622',
-            borderColor: '#3b82f6',
+            backgroundColor: '#2561e822',
+            borderColor: '#2561e8',
             borderWidth: 2,
             borderRadius: 6,
         }]

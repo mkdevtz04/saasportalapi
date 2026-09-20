@@ -10,7 +10,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #0066cc 0%, #004499 100%);
+            background: #2561e8;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -35,7 +35,7 @@
         .logo h1 {
             font-size: 26px;
             font-weight: 800;
-            color: #0066cc;
+            color: #2561e8;
             letter-spacing: -0.5px;
         }
 
@@ -48,7 +48,7 @@
         h2 {
             font-size: 20px;
             font-weight: 700;
-            color: #111;
+            color: #040a17;
             margin-bottom: 6px;
         }
 
@@ -60,8 +60,8 @@
 
         .trial-badge {
             display: inline-block;
-            background: #e8f4ff;
-            color: #0066cc;
+            background: #e7eefc;
+            color: #2561e8;
             font-size: 12px;
             font-weight: 600;
             padding: 4px 10px;
@@ -97,14 +97,14 @@
             border: 1.5px solid #ddd;
             border-radius: 8px;
             font-size: 15px;
-            color: #111;
+            color: #040a17;
             transition: border-color 0.2s;
             outline: none;
             background: #fafafa;
         }
 
         input:focus {
-            border-color: #0066cc;
+            border-color: #2561e8;
             background: #fff;
         }
 
@@ -120,7 +120,7 @@
 
         .subdomain-preview {
             font-size: 12px;
-            color: #0066cc;
+            color: #2561e8;
             margin-top: 5px;
             font-weight: 500;
             min-height: 16px;
@@ -129,7 +129,7 @@
         .btn {
             width: 100%;
             padding: 13px;
-            background: #0066cc;
+            background: #2561e8;
             color: #fff;
             border: none;
             border-radius: 8px;
@@ -140,9 +140,9 @@
             transition: background 0.2s, transform 0.1s;
         }
 
-        .btn:hover { background: #0055aa; }
+        .btn:hover { background: #040a17; }
         .btn:active { transform: scale(0.98); }
-        .btn:disabled { background: #99c0e8; cursor: not-allowed; }
+        .btn:disabled { background: #2561e8; opacity: 0.45; cursor: not-allowed; }
 
         .login-link {
             text-align: center;
@@ -152,7 +152,7 @@
         }
 
         .login-link a {
-            color: #0066cc;
+            color: #2561e8;
             font-weight: 600;
             text-decoration: none;
         }

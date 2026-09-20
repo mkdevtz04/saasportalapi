@@ -11,7 +11,7 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #f0f4f8;
-            color: #1e293b;
+            color: #040a17;
             min-height: 100vh;
             display: flex;
         }
@@ -20,7 +20,7 @@
         .sidebar {
             width: 240px;
             min-width: 240px;
-            background: #1a2332;
+            background: #040a17;
             display: flex;
             flex-direction: column;
             min-height: 100vh;
@@ -32,7 +32,7 @@
 
         .sidebar-brand {
             padding: 20px 20px 16px;
-            border-bottom: 1px solid #2d3f55;
+            border-bottom: 1px solid #040a17;
         }
 
         .brand-name {
@@ -77,21 +77,21 @@
         }
 
         .nav-item:hover {
-            background: #243044;
+            background: #040a17;
             color: #e2e8f0;
         }
 
         .nav-item.active {
-            background: #1d3a6e22;
-            color: #60a5fa;
-            border-left-color: #3b82f6;
+            background: #2561e822;
+            color: #2561e8;
+            border-left-color: #2561e8;
         }
 
         .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
 
         .sidebar-footer {
             padding: 12px 0;
-            border-top: 1px solid #2d3f55;
+            border-top: 1px solid #040a17;
         }
 
         /* ── Main ─────────────────────────────────── */
@@ -153,7 +153,7 @@
         .user-avatar {
             width: 32px;
             height: 32px;
-            background: #3b82f6;
+            background: #2561e8;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -172,7 +172,7 @@
             margin-bottom: 24px;
         }
 
-        .page-title { font-size: 22px; font-weight: 700; color: #0f172a; }
+        .page-title { font-size: 22px; font-weight: 700; color: #040a17; }
         .page-sub { font-size: 13px; color: #64748b; margin-top: 2px; }
 
         /* ── Cards ──────────────────────────────────── */
@@ -210,7 +210,7 @@
         }
 
         .stat-label { font-size: 12px; color: #64748b; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
-        .stat-value { font-size: 26px; font-weight: 800; color: #0f172a; margin: 6px 0 4px; letter-spacing: -0.5px; }
+        .stat-value { font-size: 26px; font-weight: 800; color: #040a17; margin: 6px 0 4px; letter-spacing: -0.5px; }
         .stat-sub   { font-size: 12px; color: #94a3b8; }
         .stat-icon  { float: right; font-size: 28px; margin-top: -4px; }
 
@@ -263,14 +263,14 @@
             border: 1px solid #d1d5db;
             border-radius: 7px;
             font-size: 14px;
-            color: #1e293b;
+            color: #040a17;
             background: #fff;
             transition: border-color 0.15s;
         }
         .field input:focus, .field select:focus, .field textarea:focus {
             outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px #bfdbfe55;
+            border-color: #2561e8;
+            box-shadow: 0 0 0 3px #2561e833;
         }
         .field .hint { font-size: 11px; color: #94a3b8; }
         .field .error { font-size: 12px; color: #dc2626; }
@@ -289,8 +289,8 @@
             text-decoration: none;
             transition: all 0.15s;
         }
-        .btn-primary { background: #2563eb; color: #fff; }
-        .btn-primary:hover { background: #1d4ed8; }
+        .btn-primary { background: #2561e8; color: #fff; }
+        .btn-primary:hover { background: #040a17; }
         .btn-secondary { background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; }
         .btn-secondary:hover { background: #e2e8f0; }
         .btn-danger { background: #fee2e2; color: #dc2626; }
@@ -320,7 +320,7 @@
         }
         .pagination a { background: #f1f5f9; color: #334155; }
         .pagination a:hover { background: #e2e8f0; }
-        .pagination .active span { background: #2563eb; color: #fff; }
+        .pagination .active span { background: #2561e8; color: #fff; }
 
         /* ── Toggle ──────────────────────────────────── */
         .toggle {

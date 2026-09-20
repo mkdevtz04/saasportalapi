@@ -28,10 +28,10 @@
                 <label>Brand Color</label>
                 <div style="display:flex;align-items:center;gap:10px;">
                     <input type="color" name="brand_color"
-                           value="{{ old('brand_color', $settings?->brand_color ?? '#0066cc') }}"
+                           value="{{ old('brand_color', $settings?->brand_color ?? '#2561e8') }}"
                            style="width:48px;height:38px;padding:2px;border-radius:6px;border:1px solid #d1d5db;cursor:pointer;">
                     <input type="text" id="colorHex"
-                           value="{{ old('brand_color', $settings?->brand_color ?? '#0066cc') }}"
+                           value="{{ old('brand_color', $settings?->brand_color ?? '#2561e8') }}"
                            maxlength="7" style="width:100px;font-family:monospace;"
                            oninput="syncColor(this.value)">
                 </div>
@@ -100,7 +100,7 @@
                 <div style="font-size:13px;color:#475569;line-height:1.8;">
                     <div><strong>Portal URL:</strong>
                         <a href="{{ \App\Support\TenantUrls::portal($tenant) }}" target="_blank"
-                           style="color:#2563eb;">{{ \App\Support\TenantUrls::portalLabel($tenant) }}</a>
+                           style="color:#2561e8;">{{ \App\Support\TenantUrls::portalLabel($tenant) }}</a>
                     </div>
                     <div><strong>Status:</strong>
                         <span class="badge badge-{{ $tenant->status === 'active' ? 'success' : 'warning' }}">
@@ -117,7 +117,7 @@
                 <p style="font-size:13px;color:#64748b;margin-bottom:10px;">
                     Set this as the redirect URL in your hotspot server profile:
                 </p>
-                <code style="display:block;background:#1e293b;color:#e2e8f0;padding:10px 14px;border-radius:6px;font-size:12px;word-break:break-all;">
+                <code style="display:block;background:#040a17;color:#e2e8f0;padding:10px 14px;border-radius:6px;font-size:12px;word-break:break-all;">
                     {{ \App\Support\TenantUrls::portal($tenant) }}
                 </code>
             </div>

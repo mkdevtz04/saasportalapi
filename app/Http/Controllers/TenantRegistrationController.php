@@ -41,7 +41,7 @@ class TenantRegistrationController extends Controller
             // Empty settings row so tenant always has a settings record to update
             TenantSettings::create([
                 'tenant_id'    => $tenant->id,
-                'brand_color'  => '#0066cc',
+                'brand_color'  => '#2561e8',
             ]);
 
             $user = TenantUser::create([

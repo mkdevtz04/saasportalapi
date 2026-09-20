@@ -11,12 +11,12 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #f0f4f8;
-            color: #1e293b;
+            color: #040a17;
             min-height: 100vh;
         }
 
         .topbar {
-            background: #1a2332;
+            background: #040a17;
             color: #fff;
             padding: 14px 18px;
             display: flex;
@@ -76,7 +76,7 @@
 
         /* Page heading and form fields, for the pages here that are not the till itself */
         .page-header { margin-bottom: 16px; }
-        .page-title  { font-size: 20px; font-weight: 700; color: #0f172a; }
+        .page-title  { font-size: 20px; font-weight: 700; color: #040a17; }
         .page-sub    { font-size: 13px; color: #64748b; margin-top: 4px; }
 
         .field label { font-size: 13px; font-weight: 600; color: #374151; display: block; margin-bottom: 6px; }
@@ -84,7 +84,7 @@
             width: 100%; padding: 10px 12px;
             border: 1px solid #d1d5db; border-radius: 7px; font-size: 14px;
         }
-        .field input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px #2563eb22; }
+        .field input:focus { outline: none; border-color: #2561e8; box-shadow: 0 0 0 3px #2561e822; }
 
         /* Package grid */
         .package-grid {
@@ -104,10 +104,10 @@
             position: relative;
         }
 
-        .pkg-card:hover { border-color: #3b82f6; transform: translateY(-1px); box-shadow: 0 4px 12px #3b82f611; }
+        .pkg-card:hover { border-color: #2561e8; transform: translateY(-1px); box-shadow: 0 4px 12px #2561e811; }
         .pkg-card.disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .pkg-price  { font-size: 22px; font-weight: 800; color: #0f172a; }
+        .pkg-price  { font-size: 22px; font-weight: 800; color: #040a17; }
         .pkg-tzs    { font-size: 11px; color: #94a3b8; margin-bottom: 4px; }
         .pkg-name   { font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px; }
         .pkg-dur    { font-size: 11px; color: #64748b; margin-bottom: 2px; }
@@ -161,9 +161,9 @@
             font-weight: 600; cursor: pointer; border: none;
             text-decoration: none; transition: all 0.15s; flex: 1; justify-content: center;
         }
-        .btn-primary  { background: #2563eb; color: #fff; }
-        .btn-primary:hover { background: #1d4ed8; }
-        .btn-primary:disabled { background: #93c5fd; cursor: not-allowed; }
+        .btn-primary  { background: #2561e8; color: #fff; }
+        .btn-primary:hover { background: #040a17; }
+        .btn-primary:disabled { background: #2561e8; opacity: 0.45; cursor: not-allowed; }
         .btn-secondary { background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; }
 
         /* Success screen */
@@ -177,7 +177,7 @@
             font-size: 28px;
             font-weight: 800;
             letter-spacing: 4px;
-            color: #0f172a;
+            color: #040a17;
             background: #f0fdf4;
             border: 2px dashed #22c55e;
             border-radius: 10px;

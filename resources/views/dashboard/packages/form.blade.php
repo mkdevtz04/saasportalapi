@@ -9,7 +9,7 @@
     <div>
         <div class="page-title">{{ $package ? 'Edit Package' : 'Create Package' }}</div>
         <div class="page-sub">
-            <a href="{{ route('dashboard.packages.index') }}" style="color:#2563eb;text-decoration:none;">← Back to packages</a>
+            <a href="{{ route('dashboard.packages.index') }}" style="color:#2561e8;text-decoration:none;">← Back to packages</a>
         </div>
     </div>
 </div>

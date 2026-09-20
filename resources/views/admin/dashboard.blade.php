@@ -43,7 +43,7 @@
     {{-- Recent ISPs --}}
     <div class="card">
         <div class="card-title"><i class="fa-solid fa-building"></i> Recent ISPs
-            <a href="{{ route('admin.tenants.index') }}" style="font-size:12px;color:#4f46e5;font-weight:500;margin-left:auto;">View all →</a>
+            <a href="{{ route('admin.tenants.index') }}" style="font-size:12px;color:#2561e8;font-weight:500;margin-left:auto;">View all →</a>
         </div>
         @if ($recentTenants->isEmpty())
             <p style="color:#94a3b8;font-size:13px;text-align:center;padding:20px 0;">No ISPs yet.</p>
@@ -53,7 +53,7 @@
                 @foreach ($recentTenants as $t)
                     <tr>
                         <td>
-                            <a href="{{ route('admin.tenants.show', $t) }}" style="font-weight:600;color:#1e293b;text-decoration:none;">{{ $t->name }}</a><br>
+                            <a href="{{ route('admin.tenants.show', $t) }}" style="font-weight:600;color:#040a17;text-decoration:none;">{{ $t->name }}</a><br>
                             <span style="color:#94a3b8;font-size:11px;">{{ \App\Support\TenantUrls::portalLabel($t) }}</span>
                         </td>
                         <td style="text-align:right;">

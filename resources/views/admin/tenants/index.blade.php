@@ -46,7 +46,7 @@
             @forelse ($tenants as $tenant)
                 <tr>
                     <td>
-                        <a href="{{ route('admin.tenants.show', $tenant) }}" style="font-weight:600;color:#0f172a;text-decoration:none;">{{ $tenant->name }}</a><br>
+                        <a href="{{ route('admin.tenants.show', $tenant) }}" style="font-weight:600;color:#040a17;text-decoration:none;">{{ $tenant->name }}</a><br>
                         <span style="color:#94a3b8;font-size:11px;">{{ \App\Support\TenantUrls::portalLabel($tenant) }}</span>
                     </td>
                     <td><span class="badge badge-{{ $tenant->status }}">{{ ucfirst($tenant->status) }}</span></td>

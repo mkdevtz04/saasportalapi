@@ -115,7 +115,7 @@ new Chart(document.getElementById('usageChart'), {
         datasets: [{
             label: 'Data (GB)',
             data: Object.values(usage).map(b => +(b / 1073741824).toFixed(2)),
-            backgroundColor: '#3b82f622', borderColor: '#3b82f6', borderWidth: 2, borderRadius: 6,
+            backgroundColor: '#2561e822', borderColor: '#2561e8', borderWidth: 2, borderRadius: 6,
         }]
     },
     options: {
