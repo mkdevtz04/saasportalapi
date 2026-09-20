@@ -49,6 +49,11 @@ class PaymentController extends Controller
             'error'           => $this->clean($request->query('error'), 200),
         ];
 
+        // A code typed on the router's own login page arrives here to be redeemed, because a
+        // voucher the ISP generated in the dashboard is not on the router until someone uses it.
+        $prefillCode = strtoupper((string) preg_replace('/[^A-Za-z0-9]/', '', (string) $request->query('code')));
+        $prefillCode = $prefillCode !== '' ? substr($prefillCode, 0, 20) : null;
+
         $activeVoucher = null;
 
         if ($hotspot['mac']) {
@@ -77,7 +82,7 @@ class PaymentController extends Controller
             'nas'             => $hotspot['nas'],
         ]);
 
-        return view('portal', compact('tenant', 'packages', 'settings', 'hotspot', 'activeVoucher', 'locale', 'contactPhone', 'portalQuery', 'portalKey'));
+        return view('portal', compact('tenant', 'packages', 'settings', 'hotspot', 'activeVoucher', 'locale', 'contactPhone', 'portalQuery', 'portalKey', 'prefillCode'));
     }
 
     public function initiate(Request $request): JsonResponse

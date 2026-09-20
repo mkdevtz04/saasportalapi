@@ -51,13 +51,14 @@ class PortalTest extends TestCase
 
     public function test_each_isp_has_their_own_portal_address_and_sees_only_their_own_packages(): void
     {
-        $juma = $this->makeTenant('juma', ['name' => 'Juma WiFi']);
+        // A key with a hyphen in it is the ordinary case, because it comes from the ISP's name.
+        $juma = $this->makeTenant('jagadi-wifi', ['name' => 'Jagadi WiFi']);
         $asha = $this->makeTenant('asha', ['name' => 'Asha WiFi']);
-        $this->makePackage($juma, ['name' => 'Juma Daily', 'price' => 1000]);
+        $this->makePackage($juma, ['name' => 'Jagadi Daily', 'price' => 1000]);
         $this->makePackage($asha, ['name' => 'Asha Daily', 'price' => 2000]);
 
-        $this->get('/portal/juma')->assertOk()->assertSee('Juma Daily')->assertDontSee('Asha Daily');
-        $this->get('/portal/asha')->assertOk()->assertSee('Asha Daily')->assertDontSee('Juma Daily');
+        $this->get('/portal/jagadi-wifi')->assertOk()->assertSee('Jagadi Daily')->assertDontSee('Asha Daily');
+        $this->get('/portal/asha')->assertOk()->assertSee('Asha Daily')->assertDontSee('Jagadi Daily');
     }
 
     public function test_the_portal_address_of_an_isp_is_their_own_key_on_the_platform_host(): void
@@ -184,6 +185,109 @@ class PortalTest extends TestCase
         $this->makePackage($tenant, ['name' => 'Juma Daily']);
 
         $this->get('/portal/juma')->assertStatus(503)->assertDontSee('Juma Daily');
+    }
+
+    // ── Codes a customer holds ───────────────────────────────────────────────
+
+    public function test_a_dashboard_voucher_typed_on_the_routers_login_page_is_redeemed_by_the_portal(): void
+    {
+        $tenant  = $this->makeTenant('jagadi-wifi');
+        $package = $this->makePackage($tenant);
+        $this->makeRouter($tenant, ['auth_mode' => 'radius', 'router_ip' => null, 'username' => null, 'password' => null]);
+        Voucher::create(['tenant_id' => $tenant->id, 'package_id' => $package->id, 'code' => 'TNPRINT001']);
+        $this->fakeExternalServices();
+
+        // The router's login page sends the code here, because the router has never heard of it.
+        $this->get('/portal/jagadi-wifi?code=tnprint001')->assertOk()->assertSee('TNPRINT001');
+
+        $this->postJson('/api/voucher/redeem', ['code' => 'TNPRINT001'], ['X-Portal-Tenant' => 'jagadi-wifi'])
+            ->assertOk()
+            ->assertJson(['ok' => true]);
+
+        $this->assertNotNull(Voucher::firstOrFail()->used_at);
+    }
+
+    public function test_a_code_in_the_link_is_cleaned_before_it_reaches_the_page(): void
+    {
+        $this->makeTenant('jagadi-wifi');
+
+        $this->get('/portal/jagadi-wifi?code=' . urlencode('"><script>alert(1)</script>'))
+            ->assertOk()
+            ->assertDontSee('<script>alert(1)</script>', false);
+    }
+
+    public function test_the_code_from_a_payment_still_works_when_the_customer_comes_back_with_it(): void
+    {
+        $tenant  = $this->makeTenant('jagadi-wifi');
+        $package = $this->makePackage($tenant, ['name' => 'Daily']);
+        $this->makeRouter($tenant);
+        $this->makePendingPayment($tenant, $package, 'ORD-1', [
+            'status' => 'completed', 'voucher_code' => 'TNPAID0001', 'expires_at' => now()->addDay(),
+        ]);
+        $this->fakeExternalServices();
+
+        // It is not a voucher, so redeeming must not call it invalid: the customer paid for it.
+        $this->postJson('/api/voucher/redeem', ['code' => 'TNPAID0001'], ['X-Portal-Tenant' => 'jagadi-wifi', 'X-Portal-Lang' => 'en'])
+            ->assertOk()
+            ->assertJson(['ok' => true, 'code' => 'TNPAID0001', 'package' => 'Daily', 'access_ready' => true]);
+    }
+
+    public function test_a_code_whose_time_has_run_out_is_refused(): void
+    {
+        $tenant  = $this->makeTenant('jagadi-wifi');
+        $package = $this->makePackage($tenant);
+        $this->makeRouter($tenant);
+        $this->makePendingPayment($tenant, $package, 'ORD-1', [
+            'status' => 'completed', 'voucher_code' => 'TNEXPIRED1', 'expires_at' => now()->subHour(),
+        ]);
+        $this->fakeExternalServices();
+
+        $this->postJson('/api/voucher/redeem', ['code' => 'TNEXPIRED1'], ['X-Portal-Tenant' => 'jagadi-wifi'])
+            ->assertStatus(422);
+    }
+
+    public function test_an_active_code_of_one_isp_is_not_accepted_by_another(): void
+    {
+        $jagadi  = $this->makeTenant('jagadi-wifi');
+        $asha    = $this->makeTenant('asha');
+        $package = $this->makePackage($jagadi);
+        $this->makeRouter($jagadi);
+        $this->makeRouter($asha);
+        $this->makePendingPayment($jagadi, $package, 'ORD-1', [
+            'status' => 'completed', 'voucher_code' => 'TNPAID0001', 'expires_at' => now()->addDay(),
+        ]);
+        $this->fakeExternalServices();
+
+        $this->postJson('/api/voucher/redeem', ['code' => 'TNPAID0001'], ['X-Portal-Tenant' => 'asha'])
+            ->assertStatus(422);
+    }
+
+    public function test_the_routers_login_page_sends_codes_to_the_portal_instead_of_to_itself(): void
+    {
+        config(['app.url' => 'https://wifikitaa.test']);
+        $tenant = $this->makeTenant('testisp');
+        $router = $this->radiusRouterFor($tenant);
+
+        $html = $this->get('/provision/' . $router->provision_token . '/login.html')->assertOk()->getContent();
+
+        $this->assertStringContainsString('<form method="get" action="https://wifikitaa.test/portal/testisp">', $html);
+        $this->assertStringContainsString('name="code"', $html);
+        $this->assertStringContainsString('value="' . $router->nas_identifier . '"', $html);
+
+        // Posting the code to the router is what failed for vouchers the ISP had just printed.
+        $this->assertStringNotContainsString('action="$(link-login-only)"', $html);
+        $this->assertStringNotContainsString('name="username"', $html);
+    }
+
+    private function radiusRouterFor(\App\Models\Tenant $tenant): \App\Models\TenantRouter
+    {
+        return $this->makeRouter($tenant, [
+            'auth_mode'       => 'radius',
+            'router_ip'       => null,
+            'username'        => null,
+            'password'        => null,
+            'provision_token' => 'trinet_prov_login',
+        ]);
     }
 
     // ── Login address safety ─────────────────────────────────────────────────

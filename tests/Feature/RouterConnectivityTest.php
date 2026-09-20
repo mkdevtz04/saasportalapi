@@ -191,7 +191,7 @@ class RouterConnectivityTest extends TestCase
         $this->assertStringNotContainsString('<b>WiFi</b>', $html);
         $this->assertStringContainsString('https://trinetpay.test/portal/testisp?mac=$(mac-esc)', $html);
         $this->assertStringContainsString('nas=' . $router->nas_identifier, $html);
-        $this->assertStringContainsString('action="$(link-login-only)"', $html);
+        $this->assertStringContainsString('<form method="get" action="https://trinetpay.test/portal/testisp">', $html);
     }
 
     public function test_only_one_command_routers_get_a_login_page(): void

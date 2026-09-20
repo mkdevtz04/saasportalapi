@@ -169,6 +169,7 @@ const hotspot = @json($hotspot ?? []);
 const T       = @json(__('portal'));
 const LANG    = @json($locale);
 const TENANT  = @json($portalKey);   // the ISP this page sells for; sent back on every call
+const PREFILL = @json($prefillCode); // a code typed on the router's login page, to redeem on arrival
 const CONTACT = @json($contactPhone);
 const ACTIVE  = @json($activeVoucher ? ['token' => $activeVoucher->voucher_code, 'package' => $activeVoucher->package?->name ?? 'WiFi'] : null);
 const csrf    = document.querySelector('meta[name="csrf-token"]').content;
@@ -349,6 +350,11 @@ async function redeemVoucher() {
     if (data.ok) {
       const go = () => showSuccess(data.code, data.package, hotspot.link_login_only, hotspot.link_orig);
       data.access_ready === false ? whenReady(data.access_ref || data.code, go) : go();
+    } else if (hotspot.link_login_only) {
+      // The platform does not know this code, but the ISP may have created the hotspot user on the
+      // router itself. The router is the other authority on codes, so let it answer before we call
+      // the code wrong. If it does not know it either, it says so on its own login page.
+      tryRouterLogin(code);
     } else {
       closeModal();
       vcErr.textContent = data.message || t('err_generic');
@@ -359,6 +365,29 @@ async function redeemVoucher() {
     vcErr.textContent = t('err_network');
     vcErr.style.display = 'block';
   }
+}
+
+/**
+ * Hand a code straight to the router's own login. Used for hotspot users an ISP created on the
+ * router by hand, which the platform has no record of.
+ */
+function tryRouterLogin(code) {
+  showModal('fa-solid fa-wifi', '', t('voucher_checking_title'), safe(t('connecting')), {spinner: true});
+
+  const form = document.createElement('form');
+  form.method = 'post';
+  form.action = hotspot.link_login_only;
+
+  [['username', code], ['password', code], ['dst', hotspot.link_orig || '']].forEach(function (pair) {
+    const field = document.createElement('input');
+    field.type  = 'hidden';
+    field.name  = pair[0];
+    field.value = pair[1];
+    form.appendChild(field);
+  });
+
+  document.body.appendChild(form);
+  form.submit();
 }
 
 function startPolling() {
@@ -416,6 +445,16 @@ function whenReady(ref, done) {
 function checkAgain() {
   showModal('fa-solid fa-mobile-screen', '', t('check_phone_title'), safe(t('sending_msg')), {spinner: true});
   startPolling();
+}
+
+/**
+ * The customer typed their code on the router's own login page. The router only knows codes it
+ * has already been given, so the code comes here instead and is redeemed straight away.
+ */
+if (PREFILL) {
+  document.getElementById('vcCode').value = PREFILL;
+  switchTab('voucher', document.querySelectorAll('.tab')[1]);
+  redeemVoucher();
 }
 </script>
 </body>

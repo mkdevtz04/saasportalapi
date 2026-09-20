@@ -84,14 +84,19 @@ class WalletRulesTest extends TestCase
         $tenant  = $this->makeTenant();
         $package = $this->makePackage($tenant);
         $this->makeRouter($tenant);
-        $this->makeVoucher($tenant, $package);
+        $voucher = $this->makeVoucher($tenant, $package);
         $this->fakeExternalServices();
 
         $this->postJson('/api/voucher/redeem?tenant=acme', ['code' => 'TNTESTCODE1'])->assertOk();
-        $this->postJson('/api/voucher/redeem?tenant=acme', ['code' => 'TNTESTCODE1'])->assertStatus(422);
+        $usedAt = $voucher->fresh()->used_at;
+
+        // Typing it again is a customer coming back to the session they already have, not a second
+        // sale. They are let back on, and nothing is sold, granted or recorded a second time.
+        $this->postJson('/api/voucher/redeem?tenant=acme', ['code' => 'TNTESTCODE1'])->assertOk();
 
         $this->assertSame(1, Transaction::count());
         $this->assertSame(1, $this->hotspotUsersCreated());
+        $this->assertEquals($usedAt, $voucher->fresh()->used_at, 'still marked used by the first redemption');
     }
 
     public function test_a_voucher_from_another_tenant_is_rejected(): void

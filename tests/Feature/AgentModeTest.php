@@ -113,7 +113,12 @@ class AgentModeTest extends TestCase
     {
         $this->agentRouter($this->makeTenant('testisp'));
 
-        $this->get('/provision/tok-agent/login.html')->assertOk()->assertSee('action="$(link-login-only)"', false);
+        // The code box sends codes to the portal, because the router only knows codes it has
+        // already been given and a printed voucher is not one of them until someone uses it.
+        $this->get('/provision/tok-agent/login.html')
+            ->assertOk()
+            ->assertSee('<form method="get" action="https://wifikitaa.test/portal/testisp">', false)
+            ->assertDontSee('action="$(link-login-only)"', false);
     }
 
     // ── A payment ────────────────────────────────────────────────────────────

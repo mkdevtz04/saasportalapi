@@ -461,7 +461,7 @@ html,body{min-height:100%;background:#eef3f7;font-family:Arial,Helvetica,sans-se
 .buy{display:block;text-align:center;padding:16px;background:{{COLOR}};color:#fff;font-size:14px;font-weight:900;text-decoration:none;letter-spacing:.04em;text-transform:uppercase}
 .divider{margin:24px 0 18px;border:0;border-top:1px solid #e5e9f0}
 label{display:block;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#344054;margin-bottom:7px}
-input[name="username"]{width:100%;height:48px;padding:0 14px;font-size:16px;border:1.5px solid #b8c2d1;outline:none;background:#fbfdff;color:#142033}
+input[name="code"]{width:100%;height:48px;padding:0 14px;font-size:16px;border:1.5px solid #b8c2d1;outline:none;background:#fbfdff;color:#142033}
 .btn{display:block;width:100%;height:48px;margin-top:12px;background:#142033;color:#fff;border:0;font-size:13px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
 .footer{padding:14px 28px;background:#f7f9fb;border-top:1px solid #e5e9f0;font-size:11px;color:#667085;text-align:center}
 </style>
@@ -480,13 +480,21 @@ input[name="username"]{width:100%;height:48px;padding:0 14px;font-size:16px;bord
 
       <hr class="divider">
 
-      <form name="login" action="$(link-login-only)" method="post">
-        <input type="hidden" name="dst" value="$(link-orig)">
-        <input type="hidden" name="popup" value="true">
-        <label for="code">Already paid? Your code &nbsp;/&nbsp; Tayari umelipa? Namba yako</label>
-        <input id="code" name="username" type="text" autocomplete="off" required
-               oninput="document.getElementsByName('password')[0].value = this.value">
-        <input type="hidden" name="password" value="">
+      <!--
+        The code goes to the portal, not to this router. A voucher the ISP generated in the
+        dashboard is only a printed code until someone uses it: the router is told about it at
+        that moment, not before. Sending it here would fail with "invalid username or password".
+        The portal redeems it and then logs the customer in. A GET form, so the browser encodes
+        the values for us and the raw hotspot variables are the right ones to use.
+      -->
+      <form method="get" action="{{PORTAL_URL}}">
+        <input type="hidden" name="mac" value="$(mac)">
+        <input type="hidden" name="ip" value="$(ip)">
+        <input type="hidden" name="link-login-only" value="$(link-login-only)">
+        <input type="hidden" name="link-orig" value="$(link-orig)">
+        <input type="hidden" name="nas" value="{{NAS}}">
+        <label for="code">Have a code or voucher? &nbsp;/&nbsp; Una namba au vocha?</label>
+        <input id="code" name="code" type="text" autocomplete="off" required>
         <button class="btn" type="submit">Connect &nbsp;/&nbsp; Unganisha</button>
       </form>
     </div>
@@ -500,9 +508,11 @@ input[name="username"]{width:100%;height:48px;padding:0 14px;font-size:16px;bord
 </body>
 </html>
 HTML, [
-            '{{NAME}}'    => e($tenant->name),
-            '{{COLOR}}'   => $color,
-            '{{BUY_URL}}' => $buyUrl,
+            '{{NAME}}'       => e($tenant->name),
+            '{{COLOR}}'      => $color,
+            '{{BUY_URL}}'    => $buyUrl,
+            '{{PORTAL_URL}}' => htmlspecialchars($portal, ENT_QUOTES),
+            '{{NAS}}'        => e((string) $router->nas_identifier),
         ]);
     }
 }

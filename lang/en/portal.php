@@ -65,5 +65,6 @@ return [
     'voucher_no_package' => 'This voucher has no package. Please contact the provider.',
     'voucher_router'     => 'Could not connect you to the router. Your voucher was not used, please try again.',
     'voucher_ok'         => 'Voucher accepted! Connecting you now…',
+    'voucher_active'     => 'You already have access with this code. Connecting you now…',
     'voucher_error'      => 'Something went wrong. Please try again.',
 ];

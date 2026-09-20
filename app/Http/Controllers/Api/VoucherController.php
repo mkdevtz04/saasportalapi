@@ -64,6 +64,21 @@ class VoucherController extends Controller
         }
 
         if (! $voucher) {
+            // Not an unused voucher. It may still be a code the customer is entitled to: the one
+            // they got after paying, or a voucher they redeemed earlier and are coming back with.
+            // Both already have access on the router, so send them straight back in.
+            if ($active = $this->activeAccess($tenant->id, $code)) {
+                return response()->json([
+                    'ok'           => true,
+                    'code'         => $code,
+                    'package'      => $active->package?->name,
+                    'duration'     => $active->package?->durationLabel(),
+                    'message'      => __('portal.voucher_active'),
+                    'access_ready' => true,
+                    'access_ref'   => null,
+                ]);
+            }
+
             return response()->json(['ok' => false, 'message' => __('portal.voucher_invalid')], 422);
         }
 
@@ -140,5 +155,17 @@ class VoucherController extends Controller
             'access_ready' => ! $waitForRouter,
             'access_ref'   => $waitForRouter ? $code : null,
         ]);
+    }
+
+    /** Access this ISP has already given for a code and that has not run out yet. */
+    private function activeAccess(int $tenantId, string $code): ?Transaction
+    {
+        return Transaction::with('package')
+            ->where('tenant_id', $tenantId)
+            ->where('voucher_code', $code)
+            ->where('status', 'completed')
+            ->where('expires_at', '>', now())
+            ->orderByDesc('expires_at')
+            ->first();
     }
 }

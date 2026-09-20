@@ -65,5 +65,6 @@ return [
     'voucher_no_package' => 'Vocha hii haina kifurushi. Tafadhali wasiliana na mtoa huduma.',
     'voucher_router'     => 'Imeshindwa kukuunganisha na router. Vocha yako haijatumika, tafadhali jaribu tena.',
     'voucher_ok'         => 'Vocha imekubaliwa! Tunakuunganisha sasa…',
+    'voucher_active'     => 'Tayari una huduma kwa namba hii. Tunakuunganisha sasa…',
     'voucher_error'      => 'Kuna tatizo. Tafadhali jaribu tena.',
 ];
