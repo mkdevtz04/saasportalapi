@@ -153,6 +153,14 @@ RSC, [
   /ip hotspot profile set [find] use-radius=no login-by=cookie,http-pap
 } on-error={ :set failed ($failed . "hotspot,") }
 
+# 1b. Remember a device by its MAC address, so a phone whose WiFi is switched off and on is put
+#     straight back online instead of being sent to the portal to find its code again. Its own
+#     step, and only a note in the log if it fails, because the oldest RouterOS versions have no
+#     mac-cookie and the rest of the setup must still go through on them.
+:do {
+  /ip hotspot profile set [find] login-by=mac-cookie,cookie,http-pap mac-cookie-timeout=3d
+} on-error={ :log warning "TrinetPay: this RouterOS has no mac-cookie, returning devices will sign in again" }
+
 # 2. Walled garden: what customers may open before they have paid.
 :do {
   /ip hotspot walled-garden remove [find where comment="TrinetPay"]

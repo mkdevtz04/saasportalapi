@@ -33,6 +33,7 @@ class TenantRouter extends Model
         'provisioned_at',
         'routeros_version',
         'public_ip',
+        'hotspot_login_url',
         'active_users',
         'router_uptime',
     ];

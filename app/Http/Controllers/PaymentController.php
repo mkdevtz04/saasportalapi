@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PaymentWebhook;
 use App\Models\TenantPackage;
+use App\Models\TenantRouter;
 use App\Models\Transaction;
 use App\Services\AgentAccess;
 use App\Services\PalmPesaService;
@@ -57,13 +58,22 @@ class PaymentController extends Controller
         $activeVoucher = null;
 
         if ($hotspot['mac']) {
-            $activeVoucher = Transaction::where('tenant_id', $tenant->id)
+            $activeVoucher = Transaction::with(['package', 'router'])
+                ->where('tenant_id', $tenant->id)
                 ->where('customer_mac', $hotspot['mac'])
                 ->where('status', 'completed')
                 ->where('expires_at', '>', now())
                 ->orderByDesc('expires_at')
                 ->first();
         }
+
+        // A customer coming back — phone's WiFi switched off and on, a bookmark, a captive-portal
+        // window that dropped the query string — often arrives with no login address in the link.
+        // Their code is useless without one, so the router's address is remembered the first time
+        // a real one arrives and used whenever the link does not carry it.
+        $this->rememberLoginUrl($tenant->id, $hotspot['nas'], $hotspot['link_login_only']);
+
+        $hotspot['link_login_only'] ??= $this->knownLoginUrl($tenant->id, $hotspot['nas'], $activeVoucher);
 
         $locale       = app()->getLocale();
         $contactPhone = $settings?->contact_phone;
@@ -109,6 +119,8 @@ class PaymentController extends Controller
             ->firstOrFail();
 
         $phone = Phone::international($request->phone);
+
+        $this->rememberLoginUrl($tenant->id, $request->input('nas'), HotspotUrl::loginUrl($request->link_login_only));
 
         // Someone tapping "pay" twice must not get two prompts on their phone. Within a couple of
         // minutes the same request gets the same transaction back.
@@ -199,6 +211,61 @@ class PaymentController extends Controller
             // The gateway message can contain internals, so the customer gets a plain one.
             return response()->json(['status' => 'error', 'message' => __('portal.payment_failed')], 500);
         }
+    }
+
+    /**
+     * Keep the router's own login address once a genuine one has been seen. It is already
+     * checked as local by HotspotUrl before it gets here, and it does not change, so this is
+     * written only when it is new.
+     */
+    private function rememberLoginUrl(int $tenantId, ?string $nas, ?string $loginUrl): void
+    {
+        if ($loginUrl === null) {
+            return;
+        }
+
+        $router = $this->routerFor($tenantId, $nas);
+
+        if ($router && $router->hotspot_login_url !== $loginUrl) {
+            $router->update(['hotspot_login_url' => $loginUrl]);
+        }
+    }
+
+    /**
+     * The login address for this customer's router when the link did not carry one: the router
+     * that names itself in the link, otherwise the one that sold them the session they still hold.
+     * Checked again on the way out, because it was stored from a query parameter.
+     */
+    private function knownLoginUrl(int $tenantId, ?string $nas, ?Transaction $active): ?string
+    {
+        $url = $this->routerFor($tenantId, $nas)?->hotspot_login_url
+            ?? $active?->router?->hotspot_login_url;
+
+        return HotspotUrl::loginUrl($url);
+    }
+
+    /**
+     * Which router a customer is sitting behind.
+     *
+     * The name the router sends is the reliable answer, but plenty of routers were set up by hand
+     * and send a name the platform has never been told about. An ISP with a single router has only
+     * one possible answer, so that one is used instead. An ISP with several is left unanswered
+     * rather than guessed at, because the wrong router's address would send a customer's code to
+     * a stranger's login page.
+     */
+    private function routerFor(int $tenantId, ?string $nas): ?TenantRouter
+    {
+        $routers = TenantRouter::where('tenant_id', $tenantId);
+
+        if ($nas !== null && $nas !== '') {
+            $named = (clone $routers)->where('nas_identifier', $nas)->first();
+
+            if ($named) {
+                return $named;
+            }
+        }
+
+        return $routers->count() === 1 ? $routers->first() : null;
     }
 
     /** Query values are shown back in the page and sent on, so keep them short and printable. */
@@ -305,7 +372,8 @@ class PaymentController extends Controller
                 ),
                 'wifi_token' => $transaction->voucher_code,
                 'package'    => $transaction->package?->name,
-                'login_url'  => HotspotUrl::loginUrl($meta['link_login_only'] ?? null),
+                'login_url'  => HotspotUrl::loginUrl($meta['link_login_only'] ?? null)
+                    ?? HotspotUrl::loginUrl($transaction->router?->hotspot_login_url),
                 'dst'        => HotspotUrl::destination($meta['link_orig'] ?? null),
             ]);
         }
