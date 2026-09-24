@@ -36,6 +36,7 @@ Route::get('/', function () {
 Route::middleware('throttle:provision')->group(function () {
     Route::get('/provision/{token}',            [RouterProvisionController::class, 'downloadScript'])->name('router.provision.script');
     Route::get('/provision/{token}/login.html', [RouterProvisionController::class, 'loginPage'])->name('router.provision.login');
+    Route::get('/provision/{token}/alogin.html', [RouterProvisionController::class, 'afterLoginPage'])->name('router.provision.alogin');
     Route::get('/provision/{token}/complete',   [RouterProvisionController::class, 'completeProvision'])->name('router.provision.complete');
 });
 Route::get('/provision/{token}/status',   [RouterProvisionController::class, 'checkStatus'])->name('router.provision.status');

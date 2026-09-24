@@ -25,6 +25,7 @@ return [
     'session_active'     => 'Kifurushi chako cha :package bado kinafanya kazi.',
     'expires'            => 'Kinaisha',
     'reconnect'          => 'Unganisha tena',
+    'saved_code'         => 'Unganisha tena kwa namba ya manunuzi yako ya mwisho kwenye kifaa hiki.',
     'token_label'        => 'Namba ya WiFi',
     'no_session_title'   => 'Huna kifurushi kinachofanya kazi',
     'no_session_msg'     => 'Huna kifurushi cha WiFi kinachofanya kazi. Tafadhali nunua kifurushi ili uunganishwe.',

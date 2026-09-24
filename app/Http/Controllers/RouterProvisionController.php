@@ -68,6 +68,22 @@ class RouterProvisionController extends Controller
     }
 
     /**
+     * The page the router shows the moment a login works, downloaded by the setup script and
+     * stored on the router next to the login page.
+     */
+    public function afterLoginPage(string $token): Response
+    {
+        $router = TenantRouter::where('provision_token', $token)->first();
+
+        abort_unless($router && $router->runsAgent(), 404);
+
+        return response($this->scripts->afterLoginPage($router), 200, [
+            'Content-Type'  => 'text/html; charset=utf-8',
+            'Cache-Control' => 'no-store',
+        ]);
+    }
+
+    /**
      * Called by the router at the end of setup. The failed value lists the steps that did not
      * work, for example ?failed=hotspot,login-page, and is empty when everything went well.
      */

@@ -25,6 +25,7 @@ return [
     'session_active'     => 'Your :package session is still active.',
     'expires'            => 'Expires',
     'reconnect'          => 'Reconnect now',
+    'saved_code'         => 'Reconnect with the code from your last purchase on this device.',
     'token_label'        => 'WiFi token',
     'no_session_title'   => 'No active session',
     'no_session_msg'     => 'You do not have an active WiFi session. Please buy a package to connect.',

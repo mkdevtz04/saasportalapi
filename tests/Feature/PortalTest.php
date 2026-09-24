@@ -242,7 +242,7 @@ class PortalTest extends TestCase
             ->assertStatus(422);
     }
 
-    public function test_the_routers_login_page_sends_codes_to_the_portal_instead_of_to_itself(): void
+    public function test_a_code_typed_on_the_routers_login_page_goes_to_the_portal(): void
     {
         config(['app.url' => 'https://wifikitaa.test']);
         $tenant = $this->makeTenant('testisp');
@@ -254,9 +254,47 @@ class PortalTest extends TestCase
         $this->assertStringContainsString('name="code"', $html);
         $this->assertStringContainsString('value="' . $router->nas_identifier . '"', $html);
 
-        // Posting the code to the router is what failed for vouchers the ISP had just printed.
-        $this->assertStringNotContainsString('action="$(link-login-only)"', $html);
-        $this->assertStringNotContainsString('name="username"', $html);
+        // Posting a typed code to the router is what failed for vouchers the ISP had just printed:
+        // the router only knows a code once the platform has given it to the router.
+        // It forwards the router's login address to the portal, but sends no login of its own.
+        $typed = \Illuminate\Support\Str::before(\Illuminate\Support\Str::after($html, '<form method="get"'), '</form>');
+        $this->assertStringNotContainsString('name="username"', $typed);
+        $this->assertStringNotContainsString('name="password"', $typed);
+    }
+
+    public function test_the_routers_login_page_reconnects_a_device_that_has_been_here_before(): void
+    {
+        $router = $this->radiusRouterFor($this->makeTenant('testisp'));
+
+        $html = $this->get('/provision/' . $router->provision_token . '/login.html')->assertOk()->getContent();
+
+        // The one thing posted to the router itself: a code this browser saw work here before.
+        // It is the router's own address, which no other page is sure of.
+        $this->assertStringContainsString('<form id="reconnect" method="post" action="$(link-login-only)">', $html);
+        $this->assertStringContainsString("localStorage.getItem(KEY)", $html);
+
+        // A code the router has just refused is dropped, so the page cannot loop on it.
+        $this->assertStringContainsString('localStorage.removeItem(KEY)', $html);
+    }
+
+    public function test_the_page_shown_after_a_login_keeps_the_code_on_the_customers_device(): void
+    {
+        $router = $this->radiusRouterFor($this->makeTenant('testisp'));
+
+        $html = $this->get('/provision/' . $router->provision_token . '/alogin.html')->assertOk()->getContent();
+
+        $this->assertStringContainsString('data-user="$(username)"', $html);
+        $this->assertStringContainsString("localStorage.setItem('trinetpay-code', user)", $html);
+
+        // A device let back in by its MAC address logs in as that address, which is not a code.
+        $this->assertStringContainsString('/^[A-Za-z0-9]{4,32}$/.test(user)', $html);
+    }
+
+    public function test_the_page_shown_after_a_login_is_not_served_without_a_provision_token(): void
+    {
+        $this->radiusRouterFor($this->makeTenant('testisp'));
+
+        $this->get('/provision/not-a-real-token/alogin.html')->assertNotFound();
     }
 
     private function radiusRouterFor(\App\Models\Tenant $tenant): \App\Models\TenantRouter

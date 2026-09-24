@@ -89,9 +89,13 @@ class ProvisioningScript
   {{WALLED}}
 } on-error={ :set failed ($failed . "walled-garden,") }
 
-# 5. Branded login page for this ISP.
+# 5. Branded login page for this ISP, and the page shown the moment a login works. That second
+#    page is what remembers a customer's code on their own device, so a phone whose WiFi was
+#    switched off and on is put back online by the login page instead of being sent looking for
+#    the code again.
 :do {
   /tool fetch url={{LOGIN_URL}} dst-path="hotspot/login.html" mode=https check-certificate=no
+  /tool fetch url={{ALOGIN_URL}} dst-path="hotspot/alogin.html" mode=https check-certificate=no
 } on-error={ :set failed ($failed . "login-page,") }
 
 # 6. Agent: reports to the platform every minute and picks up commands.
@@ -121,6 +125,7 @@ RSC, [
             '{{ACCT_PORT}}'    => (string) (int) config('radius.acct_port'),
             '{{WALLED}}'       => $walled,
             '{{LOGIN_URL}}'    => RouterOs::quote($base . '/provision/' . $token . '/login.html'),
+            '{{ALOGIN_URL}}'   => RouterOs::quote($base . '/provision/' . $token . '/alogin.html'),
             '{{AGENT_SOURCE}}' => RouterOs::quote($this->agentSource($router)),
             '{{INTERVAL}}'     => RouterOs::bareName((string) config('radius.agent_interval'), '1m'),
             '{{COMPLETE_URL}}' => RouterOs::quote($base . '/provision/' . $token . '/complete?failed='),
@@ -167,9 +172,13 @@ RSC, [
   {{WALLED}}
 } on-error={ :set failed ($failed . "walled-garden,") }
 
-# 3. Branded login page for this ISP.
+# 3. Branded login page for this ISP, and the page shown the moment a login works. That second
+#    page is what remembers a customer's code on their own device, so a phone whose WiFi was
+#    switched off and on is put back online by the login page instead of being sent looking for
+#    the code again.
 :do {
   /tool fetch url={{LOGIN_URL}} dst-path="hotspot/login.html" mode=https check-certificate=no
+  /tool fetch url={{ALOGIN_URL}} dst-path="hotspot/alogin.html" mode=https check-certificate=no
 } on-error={ :set failed ($failed . "login-page,") }
 
 # 4. Agent: calls the platform every few seconds and creates customers' hotspot users.
@@ -194,6 +203,7 @@ RSC, [
             '{{TIME}}'         => now()->toDateTimeString(),
             '{{WALLED}}'       => $this->walledGarden($tenant),
             '{{LOGIN_URL}}'    => RouterOs::quote($base . '/provision/' . $token . '/login.html'),
+            '{{ALOGIN_URL}}'   => RouterOs::quote($base . '/provision/' . $token . '/alogin.html'),
             '{{AGENT_SOURCE}}' => RouterOs::quote($this->agentSource($router)),
             '{{INTERVAL}}'     => RouterOs::bareName((string) config('router.agent_interval'), '10s'),
             '{{COMPLETE_URL}}' => RouterOs::quote($base . '/provision/' . $token . '/complete?failed='),
@@ -438,8 +448,8 @@ RSC, [
 
     /**
      * The hotspot login page the router serves to customers. Branded for the ISP, it sends
-     * people to the portal to pay or redeem a voucher, and still lets a customer who already
-     * holds an active code log in directly.
+     * people to the portal to pay or redeem a voucher, puts a device that has been here before
+     * straight back online, and still lets a customer log in with a code by hand.
      */
     public function loginPage(TenantRouter $router): string
     {
@@ -472,6 +482,11 @@ html,body{min-height:100%;background:#eef3f7;font-family:Arial,Helvetica,sans-se
 .sub{font-size:11px;font-weight:800;color:#526173;letter-spacing:.1em;text-transform:uppercase;margin-top:6px}
 .body{padding:28px}
 .error{padding:11px 13px;margin-bottom:18px;background:#fff1f1;border-left:4px solid #c62828;color:#a81717;font-size:13px;font-weight:700}
+.again{text-align:center;padding:10px 0}
+.again .spin{width:38px;height:38px;margin:0 auto 16px;border:3px solid #e8e8e8;border-top-color:{{COLOR}};border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.again .lead{font-size:16px;font-weight:900}
+.again .note{font-size:12px;color:#667085;margin-top:6px}
 .buy{display:block;text-align:center;padding:16px;background:{{COLOR}};color:#fff;font-size:14px;font-weight:900;text-decoration:none;letter-spacing:.04em;text-transform:uppercase}
 .divider{margin:24px 0 18px;border:0;border-top:1px solid #e5e9f0}
 label{display:block;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#344054;margin-bottom:7px}
@@ -498,34 +513,95 @@ input[name="code"]{width:100%;height:48px;padding:0 14px;font-size:16px;border:1
     <div class="body">
       <p class="error" style="display:none" id="err">$(error)</p>
 
-      <a class="buy" href="{{BUY_URL}}">Buy WiFi or use a voucher &nbsp;/&nbsp; Nunua WiFi au tumia vocha</a>
+      <!-- Shown instead of the choices below while a remembered code is being sent to this router. -->
+      <div class="again" id="again" style="display:none">
+        <div class="spin"></div>
+        <div class="lead">Reconnecting you&hellip;</div>
+        <div class="note">Tunakuunganisha tena&hellip;</div>
+      </div>
 
-      <hr class="divider">
+      <div id="choices">
+        <a class="buy" href="{{BUY_URL}}">Buy WiFi or use a voucher &nbsp;/&nbsp; Nunua WiFi au tumia vocha</a>
 
-      <!--
-        The code goes to the portal, not to this router. A voucher the ISP generated in the
-        dashboard is only a printed code until someone uses it: the router is told about it at
-        that moment, not before. Sending it here would fail with "invalid username or password".
-        The portal redeems it and then logs the customer in. A GET form, so the browser encodes
-        the values for us and the raw hotspot variables are the right ones to use.
-      -->
-      <form method="get" action="{{PORTAL_URL}}">
-        <input type="hidden" name="mac" value="$(mac)">
-        <input type="hidden" name="ip" value="$(ip)">
-        <input type="hidden" name="link-login-only" value="$(link-login-only)">
-        <input type="hidden" name="link-orig" value="$(link-orig)">
-        <input type="hidden" name="nas" value="{{NAS}}">
-        <label for="code">Have a code or voucher? &nbsp;/&nbsp; Una namba au vocha?</label>
-        <input id="code" name="code" type="text" autocomplete="off" required>
-        <button class="btn" type="submit">Connect &nbsp;/&nbsp; Unganisha</button>
-      </form>
+        <hr class="divider">
+
+        <!--
+          The code goes to the portal, not to this router. A voucher the ISP generated in the
+          dashboard is only a printed code until someone uses it: the router is told about it at
+          that moment, not before. Sending it here would fail with "invalid username or password".
+          The portal redeems it and then logs the customer in. A GET form, so the browser encodes
+          the values for us and the raw hotspot variables are the right ones to use.
+        -->
+        <form method="get" action="{{PORTAL_URL}}">
+          <input type="hidden" name="mac" value="$(mac)">
+          <input type="hidden" name="ip" value="$(ip)">
+          <input type="hidden" name="link-login-only" value="$(link-login-only)">
+          <input type="hidden" name="link-orig" value="$(link-orig)">
+          <input type="hidden" name="nas" value="{{NAS}}">
+          <label for="code">Have a code or voucher? &nbsp;/&nbsp; Una namba au vocha?</label>
+          <input id="code" name="code" type="text" autocomplete="off" required>
+          <button class="btn" type="submit">Connect &nbsp;/&nbsp; Unganisha</button>
+        </form>
+      </div>
     </div>
     <div class="footer">{{NAME}}</div>
   </div>
 </main>
+
+<!-- A code this device has used here before, put back to the router's own login. -->
+<form id="reconnect" method="post" action="$(link-login-only)">
+  <input type="hidden" name="username" value="">
+  <input type="hidden" name="password" value="">
+  <input type="hidden" name="dst" value="$(link-orig)">
+</form>
+
 <script>
-  var e = document.getElementById('err');
-  if (e && e.textContent.trim() !== '') { e.style.display = 'block'; }
+(function () {
+  // Reconnecting a returning device happens here, on the router's own login page, and nowhere
+  // else. This page is the only one that always knows this router's login address: the portal
+  // only ever learns it from the link, and a customer coming back often arrives without one — a
+  // captive-portal window that dropped the query string, a bookmark, or history. A code with
+  // nowhere to send it is no use to them.
+  //
+  // The code is kept in this browser against this router's address, by the page the router shows
+  // when a login works, and is handed back the moment the router asks for a login again.
+  var KEY   = 'trinetpay-code';
+  var TRIED = 'trinetpay-tried';
+  var err   = document.getElementById('err');
+
+  if (err && err.textContent.trim() !== '') {
+    // The router refused a login. For a remembered code that means it has run out or was removed,
+    // so it is dropped: the customer sees the page rather than a reconnect that cannot work.
+    err.style.display = 'block';
+    try { localStorage.removeItem(KEY); } catch (e) {}
+    return;
+  }
+
+  var code = null, tried = 0;
+
+  try {
+    code  = localStorage.getItem(KEY);
+    tried = parseInt(localStorage.getItem(TRIED) || '0', 10);
+  } catch (e) {
+    return;   // private browsing keeps nothing, so there is nothing to reconnect with
+  }
+
+  // Only a plain code, and never twice within half a minute. A router that refuses a login
+  // without saying why would otherwise send this page round in a circle.
+  if (!code || !/^[A-Za-z0-9]{4,32}$/.test(code) || (Date.now() - tried) < 30000) {
+    return;
+  }
+
+  try { localStorage.setItem(TRIED, String(Date.now())); } catch (e) {}
+
+  document.getElementById('choices').style.display = 'none';
+  document.getElementById('again').style.display   = 'block';
+
+  var form = document.getElementById('reconnect');
+  form.username.value = code;
+  form.password.value = code;
+  form.submit();
+})();
 </script>
 </body>
 </html>
@@ -535,6 +611,90 @@ HTML, [
             '{{BUY_URL}}'    => $buyUrl,
             '{{PORTAL_URL}}' => htmlspecialchars($portal, ENT_QUOTES),
             '{{NAS}}'        => e((string) $router->nas_identifier),
+        ]);
+    }
+
+    /**
+     * The page the router shows the moment a login works, on the way to wherever the customer was
+     * going.
+     *
+     * This is the one place that sees both the code that just worked and the router it worked on,
+     * so this is where the code is kept on the customer's device. That is what lets the login page
+     * put them straight back online later, without a trip to the portal to look up a code the
+     * platform cannot always match to a router.
+     */
+    public function afterLoginPage(TenantRouter $router): string
+    {
+        $tenant = $router->tenant;
+        $color  = (string) ($tenant->settings?->brand_color ?? '');
+        $color  = preg_match('/^#[0-9a-fA-F]{6}$/', $color) ? $color : '#2561e8';
+
+        return strtr(<<<'HTML'
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="pragma" content="no-cache">
+<meta http-equiv="expires" content="-1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{NAME}} - Connected</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:#eef3f7;font-family:Arial,Helvetica,sans-serif;color:#040a17}
+.page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{width:100%;max-width:380px;background:#fff;border:1px solid #d8dee8;box-shadow:0 16px 48px rgba(20,32,51,.14);text-align:center;padding:34px 26px}
+.brand{font-size:20px;font-weight:900}
+.lead{margin-top:18px;font-size:17px;font-weight:900;color:#15803d}
+.note{margin-top:8px;font-size:13px;color:#667085;line-height:1.6}
+.go{display:block;margin-top:22px;padding:14px;background:{{COLOR}};color:#fff;font-size:13px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;text-decoration:none}
+</style>
+</head>
+<body>
+<main class="page">
+  <div class="card">
+    <div class="brand">{{NAME}}</div>
+    <div class="lead">You are online</div>
+    <div class="note">Umeunganishwa. This device will reconnect on its own next time.<br>Kifaa hiki kitaunganishwa chenyewe mara ijayo.</div>
+    <a class="go" id="go" href="$(link-redirect)">Continue &nbsp;/&nbsp; Endelea</a>
+  </div>
+</main>
+
+<span id="who" data-user="$(username)" data-go="$(link-redirect)" data-status="$(link-status)" style="display:none"></span>
+
+<script>
+(function () {
+  var who = document.getElementById('who');
+
+  // A device let back in by its MAC address logs in as that address, which is not something the
+  // login page can post back as a code, so only plain codes are kept.
+  var user = who.getAttribute('data-user') || '';
+
+  if (/^[A-Za-z0-9]{4,32}$/.test(user)) {
+    try {
+      localStorage.setItem('trinetpay-code', user);
+      localStorage.removeItem('trinetpay-tried');
+    } catch (e) { /* private browsing: this device will sign in by hand next time */ }
+  }
+
+  // On to where they were going. Some routers leave that empty, in which case their own status
+  // page is the honest landing: it is local, always there, and shows what they have left.
+  var go = who.getAttribute('data-go') || '';
+
+  if (go.indexOf('http') !== 0) {
+    go = who.getAttribute('data-status') || '';
+  }
+
+  if (go.indexOf('http') === 0) {
+    document.getElementById('go').href = go;
+    setTimeout(function () { location.href = go; }, 1200);
+  }
+})();
+</script>
+</body>
+</html>
+HTML, [
+            '{{NAME}}'  => e($tenant->name),
+            '{{COLOR}}' => $color,
         ]);
     }
 }

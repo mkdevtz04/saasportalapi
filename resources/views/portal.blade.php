@@ -99,24 +99,28 @@ html,body{min-height:100%;background:#eef3f7;font-family:Arial,Helvetica,sans-se
     </div>
 
     <div class="body">
-      @if($activeVoucher)
-      <div class="welcome">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-          <i class="fa-solid fa-check" style="color:#15803d;font-size:20px;"></i>
-          <div style="font-weight:800;color:#15803d;font-size:15px;">{{ __('portal.welcome_back') }}</div>
+      {{-- The server only recognises a returning customer when the link carried their device's MAC
+           address. When it did not, the page fills this in from what the device itself remembers. --}}
+      <div id="welcome">
+        @if($activeVoucher)
+        <div class="welcome">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <i class="fa-solid fa-check" style="color:#15803d;font-size:20px;"></i>
+            <div style="font-weight:800;color:#15803d;font-size:15px;">{{ __('portal.welcome_back') }}</div>
+          </div>
+          <div style="font-size:13px;color:#374151;line-height:1.6;margin-bottom:14px;">
+            {{ __('portal.session_active', ['package' => $activeVoucher->package?->name ?? 'WiFi']) }}<br>
+            {{ __('portal.expires') }}: <strong>{{ $activeVoucher->expires_at->timezone('Africa/Dar_es_Salaam')->format('d M Y, H:i') }}</strong>
+          </div>
+          <button class="btn" onclick="reconnectActive()" style="background:#15803d;margin-top:0;">
+            <i class="fa-solid fa-wifi"></i> {{ __('portal.reconnect') }}
+          </button>
+          <p style="font-size:11px;color:#64748b;margin-top:8px;text-align:center;">
+            {{ __('portal.token_label') }}: <span style="font-family:monospace;font-weight:700;">{{ $activeVoucher->voucher_code }}</span>
+          </p>
         </div>
-        <div style="font-size:13px;color:#374151;line-height:1.6;margin-bottom:14px;">
-          {{ __('portal.session_active', ['package' => $activeVoucher->package?->name ?? 'WiFi']) }}<br>
-          {{ __('portal.expires') }}: <strong>{{ $activeVoucher->expires_at->timezone('Africa/Dar_es_Salaam')->format('d M Y, H:i') }}</strong>
-        </div>
-        <button class="btn" onclick="reconnectActive()" style="background:#15803d;margin-top:0;">
-          <i class="fa-solid fa-wifi"></i> {{ __('portal.reconnect') }}
-        </button>
-        <p style="font-size:11px;color:#64748b;margin-top:8px;text-align:center;">
-          {{ __('portal.token_label') }}: <span style="font-family:monospace;font-weight:700;">{{ $activeVoucher->voucher_code }}</span>
-        </p>
+        @endif
       </div>
-      @endif
 
       {{-- Tab switcher --}}
       <div class="tabs">
@@ -191,6 +195,62 @@ let selectedPrice     = 0;
 let currentTxnId      = null;
 let pollTimer         = null;
 
+/**
+ * What this device remembers about this ISP, kept in its own browser.
+ *
+ * The router's login address only ever reaches the portal in the link, and a customer coming back
+ * often arrives without one: a captive-portal window that dropped the query string, a bookmark, or
+ * history. Their code is then useless, because there is nowhere to send it. The device that used
+ * the router is the one thing that always knows which router that was, so the address and the last
+ * code are kept here and used whenever the link arrives bare.
+ */
+const MEM = 'trinetpay:' + TENANT;
+
+function recall() {
+  try { return JSON.parse(localStorage.getItem(MEM) || '{}') || {}; } catch (e) { return {}; }
+}
+
+function remember(patch) {
+  try { localStorage.setItem(MEM, JSON.stringify(Object.assign(recall(), patch))); } catch (e) { /* private browsing */ }
+}
+
+/**
+ * A login address is sent a customer's own WiFi code, so it has to be the router in front of them.
+ * The server checks the one that comes in the link; this is the same check for one that came back
+ * out of this browser's storage, which the customer could have edited themselves.
+ */
+function looksLocal(url) {
+  const match = /^https?:\/\/([a-z0-9.\-]+)(:\d+)?(\/|$)/i.exec(String(url || ''));
+
+  if (! match) return false;
+
+  const host = match[1].toLowerCase();
+
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) {
+    return /^(10\.|127\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host);
+  }
+
+  return host.indexOf('.') === -1 || /\.(lan|local|localdomain|hotspot|wifi)$/.test(host);
+}
+
+/** The code this device last used here, while it is recent enough to be worth offering. */
+function savedSession() {
+  const memory = recall();
+
+  if (! memory.token || ! memory.at || (Date.now() - memory.at) > 7 * 24 * 3600 * 1000) {
+    return null;
+  }
+
+  return {token: memory.token, package: memory.package || 'WiFi'};
+}
+
+// The link is the better answer when it has one, and worth keeping for the next visit that has none.
+if (hotspot.link_login_only) {
+  remember({login: hotspot.link_login_only});
+} else if (looksLocal(recall().login)) {
+  hotspot.link_login_only = recall().login;
+}
+
 /** Fill :name placeholders in a translated sentence. */
 function t(key, params) {
   return String(T[key] ?? key).replace(/:(\w+)/g, (m, name) => (params && name in params) ? params[name] : m);
@@ -251,6 +311,14 @@ function contactLine() {
 
 function showSuccess(token, pkgName, loginUrl, dst) {
   const target = dst || 'http://www.google.com';
+
+  // Kept so this device can offer to reconnect on a later visit that arrives with a bare link.
+  remember({token: token, package: pkgName, at: Date.now()});
+
+  if (looksLocal(loginUrl)) {
+    remember({login: loginUrl});
+  }
+
   const form = loginUrl
     ? `<form id="routerLogin" method="post" action="${safe(loginUrl)}">
          <input type="hidden" name="username" value="${safe(token)}">
@@ -279,12 +347,44 @@ function showSuccess(token, pkgName, loginUrl, dst) {
 }
 
 function reconnectActive() {
-  if (ACTIVE) {
-    showSuccess(ACTIVE.token, ACTIVE.package, hotspot.link_login_only, hotspot.link_orig);
+  const session = ACTIVE || savedSession();
+
+  if (session) {
+    showSuccess(session.token, session.package, hotspot.link_login_only, hotspot.link_orig);
   } else {
     showModal('fa-solid fa-circle-info', '', t('no_session_title'), safe(t('no_session_msg')),
       {buttons: `<button class="m-btn" onclick="closeModal()">${safe(t('close'))}</button>`});
   }
+}
+
+/**
+ * The reconnect card for a device the server did not recognise, because the link carried no MAC
+ * address. Only the device still knows the code, and only the router can say whether it still
+ * works — so it is offered, and the router's own login page answers.
+ */
+function offerSavedSession() {
+  const box = document.getElementById('welcome');
+
+  if (! box || box.children.length || ! hotspot.link_login_only) return;
+
+  const session = savedSession();
+
+  if (! session) return;
+
+  box.innerHTML = `
+    <div class="welcome">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <i class="fa-solid fa-check" style="color:#15803d;font-size:20px;"></i>
+        <div style="font-weight:800;color:#15803d;font-size:15px;">${safe(t('welcome_back'))}</div>
+      </div>
+      <div style="font-size:13px;color:#374151;line-height:1.6;margin-bottom:14px;">${safe(t('saved_code'))}</div>
+      <button class="btn" onclick="reconnectActive()" style="background:#15803d;margin-top:0;">
+        <i class="fa-solid fa-wifi"></i> ${safe(t('reconnect'))}
+      </button>
+      <p style="font-size:11px;color:#64748b;margin-top:8px;text-align:center;">
+        ${safe(t('token_label'))}: <span style="font-family:monospace;font-weight:700;">${safe(session.token)}</span>
+      </p>
+    </div>`;
 }
 
 function switchTab(tab, el) {
@@ -455,6 +555,8 @@ function checkAgain() {
   showModal('fa-solid fa-mobile-screen', '', t('check_phone_title'), safe(t('sending_msg')), {spinner: true});
   startPolling();
 }
+
+offerSavedSession();
 
 /**
  * The customer typed their code on the router's own login page. The router only knows codes it

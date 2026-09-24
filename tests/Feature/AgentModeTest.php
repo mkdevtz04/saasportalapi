@@ -128,10 +128,23 @@ class AgentModeTest extends TestCase
 
         // The code box sends codes to the portal, because the router only knows codes it has
         // already been given and a printed voucher is not one of them until someone uses it.
+        // A code this device has used here before is the exception, and goes straight back to
+        // the router: it is already a hotspot user there, and this page knows the address.
         $this->get('/provision/tok-agent/login.html')
             ->assertOk()
             ->assertSee('<form method="get" action="https://wifikitaa.test/portal/testisp">', false)
-            ->assertDontSee('action="$(link-login-only)"', false);
+            ->assertSee('<form id="reconnect" method="post" action="$(link-login-only)">', false);
+    }
+
+    public function test_the_setup_script_puts_both_hotspot_pages_on_the_router(): void
+    {
+        $router = $this->agentRouter($this->makeTenant('testisp'));
+        $script = app(\App\Services\ProvisioningScript::class)->agentSetup($router);
+
+        $this->assertStringContainsString('dst-path="hotspot/login.html"', $script);
+        // Without this one nothing remembers a customer's code, and every reconnect is by hand.
+        $this->assertStringContainsString('dst-path="hotspot/alogin.html"', $script);
+        $this->assertStringContainsString('/provision/tok-agent/alogin.html', $script);
     }
 
     // ── A payment ────────────────────────────────────────────────────────────
