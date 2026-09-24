@@ -73,19 +73,20 @@ class ProvisioningScript
 
 # 2. RADIUS server. The router connects out to it, nothing needs to reach the router.
 :do {
-  /radius remove [find where comment="TrinetPay"]
+  /radius remove [find comment="TrinetPay"]
   /radius add address={{RADIUS_HOST}} secret={{RADIUS_SECRET}} service=hotspot authentication-port={{AUTH_PORT}} accounting-port={{ACCT_PORT}} timeout=3s comment="TrinetPay"
 } on-error={ :set failed ($failed . "radius,") }
 
 # 3. Hotspot: log customers in through RADIUS, let known devices back in by MAC address.
+#    A router that arrives with nothing configured has one built for it first.
 :do {
-  :if ([:len [/ip hotspot find]] = 0) do={ :error "no hotspot configured" }
+{{HOTSPOT}}
   /ip hotspot profile set [find] use-radius=yes radius-accounting=yes radius-interim-update=received login-by=mac,http-pap
 } on-error={ :set failed ($failed . "hotspot,") }
 
 # 4. Walled garden: what customers may open before they have paid.
 :do {
-  /ip hotspot walled-garden remove [find where comment="TrinetPay"]
+  /ip hotspot walled-garden remove [find comment="TrinetPay"]
   {{WALLED}}
 } on-error={ :set failed ($failed . "walled-garden,") }
 
@@ -103,9 +104,9 @@ class ProvisioningScript
 #    fails with "cannot open file: permission denied" and the router never hears about a
 #    customer who has paid or used a voucher.
 :do {
-  /system script remove [find where name="trinetpay-agent"]
+  /system script remove [find name="trinetpay-agent"]
   /system script add name="trinetpay-agent" policy=ftp,read,write,policy,test,reboot source={{AGENT_SOURCE}}
-  /system scheduler remove [find where name="trinetpay-agent"]
+  /system scheduler remove [find name="trinetpay-agent"]
   /system scheduler add name="trinetpay-agent" interval={{INTERVAL}} start-time=startup policy=ftp,read,write,policy,test,reboot comment="TrinetPay" on-event="/system script run trinetpay-agent"
 } on-error={ :set failed ($failed . "agent,") }
 
@@ -123,6 +124,7 @@ RSC, [
             '{{RADIUS_SECRET}}' => RouterOs::quote($secret),
             '{{AUTH_PORT}}'    => (string) (int) config('radius.auth_port'),
             '{{ACCT_PORT}}'    => (string) (int) config('radius.acct_port'),
+            '{{HOTSPOT}}'      => $this->hotspotIfMissing(),
             '{{WALLED}}'       => $walled,
             '{{LOGIN_URL}}'    => RouterOs::quote($base . '/provision/' . $token . '/login.html'),
             '{{ALOGIN_URL}}'   => RouterOs::quote($base . '/provision/' . $token . '/alogin.html'),
@@ -153,8 +155,9 @@ RSC, [
 :local failed ""
 
 # 1. Hotspot: customers log in with the code they get after paying. Cookies keep a device logged in.
+#    A router that arrives with nothing configured has one built for it first.
 :do {
-  :if ([:len [/ip hotspot find]] = 0) do={ :error "no hotspot configured" }
+{{HOTSPOT}}
   /ip hotspot profile set [find] use-radius=no login-by=cookie,http-pap
 } on-error={ :set failed ($failed . "hotspot,") }
 
@@ -168,7 +171,7 @@ RSC, [
 
 # 2. Walled garden: what customers may open before they have paid.
 :do {
-  /ip hotspot walled-garden remove [find where comment="TrinetPay"]
+  /ip hotspot walled-garden remove [find comment="TrinetPay"]
   {{WALLED}}
 } on-error={ :set failed ($failed . "walled-garden,") }
 
@@ -186,9 +189,9 @@ RSC, [
 #    fails with "cannot open file: permission denied" and the router never hears about a
 #    customer who has paid or used a voucher.
 :do {
-  /system script remove [find where name="trinetpay-agent"]
+  /system script remove [find name="trinetpay-agent"]
   /system script add name="trinetpay-agent" policy=ftp,read,write,policy,test,reboot source={{AGENT_SOURCE}}
-  /system scheduler remove [find where name="trinetpay-agent"]
+  /system scheduler remove [find name="trinetpay-agent"]
   /system scheduler add name="trinetpay-agent" interval={{INTERVAL}} start-time=startup policy=ftp,read,write,policy,test,reboot comment="TrinetPay" on-event="/system script run trinetpay-agent"
 } on-error={ :set failed ($failed . "agent,") }
 
@@ -201,6 +204,7 @@ RSC, [
             '{{TENANT}}'       => RouterOs::comment($tenant->name),
             '{{ROUTER}}'       => RouterOs::comment($router->name),
             '{{TIME}}'         => now()->toDateTimeString(),
+            '{{HOTSPOT}}'      => $this->hotspotIfMissing(),
             '{{WALLED}}'       => $this->walledGarden($tenant),
             '{{LOGIN_URL}}'    => RouterOs::quote($base . '/provision/' . $token . '/login.html'),
             '{{ALOGIN_URL}}'   => RouterOs::quote($base . '/provision/' . $token . '/alogin.html'),
@@ -208,6 +212,107 @@ RSC, [
             '{{INTERVAL}}'     => RouterOs::bareName((string) config('router.agent_interval'), '10s'),
             '{{COMPLETE_URL}}' => RouterOs::quote($base . '/provision/' . $token . '/complete?failed='),
         ]);
+    }
+
+    /**
+     * Builds a hotspot on a router that has none, so an ISP handed a customer's brand new router
+     * can set it up with the one command and nothing else.
+     *
+     * It only ever runs when there is no hotspot at all. A router already serving customers is
+     * left exactly as it is, because its owner chose that layout and a second hotspot on top of
+     * it would take their customers offline.
+     *
+     * The uplink is worked out first and then avoided everywhere: a hotspot on the internet side
+     * would put the router's own connection behind a login page, and a WAN port swept into the
+     * customer bridge would cut the router off altogether. An interface is treated as uplink when
+     * it asks for an address by DHCP, when it already carries one, or when the default route
+     * leaves by it. Where none of that can be worked out, the step gives up rather than guess,
+     * and the dashboard says the hotspot could not be set up.
+     *
+     * Every part is on its own error handler. Routers differ — no wireless, a bridge already in
+     * use, a DHCP server somewhere else — and a part that does not apply must not stop the rest.
+     */
+    private function hotspotIfMissing(): string
+    {
+        return <<<'RSC'
+  :if ([:len [/ip hotspot find]] = 0) do={
+    :local wan ""
+    :local lan ""
+    :local addr ""
+    :local gw ""
+    :local hspool "none"
+
+    # The side facing the internet, so that everything below can stay away from it.
+    :foreach c in=[/ip dhcp-client find] do={
+      :if ($wan = "") do={ :do { :set wan [/ip dhcp-client get $c interface] } on-error={} }
+    }
+    :if ($wan = "") do={
+      :foreach r in=[/ip route find dst-address="0.0.0.0/0"] do={
+        :if ($wan = "") do={ :do { :set wan [/ip route get $r interface] } on-error={} }
+      }
+    }
+
+    # The side facing customers: the bridge the router already has, which on a factory-fresh
+    # MikroTik is every port but the uplink, already addressed and handing out DHCP.
+    :foreach b in=[/interface bridge find] do={
+      :local n [/interface bridge get $b name]
+      :if (($lan = "") && ($n != $wan)) do={ :set lan $n }
+    }
+
+    # No bridge to use, so one is made. A port is left out when anything suggests it is the
+    # uplink, because sweeping the uplink in here would take the router off the internet.
+    :if ($lan = "") do={
+      :do {
+        /interface bridge add name="trinetpay" comment="TrinetPay"
+        :set lan "trinetpay"
+        :foreach e in=[/interface ethernet find] do={
+          :local n [/interface ethernet get $e name]
+          :local skip 0
+          :if ($n = $wan) do={ :set skip 1 }
+          :if ([:len [/ip dhcp-client find interface=$n]] > 0) do={ :set skip 1 }
+          :if ([:len [/ip address find interface=$n]] > 0) do={ :set skip 1 }
+          :if ($skip = 0) do={ :do { /interface bridge port add bridge="trinetpay" interface=$n } on-error={} }
+        }
+      } on-error={ :set lan "" }
+    }
+
+    :if ($lan = "") do={ :error "found no interface to put a hotspot on" }
+
+    # An address for customers to use as their gateway, and somewhere for their addresses to come
+    # from. Both are left alone when the router already has them, which is the usual case.
+    :if ([:len [/ip address find interface=$lan]] = 0) do={
+      /ip address add address=10.88.0.1/24 interface=$lan comment="TrinetPay"
+      :do {
+        /ip pool add name="trinetpay" ranges=10.88.0.10-10.88.0.254
+        /ip dhcp-server add name="trinetpay" interface=$lan address-pool="trinetpay" lease-time=1h disabled=no comment="TrinetPay"
+        /ip dhcp-server network add address=10.88.0.0/24 gateway=10.88.0.1 dns-server=10.88.0.1 comment="TrinetPay"
+        :set hspool "trinetpay"
+      } on-error={ }
+    }
+
+    :foreach a in=[/ip address find interface=$lan] do={
+      :if ($addr = "") do={ :set addr [/ip address get $a address] }
+    }
+    :set gw [:pick $addr 0 [:find $addr "/"]]
+
+    # Whatever the router already hands out to customers on this side. Left as none when there is
+    # no DHCP server here: their addresses then come from wherever they come from today, and the
+    # hotspot works the same.
+    :foreach d in=[/ip dhcp-server find interface=$lan] do={
+      :if ($hspool = "none") do={ :do { :set hspool [/ip dhcp-server get $d address-pool] } on-error={} }
+    }
+
+    # Customers cannot reach the internet without these two, and a factory-fresh router has both.
+    :if ([:len [/ip firewall nat find action="masquerade"]] = 0) do={
+      :if ($wan != "") do={ :do { /ip firewall nat add chain=srcnat action=masquerade out-interface=$wan comment="TrinetPay" } on-error={} }
+    }
+    :do { /ip dns set allow-remote-requests=yes } on-error={ }
+
+    /ip hotspot profile add name="trinetpay" hotspot-address=$gw html-directory=hotspot login-by=cookie,http-pap comment="TrinetPay"
+    /ip hotspot add name="trinetpay" interface=$lan address-pool=$hspool profile="trinetpay" comment="TrinetPay"
+    :log info ("TrinetPay: hotspot created on " . $lan . " at " . $gw)
+  }
+RSC;
     }
 
     /** One walled-garden line per host a customer must reach before paying. */
@@ -255,9 +360,9 @@ RSC, [
 :local up [/system resource get uptime];
 /tool fetch url=($base . "?v=" . $ver . "&n=" . $users . "&u=" . $up{{IDPARAM}}) mode=https dst-path="trinetpay-cmd.txt" check-certificate=no;
 :delay 2s;
-:if ([:len [/file find where name="trinetpay-cmd.txt"]] > 0) do={
-  :local content [/file get [/file find where name="trinetpay-cmd.txt"] contents];
-  /file remove [/file find where name="trinetpay-cmd.txt"];
+:if ([:len [/file find name="trinetpay-cmd.txt"]] > 0) do={
+  :local content [/file get [/file find name="trinetpay-cmd.txt"] contents];
+  /file remove [/file find name="trinetpay-cmd.txt"];
   :local pos 0;
   :while ($pos < [:len $content]) do={
     :local eol [:find $content "\n" $pos];
@@ -270,8 +375,8 @@ RSC, [
       :if ([:pick $line 0 5] = "kick ") do={
         :local u [:pick $line 5 [:len $line]];
         :if ($u ~ "^[A-Za-z0-9:_.-]+\$") do={
-          /ip hotspot active remove [find where user=$u];
-          /ip hotspot cookie remove [find where user=$u];
+          /ip hotspot active remove [find user=$u];
+          /ip hotspot cookie remove [find user=$u];
         }
       }
     }
@@ -279,9 +384,9 @@ RSC, [
       :if ([:pick $line 0 11] = "removeuser ") do={
         :local u [:pick $line 11 [:len $line]];
         :if ($u ~ "^[A-Za-z0-9:_.-]+\$") do={
-          /ip hotspot user remove [find where name=$u];
-          /ip hotspot active remove [find where user=$u];
-          /ip hotspot cookie remove [find where user=$u];
+          /ip hotspot user remove [find name=$u];
+          /ip hotspot active remove [find user=$u];
+          /ip hotspot cookie remove [find user=$u];
         }
       }
     }
@@ -303,12 +408,12 @@ RSC, [
           :local secs [:pick $parts 3];
           :local bytes [:pick $parts 4];
           :if (($user ~ "^[A-Za-z0-9:_.-]+\$") && ($prof ~ "^[A-Za-z0-9_-]+\$") && ($rate ~ "^[0-9]+[MK]/[0-9]+[MK]\$") && ($secs ~ "^[0-9]+\$") && ($bytes ~ "^[0-9]+\$")) do={
-            :if ([:len [/ip hotspot user profile find where name=$prof]] = 0) do={
+            :if ([:len [/ip hotspot user profile find name=$prof]] = 0) do={
               /ip hotspot user profile add name=$prof rate-limit=$rate shared-users=1;
             } else={
-              /ip hotspot user profile set [find where name=$prof] rate-limit=$rate;
+              /ip hotspot user profile set [find name=$prof] rate-limit=$rate;
             }
-            :if ([:len [/ip hotspot user find where name=$user]] > 0) do={ /ip hotspot user remove [find where name=$user] };
+            :if ([:len [/ip hotspot user find name=$user]] > 0) do={ /ip hotspot user remove [find name=$user] };
             /ip hotspot user add name=$user password=$user profile=$prof limit-uptime=[:totime ($secs . "s")] limit-bytes-total=$bytes comment="TrinetPay";
           }
         }

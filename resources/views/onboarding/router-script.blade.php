@@ -157,6 +157,18 @@
             background: #dcfce7;
             color: #15803d;
         }
+        .progress-step.failed {
+            background: #fef2f2;
+            border-color: #fecaca;
+        }
+        .progress-step.failed .step-icon-wrap {
+            background: #dc2626;
+            color: #ffffff;
+        }
+        .progress-step.failed .badge-status {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
 
         .success-banner {
             display: none;
@@ -211,9 +223,11 @@
             <i class="fa-solid fa-circle-info"></i> Open WinBox &rarr; <strong>New Terminal</strong> &rarr; Right Click &rarr; <strong>Paste</strong> &rarr; Hit Enter.
         </p>
 
-        <div id="failure-note" class="alert alert-error" style="display:none;margin-bottom:14px;padding:12px 14px;border-radius:8px;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;font-size:13px;">
-            <strong>Setup finished with problems.</strong> <span id="failure-text"></span>
-            Make sure the hotspot already exists on the router (<code>/ip hotspot setup</code>) and paste the command again.
+        <div id="failure-note" class="alert alert-error" style="display:{{ $router->provision_status === 'failed' ? 'block' : 'none' }};margin-bottom:14px;padding:12px 14px;border-radius:8px;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;font-size:13px;">
+            <strong>Setup finished with problems.</strong> <span id="failure-text">{{ $router->provision_status === 'failed' ? $router->provision_note : '' }}</span>
+            The router builds its own hotspot when it has none, so this usually means it already has one in a
+            layout the script did not expect. Paste the command again — if it still fails, ask support to look
+            at the router's log (<code>/log print where topics~"script"</code>).
         </div>
 
         <!-- Progress Breakdown List -->
@@ -239,10 +253,10 @@
                 </div>
 
                 <!-- Step 2 -->
-                <div class="progress-step {{ $router->provision_status === 'script_downloaded' ? 'active' : ($router->provision_status === 'completed' ? 'completed' : '') }}" id="step-2">
+                <div class="progress-step {{ $router->provision_status === 'failed' ? 'failed' : ($router->provision_status === 'script_downloaded' ? 'active' : ($router->provision_status === 'completed' ? 'completed' : '')) }}" id="step-2">
                     <div class="step-info">
                         <div class="step-icon-wrap" id="step-2-icon">
-                            <i class="fa-solid {{ $router->provision_status === 'script_downloaded' ? 'fa-spinner fa-spin' : ($router->provision_status === 'completed' ? 'fa-check' : 'fa-floppy-disk') }}"></i>
+                            <i class="fa-solid {{ $router->provision_status === 'failed' ? 'fa-triangle-exclamation' : ($router->provision_status === 'script_downloaded' ? 'fa-spinner fa-spin' : ($router->provision_status === 'completed' ? 'fa-check' : 'fa-floppy-disk')) }}"></i>
                         </div>
                         <div class="step-text">
                             <div class="title">Preparing the hotspot</div>
@@ -250,7 +264,7 @@
                         </div>
                     </div>
                     <span class="badge-status" id="step-2-badge">
-                        {{ $router->provision_status === 'script_downloaded' ? 'in progress' : ($router->provision_status === 'completed' ? 'completed' : 'pending') }}
+                        {{ $router->provision_status === 'failed' ? 'failed' : ($router->provision_status === 'script_downloaded' ? 'in progress' : ($router->provision_status === 'completed' ? 'completed' : 'pending')) }}
                     </span>
                 </div>
 
@@ -373,6 +387,17 @@ function updateStatusUI(status) {
             document.getElementById(`step-${idx+1}-icon`).innerHTML = '<i class="fa-solid fa-check"></i>';
             document.getElementById(`step-${idx+1}-badge`).innerText = 'completed';
         });
+    } else if (status === 'failed') {
+        // The router did run the script and reported back, so step 1 stands; step 2 is the one
+        // that did not finish, and nothing past it ran. Left spinning, this looked identical to
+        // a setup still in progress — the one thing a failure must never look like.
+        step1.className = 'progress-step completed';
+        document.getElementById('step-1-icon').innerHTML = '<i class="fa-solid fa-check"></i>';
+        document.getElementById('step-1-badge').innerText = 'completed';
+
+        step2.className = 'progress-step failed';
+        document.getElementById('step-2-icon').innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+        document.getElementById('step-2-badge').innerText = 'failed';
     }
 }
 
