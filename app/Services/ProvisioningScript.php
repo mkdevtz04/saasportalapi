@@ -84,8 +84,6 @@ class ProvisioningScript
   /ip hotspot profile set [find] use-radius=yes radius-accounting=yes radius-interim-update=received login-by=mac,http-pap
 } on-error={ :set failed ($failed . "hotspot,") }
 
-{{WIRELESS}}
-
 # 4. Walled garden: what customers may open before they have paid.
 :do {
   /ip hotspot walled-garden remove [find comment="TrinetPay"]
@@ -115,11 +113,16 @@ class ProvisioningScript
   /system scheduler add name="trinetpay-agent" interval={{INTERVAL}} start-time=startup policy=ftp,read,write,policy,test,reboot comment="TrinetPay" on-event="/system script run trinetpay-agent"
 } on-error={ :set failed ($failed . "agent,") }
 
-# 7. Tell the platform we are done, and which steps did not work.
+# 7. Tell the platform we are done, and which steps did not work. This comes before the Wi-Fi so
+#    that the dashboard goes green on a router that is already able to serve customers, whatever
+#    the radio does next.
 :do {
   /tool fetch url=({{COMPLETE_URL}} . $failed) mode=https keep-result=no check-certificate=no
 } on-error={ :log error "TrinetPay: could not report to the platform" }
 :log info "TrinetPay: setup finished"
+
+# 8. Wi-Fi, last of all.
+{{WIRELESS}}
 RSC, [
             '{{TENANT}}'       => RouterOs::comment($tenant->name),
             '{{ROUTER}}'       => RouterOs::comment($router->name),
@@ -178,8 +181,6 @@ RSC, [
   /ip hotspot profile set [find] login-by=mac-cookie,cookie,http-pap
 } on-error={ :log warning "TrinetPay: this RouterOS has no mac-cookie, returning devices will sign in again" }
 
-{{WIRELESS}}
-
 # 2. Walled garden: what customers may open before they have paid.
 :do {
   /ip hotspot walled-garden remove [find comment="TrinetPay"]
@@ -212,11 +213,16 @@ RSC, [
   /system scheduler add name="trinetpay-agent" interval={{INTERVAL}} start-time=startup policy=ftp,read,write,policy,test,reboot comment="TrinetPay" on-event="/system script run trinetpay-agent"
 } on-error={ :set failed ($failed . "agent,") }
 
-# 5. Tell the platform we are done, and which steps did not work.
+# 5. Tell the platform we are done, and which steps did not work. This comes before the Wi-Fi so
+#    that the dashboard goes green on a router that is already able to serve customers, whatever
+#    the radio does next.
 :do {
   /tool fetch url=({{COMPLETE_URL}} . $failed) mode=https keep-result=no check-certificate=no
 } on-error={ :log error "TrinetPay: could not report to the platform" }
 :log info "TrinetPay: setup finished"
+
+# 6. Wi-Fi, last of all.
+{{WIRELESS}}
 RSC, [
             '{{TENANT}}'       => RouterOs::comment($tenant->name),
             '{{ROUTER}}'       => RouterOs::comment($router->name),
@@ -399,23 +405,21 @@ RSC;
         return strtr(<<<'RSC'
 # Wi-Fi: named after the ISP and left open, because the hotspot is the lock and a customer who
 # cannot associate never sees the portal at all.
+#
+# This runs last, after the platform has already been told the setup is done. The radio menus are
+# the least predictable part of RouterOS — two stacks, and builds that prompt for a value instead
+# of failing — and a console left sitting at a prompt here stops everything after it. Last means
+# there is nothing after it: the hotspot, the login page and the agent are all in place by now,
+# so the worst this can cost is the Wi-Fi keeping the name it shipped with.
 :local ssid {{SSID}}
-:local radio ""
 :do { [[:parse "/interface wireless security-profiles set [find] mode=none"]] } on-error={ }
 :do { [[:parse "/interface wireless set [find] security-profile=default"]] } on-error={ }
-:do { [[:parse ("/interface wireless set [find] ssid=\"" . $ssid . "\" disabled=no")]]; :set radio "wireless" } on-error={ }
+:do { [[:parse ("/interface wireless set [find] ssid=\"" . $ssid . "\" disabled=no")]] } on-error={ }
 :do { [[:parse "/interface wireless set [find] mode=ap-bridge"]] } on-error={ }
-:do { [[:parse ("/interface wifi set [find] configuration.ssid=\"" . $ssid . "\"")]]; :set radio "wifi" } on-error={ }
+:do { [[:parse ("/interface wifi set [find] configuration.ssid=\"" . $ssid . "\"")]] } on-error={ }
 :do { [[:parse "/interface wifi set [find] security.authentication-types=\"\""]] } on-error={ }
 :do { [[:parse "/interface wifi set [find] configuration.mode=ap disabled=no"]] } on-error={ }
-
-# Which stack answered, so an ISP looking at the log can tell "the name did not take" apart from
-# "this router has neither menu" without having to guess at it.
-:if ($radio = "") do={
-  :log warning ("TrinetPay: could not name the wifi, set it to " . $ssid . " by hand and turn its password off")
-} else={
-  :log info ("TrinetPay: wifi named " . $ssid . " and left open, via " . $radio)
-}
+:log info ("TrinetPay: wifi should now be " . $ssid . " with no password")
 RSC, ['{{SSID}}' => RouterOs::quote($this->ssid($tenant))]);
     }
 
