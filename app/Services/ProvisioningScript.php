@@ -84,6 +84,8 @@ class ProvisioningScript
   /ip hotspot profile set [find] use-radius=yes radius-accounting=yes radius-interim-update=received login-by=mac,http-pap
 } on-error={ :set failed ($failed . "hotspot,") }
 
+{{WIRELESS}}
+
 # 4. Walled garden: what customers may open before they have paid.
 :do {
   /ip hotspot walled-garden remove [find comment="TrinetPay"]
@@ -103,10 +105,13 @@ class ProvisioningScript
 #    The ftp policy is what lets the agent write the reply to a file. Without it every poll
 #    fails with "cannot open file: permission denied" and the router never hears about a
 #    customer who has paid or used a voucher.
+#
+#    The scheduler goes first and comes back last, so a router being set up a second time has
+#    nothing running in the moment between the old script being removed and the new one arriving.
 :do {
+  /system scheduler remove [find name="trinetpay-agent"]
   /system script remove [find name="trinetpay-agent"]
   /system script add name="trinetpay-agent" policy=ftp,read,write,policy,test,reboot source={{AGENT_SOURCE}}
-  /system scheduler remove [find name="trinetpay-agent"]
   /system scheduler add name="trinetpay-agent" interval={{INTERVAL}} start-time=startup policy=ftp,read,write,policy,test,reboot comment="TrinetPay" on-event="/system script run trinetpay-agent"
 } on-error={ :set failed ($failed . "agent,") }
 
@@ -125,6 +130,7 @@ RSC, [
             '{{AUTH_PORT}}'    => (string) (int) config('radius.auth_port'),
             '{{ACCT_PORT}}'    => (string) (int) config('radius.acct_port'),
             '{{HOTSPOT}}'      => $this->hotspotIfMissing(),
+            '{{WIRELESS}}'     => $this->wirelessOpen($tenant),
             '{{WALLED}}'       => $walled,
             '{{LOGIN_URL}}'    => RouterOs::quote($base . '/provision/' . $token . '/login.html'),
             '{{ALOGIN_URL}}'   => RouterOs::quote($base . '/provision/' . $token . '/alogin.html'),
@@ -172,6 +178,8 @@ RSC, [
   /ip hotspot profile set [find] login-by=mac-cookie,cookie,http-pap
 } on-error={ :log warning "TrinetPay: this RouterOS has no mac-cookie, returning devices will sign in again" }
 
+{{WIRELESS}}
+
 # 2. Walled garden: what customers may open before they have paid.
 :do {
   /ip hotspot walled-garden remove [find comment="TrinetPay"]
@@ -191,10 +199,16 @@ RSC, [
 #    The ftp policy is what lets the agent write the reply to a file. Without it every poll
 #    fails with "cannot open file: permission denied" and the router never hears about a
 #    customer who has paid or used a voucher.
+#
+#    The scheduler goes first and comes back last. A router being set up a second time still has
+#    the old scheduler running, and on a ten second interval it will fire in the moment between
+#    the old script being removed and the new one being added — which is the "no such item
+#    (/system/script/run)" and the string of "script error: interrupted" lines in the log. Taking
+#    the scheduler away before touching the script leaves nothing running to trip over it.
 :do {
+  /system scheduler remove [find name="trinetpay-agent"]
   /system script remove [find name="trinetpay-agent"]
   /system script add name="trinetpay-agent" policy=ftp,read,write,policy,test,reboot source={{AGENT_SOURCE}}
-  /system scheduler remove [find name="trinetpay-agent"]
   /system scheduler add name="trinetpay-agent" interval={{INTERVAL}} start-time=startup policy=ftp,read,write,policy,test,reboot comment="TrinetPay" on-event="/system script run trinetpay-agent"
 } on-error={ :set failed ($failed . "agent,") }
 
@@ -208,6 +222,7 @@ RSC, [
             '{{ROUTER}}'       => RouterOs::comment($router->name),
             '{{TIME}}'         => now()->toDateTimeString(),
             '{{HOTSPOT}}'      => $this->hotspotIfMissing(),
+            '{{WIRELESS}}'     => $this->wirelessOpen($tenant),
             '{{WALLED}}'       => $this->walledGarden($tenant),
             '{{LOGIN_URL}}'    => RouterOs::quote($base . '/provision/' . $token . '/login.html'),
             '{{ALOGIN_URL}}'   => RouterOs::quote($base . '/provision/' . $token . '/alogin.html'),
@@ -276,6 +291,18 @@ RSC, [
           :if ([:len [/ip address find interface=$n]] > 0) do={ :set skip 1 }
           :if ($skip = 0) do={ :do { /interface bridge port add bridge="trinetpay" interface=$n } on-error={} }
         }
+
+        # The radios belong on the same bridge, or customers on Wi-Fi never reach the hotspot at
+        # all. They are picked out by name from the plain interface list, because the two wireless
+        # stacks live under different menus and only one of them exists on any given router.
+        :foreach w in=[/interface find] do={
+          :local n [/interface get $w name]
+          :if ([:len $n] > 3) do={
+            :if (([:pick $n 0 4] = "wlan") || ([:pick $n 0 4] = "wifi")) do={
+              :do { /interface bridge port add bridge="trinetpay" interface=$n } on-error={}
+            }
+          }
+        }
       } on-error={ :set lan "" }
     }
 
@@ -334,6 +361,62 @@ RSC, [
     :log info ("TrinetPay: hotspot created on " . $lan . " at " . $gw)
   }
 RSC;
+    }
+
+    /**
+     * The Wi-Fi name customers look for when they want to buy: the ISP's own name.
+     *
+     * Cut to the 32 bytes 802.11 allows, and down to characters that survive being pasted into a
+     * command the router assembles for itself — a quote or a backslash in the middle of one would
+     * end the string early, and the radio would keep whatever name it shipped with.
+     */
+    private function ssid($tenant): string
+    {
+        $name = preg_replace('/[^A-Za-z0-9 ._-]+/', '', (string) $tenant->name);
+        $name = trim((string) preg_replace('/\s+/', ' ', (string) $name));
+
+        return mb_strcut($name !== '' ? $name : 'WiFi', 0, 32);
+    }
+
+    /**
+     * Names the Wi-Fi after the ISP and takes the password off it.
+     *
+     * A hotspot router's radio has to be open. The hotspot is the lock: a customer is meant to
+     * associate freely, be caught by the portal and pay there. A radio still asking for the key
+     * printed on the box is a wall in front of the payment page — nobody reaches the portal, and
+     * the ISP sells nothing.
+     *
+     * RouterOS 7 has two wireless stacks and a router carries one or the other, so whichever one
+     * this router does not have is a menu that is not there. Naming a missing menu is a parse
+     * error, and a parse error anywhere stops the whole file before the agent is ever installed.
+     * Handing each to :parse turns that into an ordinary runtime error, which the handler around
+     * it can swallow — so the stack this router does have is configured, and the other passes
+     * quietly. Each property goes on its own line for the same reason: the name matters most, and
+     * a mode or a cipher this build spells differently must not cost the ISP their SSID.
+     */
+    private function wirelessOpen($tenant): string
+    {
+        return strtr(<<<'RSC'
+# Wi-Fi: named after the ISP and left open, because the hotspot is the lock and a customer who
+# cannot associate never sees the portal at all.
+:local ssid {{SSID}}
+:local radio ""
+:do { [[:parse "/interface wireless security-profiles set [find] mode=none"]] } on-error={ }
+:do { [[:parse "/interface wireless set [find] security-profile=default"]] } on-error={ }
+:do { [[:parse ("/interface wireless set [find] ssid=\"" . $ssid . "\" disabled=no")]]; :set radio "wireless" } on-error={ }
+:do { [[:parse "/interface wireless set [find] mode=ap-bridge"]] } on-error={ }
+:do { [[:parse ("/interface wifi set [find] configuration.ssid=\"" . $ssid . "\"")]]; :set radio "wifi" } on-error={ }
+:do { [[:parse "/interface wifi set [find] security.authentication-types=\"\""]] } on-error={ }
+:do { [[:parse "/interface wifi set [find] configuration.mode=ap disabled=no"]] } on-error={ }
+
+# Which stack answered, so an ISP looking at the log can tell "the name did not take" apart from
+# "this router has neither menu" without having to guess at it.
+:if ($radio = "") do={
+  :log warning ("TrinetPay: could not name the wifi, set it to " . $ssid . " by hand and turn its password off")
+} else={
+  :log info ("TrinetPay: wifi named " . $ssid . " and left open, via " . $radio)
+}
+RSC, ['{{SSID}}' => RouterOs::quote($this->ssid($tenant))]);
     }
 
     /** One walled-garden line per host a customer must reach before paying. */
