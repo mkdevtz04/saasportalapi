@@ -308,19 +308,23 @@ RSC, [
     }
     :do { /ip dns set allow-remote-requests=yes } on-error={ }
 
-    # The profile and the hotspot itself, each built from a bare add and then shaped with its
-    # own separately-guarded set. A single add carrying every property together is what actually
-    # failed the first time this ran on real hardware: RouterOS rejected it mid-statement, and
-    # because that one statement never committed, nothing past it in the script ran either. Kept
-    # apart like this, a property RouterOS does not accept on one router cannot take the rest of
-    # the hotspot down with it — and a name already left over from that earlier, half-finished
+    # The profile and the hotspot itself, each built bare and then shaped one property at a
+    # time, every one on its own error handler. A single add carrying several properties together
+    # is what actually failed twice running on real hardware — comment specifically, which this
+    # RouterOS refuses on a hotspot profile whether it arrives at add time or after — and because
+    # that one statement never committed, nothing past it in the script ran either. Split this
+    # fine, a property this router does not accept cannot take the rest of the hotspot down with
+    # it, only the one cosmetic detail is missing. A name left over from an earlier, half-finished
     # run is removed first, so pasting the command again is never blocked by its own last attempt.
     /ip hotspot profile remove [find name="trinetpay"]
-    /ip hotspot profile add name="trinetpay" comment="TrinetPay"
+    /ip hotspot profile add name="trinetpay"
     :do { /ip hotspot profile set [find name="trinetpay"] login-by=cookie,http-pap } on-error={ }
+    :do { /ip hotspot profile set [find name="trinetpay"] comment="TrinetPay" } on-error={ }
 
     /ip hotspot remove [find name="trinetpay"]
-    /ip hotspot add name="trinetpay" interface=$lan profile="trinetpay" comment="TrinetPay"
+    /ip hotspot add name="trinetpay" interface=$lan
+    :do { /ip hotspot set [find name="trinetpay"] profile="trinetpay" } on-error={ }
+    :do { /ip hotspot set [find name="trinetpay"] comment="TrinetPay" } on-error={ }
     :if ($hspool != "none") do={ :do { /ip hotspot set [find name="trinetpay"] address-pool=$hspool } on-error={ } }
 
     :log info ("TrinetPay: hotspot created on " . $lan . " at " . $gw)
