@@ -168,6 +168,30 @@ class AgentModeTest extends TestCase
         $this->assertStringNotContainsString('adduser TNPAID0001', $this->poll());
     }
 
+    public function test_a_payment_that_lost_its_router_is_still_granted_without_the_queue(): void
+    {
+        $tenant  = $this->makeTenant();
+        $package = $this->makePackage($tenant, ['mikrotik_profile' => 'daily']);
+        $this->agentRouter($tenant);
+        $payment = $this->makePendingPayment($tenant, $package, 'ORD-1');
+
+        // The portal could not name a router when the payment started. Before, this fell through
+        // to a queued job — and with no queue worker running, the customer paid, held a code and
+        // no router was ever told about them. A voucher never broke this way because it grants
+        // outright, which is the whole difference the ISP was seeing.
+        $payment->forceFill(['router_id' => null])->save();
+
+        Queue::fake();
+        $this->fakeExternalServices(['ORD-1' => 'COMPLETED']);
+        app(PaymentSettlement::class)->verifyAndSettle($payment->fresh());
+
+        Queue::assertNotPushed(GrantAccessJob::class, 'the ISP has a router, so this never waits on a worker');
+
+        $token = $payment->fresh()->voucher_code;
+        $this->assertStringContainsString('adduser ' . $token, $this->poll());
+        $this->assertNotNull($payment->fresh()->router_id, 'the router it was granted on is kept');
+    }
+
     public function test_a_reboot_is_handed_out_once_and_never_repeated(): void
     {
         $router = $this->agentRouter($this->makeTenant());

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Jobs\GrantAccessJob;
 use App\Jobs\SendReceiptJob;
+use App\Models\TenantRouter;
 use App\Models\TenantWallet;
 use App\Models\Transaction;
 use App\Models\WalletEntry;
@@ -109,12 +110,15 @@ class PaymentSettlement
             }
 
             $package = $locked->package;
-            $router  = $locked->router;
+            $router  = $locked->router ?? $this->routerFor($locked);
 
             $locked->update([
                 'status'       => 'completed',
                 'voucher_code' => $this->newToken(),
                 'expires_at'   => $package ? now()->addHours($package->duration_hours) : null,
+                // Kept so everything after settlement — the login address the portal sends the
+                // code to, the ISP's reports — sees the same router the access was granted on.
+                'router_id'    => $router?->id,
             ]);
 
             // The customer paid the platform, so the whole amount belongs to the tenant.
@@ -163,6 +167,39 @@ class PaymentSettlement
         }
 
         return $outcome !== null;
+    }
+
+    /**
+     * The router this customer's access belongs on.
+     *
+     * Normally the transaction already knows: the portal worked it out when the payment started.
+     * When it does not — the link carried no router name, the router was added after the payment
+     * began, the one it pointed at was replaced — the ISP's own router is still the right answer,
+     * and it is the answer a voucher would have reached for the same customer on the same page.
+     *
+     * Getting this wrong is expensive in a way the customer feels: without a router here the
+     * access is handed to the queue instead of being granted outright, and if no queue worker is
+     * running it waits there for ever. They paid, they hold a code, and no router has ever been
+     * told about them. A voucher never had that failure because it never used the queue.
+     *
+     * Global scopes are skipped because settlement also runs from the gateway callback, where
+     * there is no current tenant to scope by.
+     */
+    private function routerFor(Transaction $transaction): ?TenantRouter
+    {
+        $router = TenantRouter::withoutGlobalScopes()
+            ->where('tenant_id', $transaction->tenant_id)
+            ->orderBy('id')
+            ->first();
+
+        if ($router) {
+            Log::warning('Payment had no router of its own, using the ISP\'s router', [
+                'transaction_id' => $transaction->id,
+                'router_id'      => $router->id,
+            ]);
+        }
+
+        return $router;
     }
 
     /**
