@@ -164,9 +164,12 @@ RSC, [
 # 1b. Remember a device by its MAC address, so a phone whose WiFi is switched off and on is put
 #     straight back online instead of being sent to the portal to find its code again. Its own
 #     step, and only a note in the log if it fails, because the oldest RouterOS versions have no
-#     mac-cookie and the rest of the setup must still go through on them.
+#     mac-cookie and the rest of the setup must still go through on them. How long that memory
+#     lasts is left at whatever the router already uses, three days as it ships: naming the field
+#     would be one more guess at a property, and a wrong one is not caught here but stops the
+#     whole import before the agent is ever installed.
 :do {
-  /ip hotspot profile set [find] login-by=mac-cookie,cookie,http-pap mac-cookie-timeout=3d
+  /ip hotspot profile set [find] login-by=mac-cookie,cookie,http-pap
 } on-error={ :log warning "TrinetPay: this RouterOS has no mac-cookie, returning devices will sign in again" }
 
 # 2. Walled garden: what customers may open before they have paid.
@@ -308,24 +311,25 @@ RSC, [
     }
     :do { /ip dns set allow-remote-requests=yes } on-error={ }
 
-    # The profile and the hotspot itself, each built bare and then shaped one property at a
-    # time, every one on its own error handler. A single add carrying several properties together
-    # is what actually failed twice running on real hardware — comment specifically, which this
-    # RouterOS refuses on a hotspot profile whether it arrives at add time or after — and because
-    # that one statement never committed, nothing past it in the script ran either. Split this
-    # fine, a property this router does not accept cannot take the rest of the hotspot down with
-    # it, only the one cosmetic detail is missing. A name left over from an earlier, half-finished
-    # run is removed first, so pasting the command again is never blocked by its own last attempt.
+    # The profile and the hotspot itself.
+    #
+    # Not one property here is optional guesswork. RouterOS checks property names while it reads
+    # the file, before it runs any of it, so an invented one is a parse error that stops the whole
+    # import dead — every step below it, agent included, never happens. on-error cannot catch that:
+    # it only catches errors from running, and nothing ever ran. A hotspot profile has no comment
+    # field on RouterOS 7, and asking for one cost three failed setups before that was clear.
+    #
+    # So: only fields that are certain, and nothing decorative. A name left over from an earlier
+    # half-finished run is removed first, so pasting the command again is never blocked by its own
+    # last attempt.
     /ip hotspot profile remove [find name="trinetpay"]
     /ip hotspot profile add name="trinetpay"
-    :do { /ip hotspot profile set [find name="trinetpay"] login-by=cookie,http-pap } on-error={ }
-    :do { /ip hotspot profile set [find name="trinetpay"] comment="TrinetPay" } on-error={ }
+    /ip hotspot profile set [find name="trinetpay"] login-by=cookie,http-pap
 
     /ip hotspot remove [find name="trinetpay"]
     /ip hotspot add name="trinetpay" interface=$lan
-    :do { /ip hotspot set [find name="trinetpay"] profile="trinetpay" } on-error={ }
-    :do { /ip hotspot set [find name="trinetpay"] comment="TrinetPay" } on-error={ }
-    :if ($hspool != "none") do={ :do { /ip hotspot set [find name="trinetpay"] address-pool=$hspool } on-error={ } }
+    /ip hotspot set [find name="trinetpay"] profile="trinetpay"
+    :if ($hspool != "none") do={ /ip hotspot set [find name="trinetpay"] address-pool=$hspool }
 
     :log info ("TrinetPay: hotspot created on " . $lan . " at " . $gw)
   }

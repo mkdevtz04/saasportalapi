@@ -147,6 +147,24 @@ class AgentModeTest extends TestCase
         $this->assertStringContainsString('/provision/tok-agent/alogin.html', $script);
     }
 
+    public function test_the_setup_script_asks_a_hotspot_for_no_field_it_does_not_have(): void
+    {
+        $script = app(\App\Services\ProvisioningScript::class)->agentSetup($this->agentRouter($this->makeTenant()));
+
+        // RouterOS checks property names as it reads the file, so one it does not know is a parse
+        // error that stops the whole import — the agent at the end of the script is never
+        // installed, and on-error cannot catch it because nothing ever ran. A hotspot profile has
+        // no comment field, and three setups failed on real hardware before that was clear.
+        foreach (preg_split('/\R/', $script) as $line) {
+            if (preg_match('#^\s*/ip hotspot( profile)? (add|set)\b#', $line)) {
+                $this->assertStringNotContainsString('comment=', $line, "a hotspot has no comment field: {$line}");
+                $this->assertStringNotContainsString('mac-cookie-timeout=', $line, "unverified property: {$line}");
+                $this->assertStringNotContainsString('hotspot-address=', $line, "unverified property: {$line}");
+                $this->assertStringNotContainsString('html-directory=', $line, "unverified property: {$line}");
+            }
+        }
+    }
+
     // ── A payment ────────────────────────────────────────────────────────────
 
     public function test_a_payment_queues_the_customers_access_in_the_same_transaction_and_calls_no_router(): void
