@@ -322,4 +322,16 @@ class FoundationsTest extends TestCase
         $this->assertNotNull($payment->provision_error);
         $this->assertSame(5000, TenantWallet::withoutGlobalScopes()->value('balance'));
     }
+
+    // ── Public pages ─────────────────────────────────────────────────────────
+
+    public function test_the_router_setup_guide_is_public_and_needs_no_isp_signed_in(): void
+    {
+        // Support sends people here when a setup goes wrong, so it has to open for anyone, from
+        // a phone, without a login.
+        $this->get('/guide/router-setup')
+            ->assertOk()
+            ->assertSee('Set up your router')
+            ->assertSee('Paste it again');
+    }
 }

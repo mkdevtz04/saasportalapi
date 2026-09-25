@@ -536,6 +536,7 @@
         <a href="#features">Features</a>
         <a href="#how-it-works">How it works</a>
         <a href="#pricing">Pricing</a>
+        <a href="{{ route('guide.router-setup') }}">Router setup</a>
     </div>
 
     <div class="nav-cta">

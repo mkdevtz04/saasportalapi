@@ -32,6 +32,9 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// Setup guide an ISP can follow on their own, and the page support points people at.
+Route::view('/guide/router-setup', 'guide.router-setup')->name('guide.router-setup');
+
 // ── 1-Command MikroTik Router Auto-Provisioning Public Endpoints ───────────────
 Route::middleware('throttle:provision')->group(function () {
     Route::get('/provision/{token}',            [RouterProvisionController::class, 'downloadScript'])->name('router.provision.script');

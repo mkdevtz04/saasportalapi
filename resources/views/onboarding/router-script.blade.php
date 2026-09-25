@@ -221,6 +221,7 @@
 
         <p style="font-size:13px;color:#64748b;margin-bottom:12px;">
             <i class="fa-solid fa-circle-info"></i> Open WinBox &rarr; <strong>New Terminal</strong> &rarr; Right Click &rarr; <strong>Paste</strong> &rarr; Hit Enter.
+            <a href="{{ route('guide.router-setup') }}" target="_blank" style="color:#2561e8;font-weight:600;">Full setup guide &rarr;</a>
         </p>
 
         <div id="failure-note" class="alert alert-error" style="display:{{ $router->provision_status === 'failed' ? 'block' : 'none' }};margin-bottom:14px;padding:12px 14px;border-radius:8px;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;font-size:13px;">
