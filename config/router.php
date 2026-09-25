@@ -17,4 +17,13 @@ return [
     // A customer is told "ready" this many seconds after the router picked up their access command,
     // which is the time the router needs to create the user.
     'ready_after_seconds' => 3,
+
+    // How long a customer's access command keeps being handed to the router after the first time.
+    //
+    // The platform marks a command delivered when it writes the reply, but it cannot know the reply
+    // arrived: the router fetches over the internet, and a fetch that times out mid-transfer loses
+    // it. Handed out once, that command is gone, and a customer who has paid can never log in.
+    // So it keeps being handed out for this long. Creating a hotspot user is safe to repeat — the
+    // router removes any existing one first — and the extra copies cost a few bytes per poll.
+    'redeliver_seconds' => env('ROUTER_REDELIVER_SECONDS', 120),
 ];

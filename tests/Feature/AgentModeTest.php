@@ -147,6 +147,39 @@ class AgentModeTest extends TestCase
         $this->assertStringContainsString('/provision/tok-agent/alogin.html', $script);
     }
 
+    public function test_a_customers_access_keeps_being_handed_out_until_the_router_has_really_had_it(): void
+    {
+        $tenant  = $this->makeTenant();
+        $router  = $this->agentRouter($tenant);
+        $package = $this->makePackage($tenant);
+
+        app(AgentAccess::class)->grant($router, $package, 'TNPAID0001', now()->addDay());
+
+        // The first reply carries it. If that fetch dies on the way back — an SSL timeout, a
+        // dropped connection — the router has nothing, and the platform cannot tell.
+        $this->assertStringContainsString('adduser TNPAID0001', $this->poll());
+
+        // So the next poll carries it again, rather than leaving a paying customer with a code
+        // that no router has ever heard of.
+        $this->assertStringContainsString('adduser TNPAID0001', $this->poll());
+
+        // Once the window has passed the router has plainly had it, and it stops.
+        $this->travel((int) config('router.redeliver_seconds') + 30)->seconds();
+        $this->assertStringNotContainsString('adduser TNPAID0001', $this->poll());
+    }
+
+    public function test_a_reboot_is_handed_out_once_and_never_repeated(): void
+    {
+        $router = $this->agentRouter($this->makeTenant());
+        $router->queueCommand(RouterCommand::REBOOT);
+
+        $this->assertStringContainsString('reboot', $this->poll());
+
+        // Repeating this one would put the router in a reboot loop every ten seconds, so only the
+        // commands that are safe to repeat are repeated.
+        $this->assertStringNotContainsString('reboot', $this->poll());
+    }
+
     public function test_the_setup_script_asks_a_hotspot_for_no_field_it_does_not_have(): void
     {
         $script = app(\App\Services\ProvisioningScript::class)->agentSetup($this->agentRouter($this->makeTenant()));
@@ -225,8 +258,10 @@ class AgentModeTest extends TestCase
         $this->assertMatchesRegularExpression('/^adduser ' . $token . ' daily 2M\/5M \d{1,9} 0$/m', $body);
         $this->assertSame('done', $payment->fresh()->provision_status);
 
-        // A second poll must not create the user twice.
-        $this->assertStringNotContainsString('adduser', $this->poll());
+        // A second poll carries it again on purpose, because the platform cannot know the first
+        // reply arrived. The router does not end up with two users: the line it acts on removes
+        // any existing one before adding it.
+        $this->assertStringContainsString('adduser ' . $token, $this->poll());
 
         // The router needs a moment to act, so the portal is not told "ready" straight away.
         $this->getJson('/api/access/status?ref=' . $token)->assertJson(['ready' => false]);

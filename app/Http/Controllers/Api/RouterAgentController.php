@@ -59,25 +59,50 @@ class RouterAgentController extends Controller
     }
 
     /**
-     * Hand out each command once. They are marked delivered inside the same lock that
-     * selects them, so two overlapping polls can never both receive the same reboot.
+     * The commands this router should act on now.
+     *
+     * Marking one delivered is a guess: the platform knows it wrote the reply, not that the reply
+     * arrived. The router fetches it over the internet, and a fetch that times out part way through
+     * leaves the platform certain it was delivered and the router with nothing. A command handed
+     * out once and then dropped is gone for good — which for a customer who has just paid means a
+     * code that will never work, on a router that has never heard of them.
+     *
+     * So the two commands that decide whether a customer is online keep being handed out for a
+     * while after the first time. Both are safe to repeat: creating a hotspot user removes any
+     * existing one first, and removing one that is already gone does nothing. The rest are handed
+     * out exactly once, because repeating them would be its own kind of damage — a reboot every
+     * ten seconds, or a customer kicked off again and again.
+     *
+     * Marking happens inside the lock that selected the rows, so two overlapping polls cannot both
+     * take the same one, and only the first delivery sets the clock the window is measured from.
      *
      * @return Collection<int,RouterCommand>
      */
     private function takePendingCommands(TenantRouter $router): Collection
     {
         return DB::transaction(function () use ($router) {
+            $repeatable = [RouterCommand::ADD_USER, RouterCommand::REMOVE_USER];
+            $until      = now()->subSeconds((int) config('router.redeliver_seconds', 120));
+
             $commands = RouterCommand::withoutGlobalScopes()
                 ->where('router_id', $router->id)
-                ->where('status', 'pending')
+                ->where(function ($query) use ($repeatable, $until) {
+                    $query->where('status', 'pending')
+                        ->orWhere(fn ($unconfirmed) => $unconfirmed
+                            ->where('status', 'delivered')
+                            ->whereIn('type', $repeatable)
+                            ->where('delivered_at', '>', $until));
+                })
                 ->orderBy('id')
                 ->limit(20)
                 ->lockForUpdate()
                 ->get();
 
-            if ($commands->isNotEmpty()) {
+            $first = $commands->where('status', 'pending')->pluck('id');
+
+            if ($first->isNotEmpty()) {
                 RouterCommand::withoutGlobalScopes()
-                    ->whereIn('id', $commands->pluck('id'))
+                    ->whereIn('id', $first)
                     ->update(['status' => 'delivered', 'delivered_at' => now()]);
             }
 
