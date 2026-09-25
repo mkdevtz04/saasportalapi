@@ -82,6 +82,7 @@ class ProvisioningScript
 :do {
 {{HOTSPOT}}
   /ip hotspot profile set [find] use-radius=yes radius-accounting=yes radius-interim-update=received login-by=mac,http-pap
+  /ip hotspot set [find] disabled=no
 } on-error={ :set failed ($failed . "hotspot,") }
 
 # 4. Walled garden: what customers may open before they have paid.
@@ -168,6 +169,7 @@ RSC, [
 :do {
 {{HOTSPOT}}
   /ip hotspot profile set [find] use-radius=no login-by=cookie,http-pap
+  /ip hotspot set [find] disabled=no
 } on-error={ :set failed ($failed . "hotspot,") }
 
 # 1b. Remember a device by its MAC address, so a phone whose WiFi is switched off and on is put
@@ -180,6 +182,25 @@ RSC, [
 :do {
   /ip hotspot profile set [find] login-by=mac-cookie,cookie,http-pap
 } on-error={ :log warning "TrinetPay: this RouterOS has no mac-cookie, returning devices will sign in again" }
+
+# 1c. Start everyone logged out.
+#
+#     The step above is what lets a device back on without the portal, and it remembers by MAC for
+#     days. That is right for a customer who has paid, and wrong for every phone that touched this
+#     router while it was being set up: they would open the Wi-Fi, be let straight through on an
+#     old cookie, and never see the page they are meant to buy from. Setting a router up is a
+#     deliberate act, so it starts from a clean slate — anyone genuinely mid-session reconnects on
+#     their own, because their code is still on their device and the login page sends it back.
+:do {
+  /ip hotspot cookie remove [find]
+  /ip hotspot active remove [find]
+} on-error={ }
+
+# 1d. Nothing below matters if the hotspot is not actually there: customers would simply be given
+#     the internet, never meet the portal and never pay. Worth saying out loud in the log.
+:if ([:len [/ip hotspot find]] = 0) do={
+  :log warning "TrinetPay: this router has no hotspot, so customers reach the internet without paying"
+}
 
 # 2. Walled garden: what customers may open before they have paid.
 :do {
