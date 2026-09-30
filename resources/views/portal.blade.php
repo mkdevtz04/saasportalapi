@@ -337,13 +337,33 @@ function showSuccess(token, pkgName, loginUrl, dst) {
     </div>
     <p style="color:#667085;font-size:13px;margin-bottom:16px">${safe(t('package'))}: <strong>${safe(pkgName)}</strong></p>
     ${form}
-    ${form ? `<button class="m-btn primary" onclick="document.getElementById('routerLogin').submit()">${safe(t('connect_btn'))}</button>` : ''}
+    ${form ? `<button class="m-btn primary" onclick="submitRouterLogin()">${safe(t('connect_btn'))}</button>` : ''}
     <button class="m-btn" onclick="closeModal()">${safe(t('close'))}</button>`;
   document.getElementById('modal').classList.add('show');
 
   if (form) {
-    setTimeout(() => { const f = document.getElementById('routerLogin'); if (f) f.submit(); }, 1500);
+    routerLoginSent = false;
+    setTimeout(submitRouterLogin, 1500);
   }
+}
+
+/**
+ * Send the code to the router's own login, once and once only.
+ *
+ * This page offers a Connect button and also submits by itself a moment later. A customer who
+ * taps the button first — which on a phone is most of them — used to send both. The router
+ * refuses the second with "already authorizing, retry later", and that refusal is the page the
+ * browser ends up showing, to a customer the first login had already put online.
+ */
+let routerLoginSent = false;
+
+function submitRouterLogin() {
+  const f = document.getElementById('routerLogin');
+
+  if (! f || routerLoginSent) return;
+
+  routerLoginSent = true;
+  f.submit();
 }
 
 function reconnectActive() {

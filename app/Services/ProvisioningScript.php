@@ -472,10 +472,20 @@ RSC, ['{{SSID}}' => RouterOs::quote($this->ssid($tenant))]);
             : ':local idok "";';
         $idParam  = $router->isRadius() ? ' . "&m=" . $idok' : '';
 
-        // No lock against overlapping runs on purpose. One run takes about three seconds against a
-        // ten second interval, and the platform hands each command out only once, so an overlap is
-        // harmless. A lock would stay stuck if a run were ever interrupted, and the router would
-        // then stop reporting for good.
+        // Still no lock against overlapping runs: a lock that stuck would stop the router reporting
+        // for good, which is worse than any overlap. Overlap is made harmless instead.
+        //
+        // Each run now keeps the platform's reply in a variable of its own. Two runs used to fetch
+        // into the same trinetpay-cmd.txt and remove it, so one could delete the file the other was
+        // about to read — a customer who had paid, on a router that never heard of them. A variable
+        // belongs to its own run and nothing else can touch it.
+        //
+        // The file is kept as a fallback for RouterOS builds with no as-value. That path runs only
+        // when the first attempt failed, so it is a second try, never a parallel one.
+        //
+        // Each line is also acted on inside its own handler. One command a build dislikes used to
+        // abort the whole batch through the outer handler and report it as a network problem; now
+        // it costs that one line and the rest are still carried out.
         return strtr(<<<'RSC'
 :do {
 :local base {{POLL_URL}};
@@ -487,17 +497,29 @@ RSC, ['{{SSID}}' => RouterOs::quote($this->ssid($tenant))]);
 :local users 0;
 :do { :set users [:len [/ip hotspot active find]] } on-error={ };
 :local up [/system resource get uptime];
-/tool fetch url=($base . "?v=" . $ver . "&n=" . $users . "&u=" . $up{{IDPARAM}}) mode=https dst-path="trinetpay-cmd.txt" check-certificate=no;
-:delay 2s;
-:if ([:len [/file find name="trinetpay-cmd.txt"]] > 0) do={
-  :local content [/file get [/file find name="trinetpay-cmd.txt"] contents];
-  /file remove [/file find name="trinetpay-cmd.txt"];
+:local url ($base . "?v=" . $ver . "&n=" . $users . "&u=" . $up{{IDPARAM}});
+:local content "";
+:do {
+  :local res [/tool fetch url=$url mode=https check-certificate=no as-value output=user];
+  :set content ($res->"data");
+} on-error={
+  :do {
+    /tool fetch url=$url mode=https check-certificate=no dst-path="trinetpay-cmd.txt";
+    :delay 2s;
+    :if ([:len [/file find name="trinetpay-cmd.txt"]] > 0) do={
+      :set content [/file get [/file find name="trinetpay-cmd.txt"] contents];
+      /file remove [/file find name="trinetpay-cmd.txt"];
+    }
+  } on-error={ :log warning "TrinetPay agent: could not reach the platform" };
+};
+:if ([:len $content] > 0) do={
   :local pos 0;
   :while ($pos < [:len $content]) do={
     :local eol [:find $content "\n" $pos];
     :if ([:typeof $eol] = "nil") do={ :set eol [:len $content] };
     :local line [:pick $content $pos $eol];
     :set pos ($eol + 1);
+    :do {
     :if ($line = "reboot") do={ /system reboot };
     :if ($line = "kick_all") do={ /ip hotspot active remove [find]; /ip hotspot cookie remove [find] };
     :if ([:len $line] > 5) do={
@@ -548,9 +570,10 @@ RSC, ['{{SSID}}' => RouterOs::quote($this->ssid($tenant))]);
         }
       }
     }
+    } on-error={ :log warning ("TrinetPay agent: a command was not carried out: " . $line) };
   }
 }
-} on-error={ :log warning "TrinetPay agent: could not reach the platform" };
+} on-error={ :log warning "TrinetPay agent: stopped before it finished" };
 RSC, [
             '{{POLL_URL}}' => RouterOs::quote($poll),
             '{{IDENTITY}}' => $identity,
