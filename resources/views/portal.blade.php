@@ -184,7 +184,7 @@ const LANG    = @json($locale);
 const TENANT  = @json($portalKey);   // the ISP this page sells for; sent back on every call
 const PREFILL = @json($prefillCode); // a code typed on the router's login page, to redeem on arrival
 const CONTACT = @json($contactPhone);
-const ACTIVE  = @json($activeVoucher ? ['token' => $activeVoucher->voucher_code, 'package' => $activeVoucher->package?->name ?? 'WiFi'] : null);
+const ACTIVE  = @json($activeVoucher ? ['token' => $activeVoucher->voucher_code, 'package' => $activeVoucher->package?->name ?? 'WiFi', 'until' => $activeVoucher->expires_at?->getTimestampMs()] : null);
 const csrf    = document.querySelector('meta[name="csrf-token"]').content;
 
 const POLL_MS       = 3000;
@@ -233,7 +233,17 @@ function looksLocal(url) {
   return host.indexOf('.') === -1 || /\.(lan|local|localdomain|hotspot|wifi)$/.test(host);
 }
 
-/** The code this device last used here, while it is recent enough to be worth offering. */
+/**
+ * The code this device last used here, while it is still worth offering.
+ *
+ * "Recent" is not the same as "still works". A one hour code used to be offered for a week, so a
+ * customer whose time had run out was shown a Reconnect button, sent to the router, and told
+ * "has reached uptime limit" — over and over, with no way out but to notice the voucher box.
+ * The code is only offered while its own time is still running.
+ *
+ * A record with no until was stored before the page knew about expiry, and there is no way to
+ * tell a live one from a dead one, so it is not offered. The customer can still type the code.
+ */
 function savedSession() {
   const memory = recall();
 
@@ -241,7 +251,11 @@ function savedSession() {
     return null;
   }
 
-  return {token: memory.token, package: memory.package || 'WiFi'};
+  if (! memory.until || Date.now() >= memory.until) {
+    return null;
+  }
+
+  return {token: memory.token, package: memory.package || 'WiFi', until: memory.until};
 }
 
 // The link is the better answer when it has one, and worth keeping for the next visit that has none.
@@ -309,11 +323,14 @@ function contactLine() {
   return CONTACT ? `<br><br><small>${safe(t('contact', {phone: CONTACT, ref: ref()}))}</small>` : '';
 }
 
-function showSuccess(token, pkgName, loginUrl, dst) {
+function showSuccess(token, pkgName, loginUrl, dst, expiresAt) {
   const target = dst || 'http://www.google.com';
+  // The server sends a date string; a remembered session hands back the number it stored.
+  const until  = typeof expiresAt === 'number' ? expiresAt : (Date.parse(expiresAt || '') || null);
 
-  // Kept so this device can offer to reconnect on a later visit that arrives with a bare link.
-  remember({token: token, package: pkgName, at: Date.now()});
+  // Kept so this device can offer to reconnect on a later visit that arrives with a bare link,
+  // together with the moment the code stops working so it is never offered past that.
+  remember({token: token, package: pkgName, at: Date.now(), until: until});
 
   if (looksLocal(loginUrl)) {
     remember({login: loginUrl});
@@ -370,7 +387,7 @@ function reconnectActive() {
   const session = ACTIVE || savedSession();
 
   if (session) {
-    showSuccess(session.token, session.package, hotspot.link_login_only, hotspot.link_orig);
+    showSuccess(session.token, session.package, hotspot.link_login_only, hotspot.link_orig, session.until);
   } else {
     showModal('fa-solid fa-circle-info', '', t('no_session_title'), safe(t('no_session_msg')),
       {buttons: `<button class="m-btn" onclick="closeModal()">${safe(t('close'))}</button>`});
@@ -477,7 +494,7 @@ async function redeemVoucher() {
     });
 
     if (data.ok) {
-      const go = () => showSuccess(data.code, data.package, hotspot.link_login_only, hotspot.link_orig);
+      const go = () => showSuccess(data.code, data.package, hotspot.link_login_only, hotspot.link_orig, data.expires_at);
       data.access_ready === false ? whenReady(data.access_ref || data.code, go) : go();
     } else if (hotspot.link_login_only) {
       // The platform does not know this code, but the ISP may have created the hotspot user on the
@@ -540,7 +557,7 @@ function startPolling() {
 
       if (data.status === 'paid') {
         clearInterval(pollTimer);
-        const go = () => showSuccess(data.wifi_token, data.package, data.login_url || hotspot.link_login_only, data.dst || hotspot.link_orig);
+        const go = () => showSuccess(data.wifi_token, data.package, data.login_url || hotspot.link_login_only, data.dst || hotspot.link_orig, data.expires_at);
         data.access_ready === false ? whenReady(data.wifi_token, go) : go();
       } else if (data.status === 'failed') {
         clearInterval(pollTimer);

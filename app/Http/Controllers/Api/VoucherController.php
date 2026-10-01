@@ -76,6 +76,7 @@ class VoucherController extends Controller
                     'message'      => __('portal.voucher_active'),
                     'access_ready' => true,
                     'access_ref'   => null,
+                    'expires_at'   => $active->expires_at?->toIso8601String(),
                 ]);
             }
 
@@ -130,6 +131,8 @@ class VoucherController extends Controller
             ], 503);
         }
 
+        $expiresAt = now()->addHours($package->duration_hours ?? 24);
+
         // Record the sale for reporting only. A voucher is cash the tenant already collected
         // offline, so it never credits the tenant wallet and carries no platform fee.
         Transaction::create([
@@ -141,7 +144,7 @@ class VoucherController extends Controller
             'status'       => 'completed',
             'channel'      => Transaction::CHANNEL_VOUCHER,
             'voucher_code' => $code,
-            'expires_at'   => now()->addHours($package->duration_hours ?? 24),
+            'expires_at'   => $expiresAt,
             'customer_mac' => $request->input('mac'),
             'customer_ip'  => $request->ip(),
         ]);
@@ -154,6 +157,8 @@ class VoucherController extends Controller
             'message'  => __('portal.voucher_ok'),
             'access_ready' => ! $waitForRouter,
             'access_ref'   => $waitForRouter ? $code : null,
+            // So the portal stops offering this code once it has run out.
+            'expires_at'   => $expiresAt->toIso8601String(),
         ]);
     }
 

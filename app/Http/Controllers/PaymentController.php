@@ -372,6 +372,10 @@ class PaymentController extends Controller
                 ),
                 'wifi_token' => $transaction->voucher_code,
                 'package'    => $transaction->package?->name,
+                // The portal offers this code again on a later visit, so it has to know when the
+                // code stops working. Without it the page keeps offering a code the router has
+                // already thrown away, and the customer is sent round in a circle.
+                'expires_at' => $transaction->expires_at?->toIso8601String(),
                 'login_url'  => HotspotUrl::loginUrl($meta['link_login_only'] ?? null)
                     ?? HotspotUrl::loginUrl($transaction->router?->hotspot_login_url),
                 'dst'        => HotspotUrl::destination($meta['link_orig'] ?? null),

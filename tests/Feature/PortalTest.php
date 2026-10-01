@@ -558,6 +558,54 @@ class PortalTest extends TestCase
         $this->get('/portal?tenant=acme&lang=en&mac=11:22:33:44:55:66')->assertOk()->assertDontSee('TNBACK12345');
     }
 
+    public function test_a_code_whose_time_has_run_out_is_never_offered_again(): void
+    {
+        $tenant  = $this->makeTenant();
+        $package = $this->makePackage($tenant, ['name' => 'Hourly']);
+
+        $this->makePendingPayment($tenant, $package, 'ORD-SPENT', [
+            'status' => 'completed', 'voucher_code' => 'TNSPENT0001',
+            'customer_mac' => 'AA:BB:CC:DD:EE:FF', 'expires_at' => now()->subHour(),
+        ]);
+
+        // Offering a code the router has already thrown away sends the customer to a login that
+        // answers "has reached uptime limit", and the page offers it again, and again.
+        $this->get('/portal?tenant=acme&lang=en&mac=AA:BB:CC:DD:EE:FF')
+            ->assertOk()
+            ->assertDontSee('TNSPENT0001');
+    }
+
+    public function test_the_page_is_told_when_a_live_session_runs_out(): void
+    {
+        $tenant  = $this->makeTenant();
+        $package = $this->makePackage($tenant, ['name' => 'Hourly']);
+
+        $payment = $this->makePendingPayment($tenant, $package, 'ORD-LIVE', [
+            'status' => 'completed', 'voucher_code' => 'TNLIVE00001',
+            'customer_mac' => 'AA:BB:CC:DD:EE:FF', 'expires_at' => now()->addHours(2),
+        ]);
+
+        // The device keeps this code for its next visit, so the page has to know the moment it
+        // stops working. Without it the code is offered until the browser forgets it.
+        $this->get('/portal?tenant=acme&lang=en&mac=AA:BB:CC:DD:EE:FF')
+            ->assertOk()
+            ->assertSee((string) $payment->fresh()->expires_at->getTimestampMs());
+    }
+
+    public function test_a_settled_payment_tells_the_portal_when_its_code_runs_out(): void
+    {
+        $tenant  = $this->makeTenant();
+        $package = $this->makePackage($tenant);
+
+        $payment = $this->makePendingPayment($tenant, $package, 'ORD-1', [
+            'status' => 'completed', 'voucher_code' => 'TNPAID00001', 'expires_at' => now()->addHours(3),
+        ]);
+
+        $this->getJson('/api/payment/status?tenant=acme&transaction_id=' . $payment->public_id)
+            ->assertOk()
+            ->assertJson(['expires_at' => $payment->fresh()->expires_at->toIso8601String()]);
+    }
+
     // ── SMS receipts ─────────────────────────────────────────────────────────
 
     public function test_a_paid_customer_gets_a_receipt_in_their_language(): void
