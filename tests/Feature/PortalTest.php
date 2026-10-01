@@ -277,6 +277,24 @@ class PortalTest extends TestCase
         $this->assertStringContainsString('localStorage.removeItem(KEY)', $html);
     }
 
+    public function test_the_login_page_waits_for_a_paid_code_before_calling_it_invalid(): void
+    {
+        $router = $this->radiusRouterFor($this->makeTenant('testisp'));
+
+        $html = $this->get('/provision/' . $router->provision_token . '/login.html')->assertOk()->getContent();
+
+        // A code the platform has issued but the router has not collected yet is refused in the
+        // same words as a wrong one. The page has to know which login was refused to tell them
+        // apart, and must wait for one of ours rather than tell a paying customer it is invalid.
+        $this->assertStringContainsString('data-user="$(username)"', $html);
+        $this->assertStringContainsString('^TN[A-Za-z0-9]{6,20}$', $html);
+
+        // The wait is bounded, and a browser that stores nothing counts as out of patience, so
+        // the page can never sit retrying for ever.
+        $this->assertStringContainsString('var TRIES = 6;', $html);
+        $this->assertStringContainsString('catch (e) { return TRIES; }', $html);
+    }
+
     public function test_the_page_shown_after_a_login_keeps_the_code_on_the_customers_device(): void
     {
         $router = $this->radiusRouterFor($this->makeTenant('testisp'));

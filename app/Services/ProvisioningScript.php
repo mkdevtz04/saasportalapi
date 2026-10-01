@@ -770,6 +770,10 @@ input[name="code"]{width:100%;height:48px;padding:0 14px;font-size:16px;border:1
     <div class="body">
       <p class="error" style="display:none" id="err">$(error)</p>
 
+      <!-- The login the router just refused. Lets the page tell a code this platform issued,
+           which may simply not have reached the router yet, apart from a wrong one. -->
+      <span id="who" data-user="$(username)" style="display:none"></span>
+
       <!-- Shown instead of the choices below while a remembered code is being sent to this router. -->
       <div class="again" id="again" style="display:none">
         <div class="spin"></div>
@@ -824,15 +828,63 @@ input[name="code"]{width:100%;height:48px;padding:0 14px;font-size:16px;border:1
   // when a login works, and is handed back the moment the router asks for a login again.
   var KEY   = 'trinetpay-code';
   var TRIED = 'trinetpay-tried';
-  var err   = document.getElementById('err');
+  var WAIT  = 'trinetpay-waiting';
+  var TRIES = 6;
+
+  var err  = document.getElementById('err');
+  var slot = document.getElementById('who');
+  var name = slot ? (slot.getAttribute('data-user') || '') : '';
+
+  // How many times this page has already waited for a code to reach the router. Kept for the tab
+  // only, and counted as used up when it cannot be read, so a browser that stores nothing shows
+  // the error straight away instead of trying for ever.
+  function waited() {
+    try { return parseInt(sessionStorage.getItem(WAIT) || '0', 10) || 0; } catch (e) { return TRIES; }
+  }
+
+  function noteWait(n) {
+    try { sessionStorage.setItem(WAIT, String(n)); } catch (e) { }
+  }
+
+  function doneWaiting() {
+    try { sessionStorage.removeItem(WAIT); } catch (e) { }
+  }
+
+  function waiting() {
+    document.getElementById('choices').style.display = 'none';
+    document.getElementById('again').style.display   = 'block';
+  }
+
+  function send(value) {
+    var form = document.getElementById('reconnect');
+    form.username.value = value;
+    form.password.value = value;
+    form.submit();
+  }
 
   if (err && err.textContent.trim() !== '') {
-    // The router refused a login. For a remembered code that means it has run out or was removed,
-    // so it is dropped: the customer sees the page rather than a reconnect that cannot work.
+    // A code this platform has issued but the router has not collected yet is refused in exactly
+    // the same words as a wrong one. "Invalid username or password" is the worst thing this page
+    // can say to somebody who has just paid, and it is usually not even true — the code is real
+    // and on its way. So a code of ours is given half a minute to arrive, behind the same
+    // "Reconnecting you" the page already uses, and is called invalid only after that.
+    if (/^TN[A-Za-z0-9]{6,20}$/.test(name) && waited() < TRIES) {
+      noteWait(waited() + 1);
+      waiting();
+      setTimeout(function () { send(name); }, 5000);
+      return;
+    }
+
+    // Out of patience, or a login that was never ours. For a remembered code the refusal means it
+    // has run out or was removed, so it is dropped: the customer sees the page rather than a
+    // reconnect that cannot work.
     err.style.display = 'block';
+    doneWaiting();
     try { localStorage.removeItem(KEY); } catch (e) {}
     return;
   }
+
+  doneWaiting();
 
   var code = null, tried = 0;
 
@@ -851,13 +903,8 @@ input[name="code"]{width:100%;height:48px;padding:0 14px;font-size:16px;border:1
 
   try { localStorage.setItem(TRIED, String(Date.now())); } catch (e) {}
 
-  document.getElementById('choices').style.display = 'none';
-  document.getElementById('again').style.display   = 'block';
-
-  var form = document.getElementById('reconnect');
-  form.username.value = code;
-  form.password.value = code;
-  form.submit();
+  waiting();
+  send(code);
 })();
 </script>
 </body>
