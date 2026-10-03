@@ -822,6 +822,7 @@
             <a href="{{ route('register') }}">Sign Up</a>
             <a href="#features">Features</a>
             <a href="#pricing">Pricing</a>
+            <a href="{{ route('terms') }}">Terms</a>
         </div>
 
         <div class="footer-copy">

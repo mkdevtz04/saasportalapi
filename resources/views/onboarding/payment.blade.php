@@ -56,7 +56,8 @@
                     <input type="checkbox" name="agree_terms" required style="margin-top:3px;flex-shrink:0;">
                     <span style="font-size:14px;color:#555;line-height:1.5;">
                         I understand that customer payments are collected by Wifikitaa and credited to my dashboard wallet.
-                        I can request withdrawals at any time from my dashboard.
+                        I can request withdrawals at any time from my dashboard. I agree to the
+                        <a href="{{ route('terms') }}" target="_blank" rel="noopener" style="color:#2561e8;font-weight:600;">Terms &amp; Conditions</a>.
                     </span>
                 </label>
             </div>

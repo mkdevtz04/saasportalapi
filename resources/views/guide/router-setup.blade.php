@@ -585,6 +585,7 @@
             <a href="{{ route('register') }}">Sign Up</a>
             <a href="{{ route('guide.router-setup') }}">Router setup</a>
             <a href="/#pricing">Pricing</a>
+            <a href="{{ route('terms') }}">Terms</a>
         </div>
 
         <div class="footer-copy">

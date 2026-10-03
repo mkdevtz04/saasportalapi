@@ -480,6 +480,9 @@
                  <span class="icon"><i class="fa-solid fa-right-from-bracket"></i></span> Sign out
             </button>
         </form>
+
+        <a href="{{ route('terms') }}" target="_blank" rel="noopener"
+           style="display:block;padding:8px 14px;font-size:12px;opacity:0.6;">Terms &amp; Conditions</a>
     </div>
 </nav>
 

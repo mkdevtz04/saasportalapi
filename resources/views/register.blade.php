@@ -291,6 +291,11 @@
         </div>
 
         <button type="submit" class="btn" id="submit-btn">Create My Account</button>
+
+        <p style="margin-top:14px;font-size:13px;color:#666;line-height:1.5;text-align:center;">
+            By creating an account you agree to our
+            <a href="{{ route('terms') }}" target="_blank" rel="noopener" style="color:#2561e8;font-weight:600;">Terms &amp; Conditions</a>.
+        </p>
     </form>
 
     <hr class="divider">
