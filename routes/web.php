@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\AdminWithdrawalController;
 use App\Http\Controllers\AgentPosController;
 use App\Http\Controllers\DashboardAgentController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DashboardCustomerController;
 use App\Http\Controllers\DashboardPackageController;
 use App\Http\Controllers\DashboardReportController;
 use App\Http\Controllers\DashboardRouterController;
@@ -83,6 +84,11 @@ Route::middleware(['auth:tenant', EnsureOwner::class])->prefix('dashboard')->nam
 
     // Transactions (read-only)
     Route::get('/transactions', [DashboardController::class, 'transactions'])->name('transactions');
+
+    // Customers: the sales read as people, which is how support questions arrive
+    Route::get('/customers',        [DashboardCustomerController::class, 'index'])->name('customers.index');
+    Route::get('/customers/export', [DashboardCustomerController::class, 'export'])->name('customers.export');
+    Route::get('/customers/view',   [DashboardCustomerController::class, 'show'])->name('customers.show');
 
     // Router fleet
     Route::get('/routers',                  [DashboardRouterController::class, 'index'])->name('routers.index');

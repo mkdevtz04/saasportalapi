@@ -435,6 +435,11 @@
            class="nav-item {{ request()->routeIs('dashboard.sessions') ? 'active' : '' }}">
              <span class="icon"><i class="fa-solid fa-signal"></i></span> Live sessions
         </a>
+
+        <a href="{{ route('dashboard.customers.index') }}"
+           class="nav-item {{ request()->routeIs('dashboard.customers.*') ? 'active' : '' }}">
+             <span class="icon"><i class="fa-solid fa-address-book"></i></span> Customers
+        </a>
         <a href="{{ route('dashboard.reports') }}"
            class="nav-item {{ request()->routeIs('dashboard.reports*') ? 'active' : '' }}">
              <span class="icon"><i class="fa-solid fa-chart-line"></i></span> Reports
