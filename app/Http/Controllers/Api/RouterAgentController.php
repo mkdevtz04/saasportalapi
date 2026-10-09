@@ -45,6 +45,12 @@ class RouterAgentController extends Controller
             $update['identity_ok'] = $request->query('m') === '1';
         }
 
+        // Which script the router is running. A poll without it is a script from before scripts
+        // named themselves, which the dashboard shows as needing the setup command re-run.
+        $update['agent_version'] = $request->query->has('a')
+            ? max(0, min(65535, (int) $request->query('a')))
+            : null;
+
         // A router that is polling has clearly run the setup script.
         if ($router->provision_status !== 'completed') {
             $update += ['provision_status' => 'completed', 'provisioned_at' => now(), 'provision_note' => null];

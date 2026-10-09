@@ -22,6 +22,33 @@
         </div>
     </div>
 @else
+    @if ($routers->contains(fn ($router) => $router->agentNeedsUpdate()))
+        <div class="card" style="border-left:3px solid #b45309;background:#fffbeb;">
+            <div class="card-title" style="color:#78350f;">
+                <i class="fa-solid fa-arrow-up-right-dots" style="color:#b45309;"></i> An improved script is available for some routers
+            </div>
+            <p style="font-size:14px;color:#78350f;line-height:1.7;margin:0 0 12px;">
+                A router keeps the script it was given at setup, so improvements reach it only when you
+                send them. The newer script holds each customer's time limit as a deadline on the router
+                itself, so a six-hour package ends six hours after it was bought even if the customer
+                switched their phone off in between. Until you update, those deadlines are still kept —
+                by us, a minute at a time — so <strong>nothing is broken while you wait</strong>.
+            </p>
+            <p style="font-size:14px;color:#78350f;line-height:1.7;margin:0;">
+                Use the <strong>Update script</strong> button on each flagged router. It replaces the
+                script and nothing else: nobody is disconnected, nobody loses time they paid for, and
+                your Wi-Fi name and password are untouched. Customers already online keep the old limits
+                until their current session ends.
+            </p>
+            <p style="font-size:13px;color:#92400e;line-height:1.6;margin:12px 0 0;padding-top:12px;border-top:1px solid #fde68a;">
+                <i class="fa-solid fa-circle-info"></i>
+                Do <em>not</em> re-run the full <strong>Setup command</strong> for this. That one starts a
+                router from a clean slate — it signs every customer out and resets the Wi-Fi name and
+                password — which is right for a new router and disruptive on a working one.
+            </p>
+        </div>
+    @endif
+
     <div class="card">
         <div class="table-wrap">
             <table>
@@ -59,6 +86,12 @@
                                 @else
                                     <span class="badge badge-{{ $online ? 'online' : 'offline' }}">{{ $online ? 'Online' : 'Offline' }}</span>
                                 @endif
+
+                                @if ($router->agentNeedsUpdate())
+                                    <div style="margin-top:5px;">
+                                        <span class="badge badge-warning" title="Use the Update script button. No customer is disconnected.">Update available</span>
+                                    </div>
+                                @endif
                             </td>
                             <td>{{ $router->runsAgent() ? number_format($router->active_users) : '-' }}</td>
                             <td style="color:#64748b;font-size:13px;">
@@ -67,9 +100,18 @@
                             <td>
                                 <div style="display:flex;gap:6px;flex-wrap:wrap;">
                                     @if ($router->runsAgent())
+                                        @if ($router->agentNeedsUpdate())
+                                            <button type="button" class="btn btn-primary btn-sm"
+                                                    data-command="{{ $agentUpdates[$router->id] ?? '' }}"
+                                                    onclick="copyProvisionCmd(this)"
+                                                    title="Replaces the script only. Nobody is disconnected.">
+                                                <i class="fa-solid fa-arrow-up"></i> Update script
+                                            </button>
+                                        @endif
                                         <button type="button" class="btn btn-secondary btn-sm"
                                                 data-command="{{ $commands[$router->id] ?? '' }}"
-                                                onclick="copyProvisionCmd(this)" title="Copy the setup command">
+                                                onclick="copyProvisionCmd(this)"
+                                                title="Full setup. Signs customers out and resets the Wi-Fi name.">
                                             <i class="fa-solid fa-bolt" style="color:#eab308;"></i> Setup command
                                         </button>
                                     @endif

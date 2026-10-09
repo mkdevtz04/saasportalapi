@@ -8,6 +8,7 @@ use App\Models\TenantRouter;
 use App\Models\TenantWallet;
 use App\Models\Transaction;
 use App\Models\Voucher;
+use App\Services\AccessGranter;
 use App\Services\PaymentSettlement;
 use App\Services\Radius\RadiusAccess;
 use App\Support\RouterOs;
@@ -396,6 +397,86 @@ class RouterConnectivityTest extends TestCase
         $this->assertSame('2M/5M', $reply['Mikrotik-Rate-Limit'], 'upload first, then download');
         $this->assertSame('300', $reply['Acct-Interim-Interval']);
         $this->assertArrayNotHasKey('Mikrotik-Total-Limit', $reply);
+    }
+
+    /**
+     * Expiration only refuses the next login. A customer already connected when their time ran
+     * out would otherwise stay online until something disturbed their session, which on a quiet
+     * hotspot can be hours — so the router is told up front when to end it.
+     */
+    public function test_an_open_session_is_cut_at_the_deadline_not_at_the_next_login(): void
+    {
+        $tenant  = $this->makeTenant();
+        $package = $this->makePackage($tenant);
+
+        app(RadiusAccess::class)->grant($tenant->id, $package, 'TNSESS1', 'TNSESS1', now()->addHours(6), 'test');
+
+        $this->assertEqualsWithDelta(6 * 3600, (int) $this->radreply('TNSESS1')['Session-Timeout'], 5);
+    }
+
+    /** A customer reconnecting late gets the time still left, not a fresh session's worth. */
+    public function test_reconnecting_later_does_not_restart_the_clock(): void
+    {
+        $tenant   = $this->makeTenant();
+        $package  = $this->makePackage($tenant);
+        $deadline = now()->addHours(6);
+
+        app(RadiusAccess::class)->grant($tenant->id, $package, 'TNSESS2', 'TNSESS2', $deadline, 'test');
+
+        $this->travel(5)->hours();
+        app(RadiusAccess::class)->grant($tenant->id, $package, 'TNSESS2', 'TNSESS2', $deadline, 'test');
+
+        $this->assertEqualsWithDelta(3600, (int) $this->radreply('TNSESS2')['Session-Timeout'], 5, 'one hour left, not six');
+    }
+
+    /**
+     * A customer who tops up before their time is out holds two purchases on one phone. The
+     * device login belongs to the newer one, so the older one running out must not take it —
+     * that would knock someone who has just paid off their own device.
+     */
+    public function test_topping_up_keeps_the_device_login_when_the_older_session_runs_out(): void
+    {
+        $tenant  = $this->makeTenant();
+        $package = $this->makePackage($tenant);
+        $router  = $this->makeRouter($tenant, ['auth_mode' => 'radius']);
+        $mac     = 'AA:11:BB:22:CC:33';
+
+        $old = Transaction::create([
+            'tenant_id' => $tenant->id, 'router_id' => $router->id, 'package_id' => $package->id,
+            'phone' => '0712345678', 'amount' => 1000, 'status' => 'completed',
+            'voucher_code' => 'TNOLD', 'customer_mac' => $mac, 'expires_at' => now()->subMinute(),
+        ]);
+
+        Transaction::create([
+            'tenant_id' => $tenant->id, 'router_id' => $router->id, 'package_id' => $package->id,
+            'phone' => '0712345678', 'amount' => 1000, 'status' => 'completed',
+            'voucher_code' => 'TNNEW', 'customer_mac' => $mac, 'expires_at' => now()->addHours(5),
+        ]);
+
+        app(RadiusAccess::class)->grant($tenant->id, $package, 'TNOLD', 'TNOLD', now()->subMinute(), 'txn:' . $old->id, $mac);
+        app(RadiusAccess::class)->grant($tenant->id, $package, 'TNNEW', 'TNNEW', now()->addHours(5), 'txn:2', $mac);
+
+        app(AccessGranter::class)->endAccess($old->fresh());
+
+        $this->assertEmpty($this->radcheck('TNOLD'), 'the spent code stops working');
+        $this->assertNotEmpty($this->radcheck('TNNEW'), 'the code they just paid for still works');
+        $this->assertNotEmpty($this->radcheck($mac), 'and their phone is still let back on');
+    }
+
+    /** Expiring a customer has to take the device login too, or their phone walks back in. */
+    public function test_ending_access_removes_the_device_login_as_well_as_the_code(): void
+    {
+        $tenant  = $this->makeTenant();
+        $package = $this->makePackage($tenant);
+
+        app(RadiusAccess::class)->grant($tenant->id, $package, 'TNBOTH1', 'TNBOTH1', now()->addDay(), 'txn:1', 'aa:bb:cc:dd:ee:ff');
+        $this->assertNotEmpty($this->radcheck('AA:BB:CC:DD:EE:FF'));
+
+        $removed = app(RadiusAccess::class)->revokeAccess('TNBOTH1', 'aa:bb:cc:dd:ee:ff');
+
+        $this->assertSame(['TNBOTH1', 'AA:BB:CC:DD:EE:FF'], $removed);
+        $this->assertEmpty($this->radcheck('TNBOTH1'));
+        $this->assertEmpty($this->radcheck('AA:BB:CC:DD:EE:FF'), 'the phone cannot rejoin on its MAC');
     }
 
     public function test_a_data_cap_becomes_the_router_byte_limit_including_the_gigaword_part(): void

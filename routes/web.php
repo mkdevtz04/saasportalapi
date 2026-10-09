@@ -41,6 +41,8 @@ Route::view('/terms', 'legal.terms')->name('terms');
 // ── 1-Command MikroTik Router Auto-Provisioning Public Endpoints ───────────────
 Route::middleware('throttle:provision')->group(function () {
     Route::get('/provision/{token}',            [RouterProvisionController::class, 'downloadScript'])->name('router.provision.script');
+    // Updates the agent script on a router already in service, without disturbing its customers.
+    Route::get('/provision/{token}/agent',      [RouterProvisionController::class, 'updateAgent'])->name('router.provision.agent');
     Route::get('/provision/{token}/login.html', [RouterProvisionController::class, 'loginPage'])->name('router.provision.login');
     Route::get('/provision/{token}/alogin.html', [RouterProvisionController::class, 'afterLoginPage'])->name('router.provision.alogin');
     Route::get('/provision/{token}/complete',   [RouterProvisionController::class, 'completeProvision'])->name('router.provision.complete');

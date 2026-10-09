@@ -26,4 +26,14 @@ return [
     // So it keeps being handed out for this long. Creating a hotspot user is safe to repeat — the
     // router removes any existing one first — and the extra copies cost a few bytes per poll.
     'redeliver_seconds' => env('ROUTER_REDELIVER_SECONDS', 120),
+
+    // How long to keep trying to cut off an expired customer on a router the platform has to
+    // reach itself, which is only the old API mode. Agent and RADIUS routers need nothing from
+    // this: the first is queued and waits however long the router is away, the second is rows.
+    //
+    // After this long the transaction is closed off anyway. A router unreachable for a day has
+    // either been switched off, in which case nobody is online through it, or has been rebooted,
+    // which clears its hotspot users. Retrying for ever would mean a connection attempt per
+    // expired customer per minute against a router that is never coming back.
+    'expiry_retry_hours' => env('ROUTER_EXPIRY_RETRY_HOURS', 24),
 ];

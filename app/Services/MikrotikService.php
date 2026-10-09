@@ -83,6 +83,68 @@ class MikrotikService
         }
     }
 
+    /**
+     * Take a customer's login off the router and cut the session they are on.
+     *
+     * Both halves matter: removing the login alone leaves whoever is already connected online,
+     * and cutting the session alone lets them log straight back in. Returns true when the login
+     * is gone, including when it was never there.
+     */
+    public function removeHotspotUser(string $username): bool
+    {
+        if ($this->useRelay) {
+            return $this->relayRemoveHotspotUser($username);
+        }
+
+        try {
+            foreach ($this->findIds('/ip/hotspot/active/print', 'user', $username) as $id) {
+                $this->writeWord('/ip/hotspot/active/remove');
+                $this->writeWord('=.id=' . $id);
+                $this->writeSentenceEnd();
+                $this->read();
+            }
+
+            $removed = true;
+
+            foreach ($this->findIds('/ip/hotspot/user/print', 'name', $username) as $id) {
+                $this->writeWord('/ip/hotspot/user/remove');
+                $this->writeWord('=.id=' . $id);
+                $this->writeSentenceEnd();
+
+                $removed = in_array('!done', $this->read(), true) && $removed;
+            }
+
+            return $removed;
+        } catch (\Exception $e) {
+            Log::error('MikroTik removeHotspotUser: ' . $e->getMessage());
+
+            return false;
+        }
+    }
+
+    /**
+     * The internal ids of the rows a print command matched on one property.
+     *
+     * @return list<string>
+     */
+    private function findIds(string $command, string $property, string $value): array
+    {
+        $this->writeWord($command);
+        $this->writeWord('?' . $property . '=' . $value);
+        $this->writeWord('=.proplist=.id');
+        $this->writeSentenceEnd();
+
+        $ids = [];
+
+        foreach ($this->read() as $word) {
+            if (str_starts_with($word, '=.id=')) {
+                $ids[] = substr($word, 5);
+            }
+        }
+
+        return $ids;
+    }
+
     public function disconnect(): void
     {
         if ($this->socket) {
@@ -153,6 +215,20 @@ class MikrotikService
             Log::warning('MikroTik relay hotspot user creation failed', [
                 'username' => $username,
                 'profile'  => $profile,
+                'error'    => $result['error'] ?? 'unknown',
+            ]);
+        }
+
+        return $result['ok'] ?? false;
+    }
+
+    private function relayRemoveHotspotUser(string $username): bool
+    {
+        $result = $this->relayCall('remove_hotspot_user', ['username' => $username]);
+
+        if (! ($result['ok'] ?? false)) {
+            Log::warning('MikroTik relay hotspot user removal failed', [
+                'username' => $username,
                 'error'    => $result['error'] ?? 'unknown',
             ]);
         }

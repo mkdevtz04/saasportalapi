@@ -53,6 +53,18 @@ class RadiusAccess
     }
 
     /**
+     * How long a customer granted access now may stay connected, in whole seconds.
+     *
+     * This is wall-clock time to the deadline, not an allowance of connected time. A customer
+     * who buys six hours has six hours from the moment of purchase, whether they spend them
+     * online or with the phone in a pocket — the same deal a mobile data bundle gives.
+     */
+    public static function remainingSeconds(CarbonInterface $expiresAt): int
+    {
+        return max(60, (int) \Illuminate\Support\Carbon::now()->diffInSeconds($expiresAt, false));
+    }
+
+    /**
      * Remove a login immediately. The customer stays connected until the router next
      * checks in, so pair this with a kick_user router command when a cut-off must be instant.
      */
@@ -62,6 +74,29 @@ class RadiusAccess
             DB::table('radcheck')->where('username', $username)->delete();
             DB::table('radreply')->where('username', $username)->delete();
         });
+    }
+
+    /**
+     * Remove both logins a purchase created: the code the customer typed, and the device login
+     * that lets their phone back in without typing it again. Leaving the device login behind
+     * would let an expired customer reconnect by simply rejoining the WiFi.
+     *
+     * @return list<string> the logins that were removed, for kicking the live sessions
+     */
+    public function revokeAccess(string $username, ?string $mac = null): array
+    {
+        $logins = [$username];
+        $device = $this->normaliseMac($mac);
+
+        if ($device !== null) {
+            $logins[] = $device;
+        }
+
+        foreach ($logins as $login) {
+            $this->revoke($login);
+        }
+
+        return $logins;
     }
 
     /**
@@ -157,7 +192,7 @@ class RadiusAccess
             ]);
         }
 
-        foreach ($this->replyFor($package) as $attribute => $value) {
+        foreach ($this->replyFor($package, $expiresAt) as $attribute => $value) {
             DB::table('radreply')->insert([
                 'username'  => $username,
                 'attribute' => $attribute,
@@ -174,13 +209,19 @@ class RadiusAccess
      *
      * @return array<string,string|int>
      */
-    private function replyFor(TenantPackage $package): array
+    private function replyFor(TenantPackage $package, CarbonInterface $expiresAt): array
     {
         $reply = [
             // MikroTik rate limit is "rx/tx" seen from the router, that is upload/download.
             'Mikrotik-Rate-Limit' => $package->speed_up_mbps . 'M/' . $package->speed_down_mbps . 'M',
             // Ask the router for usage reports so live sessions and data use stay current.
             'Acct-Interim-Interval' => 300,
+            // Cut the session at the deadline. The Expiration check below only refuses the *next*
+            // login, so without this a customer already connected when their time ran out would
+            // stay online until something else disturbed their session — which on a quiet hotspot
+            // can be hours. This is counted from now, so a session that reconnects later gets
+            // only the time still left, never a fresh allowance.
+            'Session-Timeout' => self::remainingSeconds($expiresAt),
         ];
 
         if ($package->data_cap_mb) {

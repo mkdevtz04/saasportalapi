@@ -32,6 +32,7 @@ class TenantRouter extends Model
         'identity_ok',
         'provisioned_at',
         'routeros_version',
+        'agent_version',
         'public_ip',
         'hotspot_login_url',
         'active_users',
@@ -50,6 +51,7 @@ class TenantRouter extends Model
             'provisioned_at' => 'datetime',
             'port'           => 'integer',
             'active_users'   => 'integer',
+            'agent_version'  => 'integer',
             'identity_ok'    => 'boolean',
         ];
     }
@@ -174,6 +176,21 @@ class TenantRouter extends Model
             'payload'      => $payload ?: null,
             'requested_by' => $requestedBy,
         ]);
+    }
+
+    /**
+     * True when this router is running an agent script older than the one the platform now
+     * builds, and its owner should re-run the setup command.
+     *
+     * The script is installed once and never updates itself, so a fix to it reaches a router
+     * only by hand. Only a router that has actually polled can be judged: one that has never
+     * been heard from has no script to be out of date.
+     */
+    public function agentNeedsUpdate(): bool
+    {
+        return $this->runsAgent()
+            && $this->last_seen_at !== null
+            && (int) $this->agent_version < \App\Services\ProvisioningScript::AGENT_VERSION;
     }
 
     /** A router that connects out counts as online while its polls keep arriving. */
