@@ -6,8 +6,8 @@ use App\Models\RouterCommand;
 use App\Models\TenantPackage;
 use App\Models\TenantRouter;
 use App\Models\Transaction;
-use App\Services\Radius\RadiusAccess;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Carbon;
 
 /**
  * Gives customers access on a router in agent mode.
@@ -24,11 +24,7 @@ class AgentAccess
      */
     public function grant(TenantRouter $router, TenantPackage $package, string $username, CarbonInterface $expiresAt): RouterCommand
     {
-        // Wall-clock time left, not an allowance of connected time. The router sets a one-shot
-        // timer for this long, so the deadline arrives whether the customer stayed online or not.
-        // Sending the time *left* rather than the package duration also means a re-grant — a
-        // suspension lifted, a command redelivered — never hands out a fresh allowance.
-        $seconds = RadiusAccess::remainingSeconds($expiresAt);
+        $seconds = max(60, (int) Carbon::now()->diffInSeconds($expiresAt, false));
         $bytes   = $package->data_cap_mb ? (int) $package->data_cap_mb * 1024 * 1024 : 0;
 
         return $router->queueCommand(RouterCommand::ADD_USER, [
@@ -69,6 +65,40 @@ class AgentAccess
             ->where('reference', $username)
             ->latest('id')
             ->first();
+    }
+
+    /**
+     * Remove access whose time has run out. Runs every minute. Returns how many removals were queued.
+     * A customer is removed once, and a router that is offline gets the command when it returns.
+     */
+    public function expireDueAccess(): int
+    {
+        $queued = 0;
+
+        Transaction::withoutGlobalScopes()
+            ->with('router')
+            ->where('status', 'completed')
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '<', now())
+            ->whereNull('access_ended_at')
+            ->whereNotNull('voucher_code')
+            ->orderBy('id')
+            ->chunkById(200, function ($transactions) use (&$queued) {
+                foreach ($transactions as $transaction) {
+                    $router = $transaction->router;
+
+                    if ($router && $router->isAgent()) {
+                        $this->revoke($router, (string) $transaction->voucher_code, 'expiry');
+                        $queued++;
+                    }
+
+                    // Transactions on other kinds of router are expired by their own means, mark them
+                    // so this query does not keep finding them.
+                    $transaction->forceFill(['access_ended_at' => now()])->save();
+                }
+            });
+
+        return $queued;
     }
 
     /**

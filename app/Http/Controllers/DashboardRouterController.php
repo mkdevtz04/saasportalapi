@@ -30,17 +30,11 @@ class DashboardRouterController extends Controller
         $tenant  = $this->tenant();
         $routers = $tenant->routers()->orderBy('name')->get();
 
-        $agents = $routers->filter(fn (TenantRouter $router) => $router->runsAgent());
+        $commands = $routers
+            ->filter(fn (TenantRouter $router) => $router->runsAgent())
+            ->mapWithKeys(fn (TenantRouter $router) => [$router->id => $this->scripts->oneLiner($router)]);
 
-        $commands = $agents->mapWithKeys(fn (TenantRouter $router) => [$router->id => $this->scripts->oneLiner($router)]);
-
-        // Offered only where it is needed, and separate from the setup command on purpose: this
-        // one replaces the script without signing anyone out or touching the radio.
-        $agentUpdates = $agents
-            ->filter(fn (TenantRouter $router) => $router->agentNeedsUpdate())
-            ->mapWithKeys(fn (TenantRouter $router) => [$router->id => $this->scripts->agentUpdateOneLiner($router)]);
-
-        return view('dashboard.routers.index', compact('tenant', 'routers', 'commands', 'agentUpdates'));
+        return view('dashboard.routers.index', compact('tenant', 'routers', 'commands'));
     }
 
     public function create(Request $request): View

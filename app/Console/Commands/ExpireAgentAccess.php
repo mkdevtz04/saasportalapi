@@ -2,19 +2,19 @@
 
 namespace App\Console\Commands;
 
-use App\Services\AccessGranter;
+use App\Services\AgentAccess;
 use Illuminate\Console\Command;
 
 class ExpireAgentAccess extends Command
 {
     protected $signature   = 'access:expire';
-    protected $description = 'Cut off customers whose time has run out, on every kind of router';
+    protected $description = 'Tell routers to remove customers whose time has run out';
 
-    public function handle(AccessGranter $access): int
+    public function handle(AgentAccess $access): int
     {
-        $ended = $access->endExpiredAccess();
+        $queued = $access->expireDueAccess();
 
-        $this->info("Ended {$ended} expired sessions.");
+        $this->info("Queued {$queued} removals.");
 
         return self::SUCCESS;
     }

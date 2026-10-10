@@ -96,55 +96,6 @@ class MikrotikAgentProtocol
         return ['ok' => in_array('!done', $response), 'response' => $response];
     }
 
-    /**
-     * Take a login off the router and cut the session it is on. Both halves matter: removing
-     * the login alone leaves whoever is connected online, and cutting the session alone lets
-     * them log back in.
-     */
-    public function removeHotspotUser(string $username): array
-    {
-        if (! $this->socket) {
-            return ['ok' => false, 'error' => 'Not connected'];
-        }
-
-        foreach ($this->findIds('/ip/hotspot/active/print', 'user', $username) as $id) {
-            $this->writeWord('/ip/hotspot/active/remove');
-            $this->writeWord('=.id=' . $id);
-            $this->writeSentenceEnd();
-            $this->read();
-        }
-
-        $ok = true;
-
-        foreach ($this->findIds('/ip/hotspot/user/print', 'name', $username) as $id) {
-            $this->writeWord('/ip/hotspot/user/remove');
-            $this->writeWord('=.id=' . $id);
-            $this->writeSentenceEnd();
-            $ok = in_array('!done', $this->read()) && $ok;
-        }
-
-        return ['ok' => $ok];
-    }
-
-    /** @return list<string> */
-    private function findIds(string $command, string $property, string $value): array
-    {
-        $this->writeWord($command);
-        $this->writeWord('?' . $property . '=' . $value);
-        $this->writeWord('=.proplist=.id');
-        $this->writeSentenceEnd();
-
-        $ids = [];
-
-        foreach ($this->read() as $word) {
-            if (strncmp($word, '=.id=', 5) === 0) {
-                $ids[] = substr($word, 5);
-            }
-        }
-
-        return $ids;
-    }
-
     public function disconnect(): array
     {
         if ($this->socket) {
@@ -275,22 +226,6 @@ try {
                 break;
             }
             $result = $proto->createHotspotUser($username, $password, $profile);
-            $proto->disconnect();
-            break;
-
-        case 'remove_hotspot_user':
-            $username = $data['username'] ?? null;
-
-            if (! $username) {
-                $result = ['ok' => false, 'error' => 'Missing username'];
-                break;
-            }
-            $conn = $proto->connect($ip, $user, $pass, $port);
-            if (! $conn['ok']) {
-                $result = $conn;
-                break;
-            }
-            $result = $proto->removeHotspotUser($username);
             $proto->disconnect();
             break;
 

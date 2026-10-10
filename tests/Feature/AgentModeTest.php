@@ -12,7 +12,6 @@ use App\Models\Voucher;
 use App\Notifications\RouterStatusNotification;
 use App\Services\AgentAccess;
 use App\Services\PaymentSettlement;
-use App\Services\ProvisioningScript;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
@@ -266,178 +265,6 @@ class AgentModeTest extends TestCase
         $this->assertSame(500 * 1024 * 1024, RouterCommand::withoutGlobalScopes()->firstOrFail()->payload['bytes']);
     }
 
-    /**
-     * The complaint this was written for: a six-hour voucher outliving its six hours.
-     *
-     * limit-uptime alone counts only the time a customer is actually connected, so switching the
-     * phone's WiFi off paused their clock and the voucher kept working for days. The deadline has
-     * to be wall-clock, the way a mobile data bundle is, so the router is given a one-shot timer
-     * as well — and the timer is what finally removes the login.
-     */
-    public function test_the_router_is_given_a_wall_clock_timer_so_a_disconnected_customer_still_runs_out(): void
-    {
-        $tenant = $this->makeTenant();
-        $script = app(ProvisioningScript::class)->agentSource($this->agentRouter($tenant));
-
-        // A one-shot timer, set for the seconds the platform sent, that removes the login.
-        $this->assertStringContainsString('/system scheduler add name=$timer interval=($secs . "s")', $script);
-        $this->assertStringContainsString('/ip hotspot user remove [find name=', $script);
-
-        // It clears up after itself, otherwise every sale would leave a timer behind for good.
-        $this->assertStringContainsString('/system scheduler remove [find name=', $script);
-
-        // And the uptime limit stays as a second line of defence. It can only ever cut a customer
-        // off later than the timer does, never earlier, so it can do no harm.
-        $this->assertStringContainsString('limit-uptime=[:totime ($secs . "s")]', $script);
-    }
-
-    /**
-     * A router keeps the script it was given at setup, for ever, because the platform's reply to
-     * a poll is data and never code. So the fix above reaches a router only when its owner
-     * re-runs the setup command — and the dashboard has to be able to say which routers those are.
-     */
-    public function test_a_router_still_running_an_old_script_is_flagged_for_an_update(): void
-    {
-        $tenant = $this->makeTenant();
-        $router = $this->agentRouter($tenant);
-
-        // A script from before scripts named themselves. It polls without saying which it is.
-        $this->get('/api/agent/agent-tok/poll?v=7.11&n=0')->assertOk();
-        $this->assertNull($router->fresh()->agent_version);
-        $this->assertTrue($router->fresh()->agentNeedsUpdate());
-
-        // The current script names itself, and the flag clears.
-        $this->get('/api/agent/agent-tok/poll?v=7.11&n=0&a=' . ProvisioningScript::AGENT_VERSION)->assertOk();
-        $this->assertSame(ProvisioningScript::AGENT_VERSION, $router->fresh()->agent_version);
-        $this->assertFalse($router->fresh()->agentNeedsUpdate());
-    }
-
-    public function test_the_script_a_router_downloads_names_its_own_version(): void
-    {
-        $source = app(ProvisioningScript::class)->agentSource($this->agentRouter($this->makeTenant()));
-
-        $this->assertStringContainsString('&a=' . ProvisioningScript::AGENT_VERSION, $source);
-    }
-
-    /**
-     * The whole point of a separate update: a router with customers on it can take the new script
-     * without any of them noticing. Full setup deliberately starts from a clean slate — it signs
-     * everyone out and sets the radio's name and security — and that is not acceptable on a
-     * working router, so none of it may leak in here.
-     */
-    public function test_updating_the_agent_does_not_disturb_customers_who_are_online(): void
-    {
-        $router = $this->agentRouter($this->makeTenant());
-        $update = app(ProvisioningScript::class)->agentUpdate($router);
-
-        // It does replace the script, scheduler last, so no poll fires into a missing script.
-        $this->assertStringContainsString('/system script add name="trinetpay-agent"', $update);
-        $this->assertStringContainsString('/system scheduler add name="trinetpay-agent"', $update);
-        $this->assertTrue(
-            strpos($update, '/system scheduler remove') < strpos($update, '/system script remove'),
-            'the scheduler goes first and comes back last',
-        );
-
-        // And it carries the current script, so the flag clears once it has run.
-        $this->assertStringContainsString('&a=' . ProvisioningScript::AGENT_VERSION, $update);
-
-        // What the update itself does, with the script it is installing taken out of the way.
-        // The agent source mentions signing a customer out, because that is one of the commands
-        // the platform can ask it for later — a line inside the payload, never an act of updating.
-        $runs = preg_replace('/source="(\\\\.|[^"\\\\])*"/', 'source=<the new script>', $update);
-
-        $this->assertStringContainsString('source=<the new script>', $runs, 'the payload was found and set aside');
-
-        foreach ([
-            'hotspot active remove' => 'nobody is signed out',
-            'hotspot cookie remove' => 'no device forgets its code',
-            'hotspot user remove'   => 'nobody loses paid time',
-            'ssid'                  => 'the Wi-Fi name is left alone',
-            'security-profile'      => 'the Wi-Fi password is left alone',
-            'hotspot profile set'   => 'the hotspot is left as the ISP has it',
-            'walled-garden'         => 'the walled garden is left alone',
-            'system reboot'         => 'the router is not restarted',
-        ] as $command => $because) {
-            $this->assertStringNotContainsString($command, $runs, $because);
-        }
-    }
-
-    /** Full setup is the disruptive one. Worth pinning, so the two never drift together. */
-    public function test_full_setup_is_the_one_that_starts_a_router_from_a_clean_slate(): void
-    {
-        $setup = app(ProvisioningScript::class)->agentSetup($this->agentRouter($this->makeTenant()));
-
-        $this->assertStringContainsString('/ip hotspot active remove [find]', $setup);
-        $this->assertStringContainsString('/ip hotspot cookie remove [find]', $setup);
-        $this->assertStringContainsString('ssid', $setup);
-    }
-
-    public function test_the_update_script_is_served_to_a_router_that_asks_for_it(): void
-    {
-        $router = $this->agentRouter($this->makeTenant());
-
-        $this->get('/provision/tok-agent/agent')
-            ->assertOk()
-            ->assertSee('TrinetPay agent update')
-            ->assertSee('trinetpay-agent');
-
-        // A router being updated is already in service, so its setup state must not be rewritten.
-        $this->assertSame('completed', $router->fresh()->provision_status);
-
-        $this->get('/provision/not-a-token/agent')->assertNotFound();
-    }
-
-    public function test_the_router_page_tells_the_owner_when_a_script_needs_re_running(): void
-    {
-        $tenant = $this->makeTenant();
-        $router = $this->agentRouter($tenant, ['last_seen_at' => null]);
-        $owner  = $this->makeOwner($tenant);
-
-        // Nothing to say about a router that has never been heard from: there is no script on it
-        // yet to be out of date, and the setup command is already the thing to run.
-        $this->actingAs($owner, 'tenant')->get('/dashboard/routers')
-            ->assertOk()
-            ->assertDontSee('Update available');
-
-        $this->get('/api/agent/agent-tok/poll?v=7.11&n=0')->assertOk();   // old script
-
-        $this->actingAs($owner, 'tenant')->get('/dashboard/routers')
-            ->assertOk()
-            ->assertSee('Update available')
-            ->assertSee('An improved script is available')
-            ->assertSee('Update script')
-            // The safe command, not the full setup, and the warning against using the other one.
-            ->assertSee('/provision/tok-agent/agent', false)
-            ->assertSee('nothing is broken while you wait', false);
-
-        $this->get('/api/agent/agent-tok/poll?v=7.11&n=0&a=' . ProvisioningScript::AGENT_VERSION)->assertOk();
-
-        $this->actingAs($owner, 'tenant')->get('/dashboard/routers')
-            ->assertOk()
-            ->assertDontSee('Update available');
-    }
-
-    /** A re-grant must hand over the time that is left, never a fresh allowance. */
-    public function test_a_regrant_sends_the_time_left_not_the_whole_package_again(): void
-    {
-        $tenant  = $this->makeTenant();
-        $package = $this->makePackage($tenant, ['duration_hours' => 6]);
-        $router  = $this->agentRouter($tenant);
-        $deadline = now()->addHours(6);
-
-        app(AgentAccess::class)->grant($router, $package, 'TNWALL1', $deadline);
-        $first = RouterCommand::withoutGlobalScopes()->latest('id')->firstOrFail()->payload['seconds'];
-        $this->assertEqualsWithDelta(6 * 3600, $first, 5, 'the whole six hours at the start');
-
-        // Four hours later the same deadline is re-sent — a suspension lifted, say. The customer
-        // is owed the two hours left, not another six.
-        $this->travel(4)->hours();
-        app(AgentAccess::class)->grant($router, $package, 'TNWALL1', $deadline);
-        $again = RouterCommand::withoutGlobalScopes()->latest('id')->firstOrFail()->payload['seconds'];
-
-        $this->assertEqualsWithDelta(2 * 3600, $again, 5, 'only the time still left');
-    }
-
     public function test_the_router_picks_the_command_up_and_the_customer_becomes_ready_a_moment_later(): void
     {
         $tenant  = $this->makeTenant();
@@ -577,57 +404,17 @@ class AgentModeTest extends TestCase
         $this->assertStringNotContainsString('TNLIVE1', $this->poll());
     }
 
-    /**
-     * A customer on an old API-mode router is only off when the router says so. Until it can be
-     * reached the transaction stays open, because marking it finished while the customer is still
-     * online is the bug that let expired vouchers keep working.
-     */
-    public function test_a_router_that_cannot_be_reached_is_tried_again_rather_than_marked_done(): void
+    public function test_expiry_leaves_routers_connected_other_ways_alone(): void
     {
         $tenant  = $this->makeTenant();
         $package = $this->makePackage($tenant);
-        $this->makeRouter($tenant);
-        $old = $this->makePendingPayment($tenant, $package, 'ORD-1', ['status' => 'completed', 'voucher_code' => 'TNAPI1', 'expires_at' => now()->subMinute()]);
+        $api     = $this->makeRouter($tenant);
+        $old     = $this->makePendingPayment($tenant, $package, 'ORD-1', ['status' => 'completed', 'voucher_code' => 'TNAPI1', 'expires_at' => now()->subMinute()]);
 
         $this->artisan('access:expire')->assertSuccessful();
 
-        $this->assertSame(0, RouterCommand::withoutGlobalScopes()->count(), 'an API router is not sent queued commands');
-        $this->assertNull($old->fresh()->access_ended_at, 'still open, so next minute tries again');
-    }
-
-    /** Retrying for ever against a router that is never coming back is its own problem. */
-    public function test_an_unreachable_router_stops_being_retried_once_the_deadline_is_long_past(): void
-    {
-        config(['router.expiry_retry_hours' => 24]);
-
-        $tenant  = $this->makeTenant();
-        $package = $this->makePackage($tenant);
-        $this->makeRouter($tenant);
-        $ancient = $this->makePendingPayment($tenant, $package, 'ORD-1', ['status' => 'completed', 'voucher_code' => 'TNOLD1', 'expires_at' => now()->subDays(3)]);
-
-        $this->artisan('access:expire')->assertSuccessful();
-
-        $this->assertNotNull($ancient->fresh()->access_ended_at, 'closed off, nobody can still be online');
-    }
-
-    /** One dead router must not cost one connection attempt per expired customer. */
-    public function test_a_dead_router_is_dialled_once_per_run_however_many_customers_expired(): void
-    {
-        $tenant  = $this->makeTenant();
-        $package = $this->makePackage($tenant);
-        $this->makeRouter($tenant);
-
-        foreach (['TNA1', 'TNA2', 'TNA3'] as $i => $code) {
-            $this->makePendingPayment($tenant, $package, 'ORD-' . $i, [
-                'status' => 'completed', 'voucher_code' => $code, 'expires_at' => now()->subMinute(),
-            ]);
-        }
-
-        $started = microtime(true);
-        $this->artisan('access:expire')->assertSuccessful();
-
-        // Three ten-second connection timeouts would take half a minute. One takes a fraction.
-        $this->assertLessThan(20, microtime(true) - $started, 'the router was dialled once, not once per customer');
+        $this->assertSame(0, RouterCommand::withoutGlobalScopes()->count());
+        $this->assertNotNull($old->fresh()->access_ended_at, 'marked so the query does not keep finding it');
     }
 
     // ── Suspension ───────────────────────────────────────────────────────────

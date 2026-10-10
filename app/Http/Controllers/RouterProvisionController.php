@@ -53,24 +53,6 @@ class RouterProvisionController extends Controller
     }
 
     /**
-     * The agent-only update script, for a router that is already in service.
-     *
-     * Deliberately not the full setup: that clears sessions and resets the radio, which is fine
-     * on a router being commissioned and not fine on one with paying customers on it. The
-     * provision_status is left alone, because this router is already provisioned.
-     */
-    public function updateAgent(string $token): Response
-    {
-        $router = TenantRouter::where('provision_token', $token)->first();
-
-        if (! $router || ! $router->runsAgent()) {
-            return $this->plain("# ERROR: Invalid or expired provision token.\n:log error \"TrinetPay agent update failed: invalid token\"\n", 404);
-        }
-
-        return $this->plain($this->scripts->agentUpdate($router), 200, 'trinetpay-agent.rsc');
-    }
-
-    /**
      * The hotspot login page, downloaded by the setup script and stored on the router.
      */
     public function loginPage(string $token): Response

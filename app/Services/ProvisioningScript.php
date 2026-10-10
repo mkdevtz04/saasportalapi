@@ -21,19 +21,6 @@ use RuntimeException;
 class ProvisioningScript
 {
     /**
-     * Which agent script this platform builds. The script names it in every poll, so the
-     * dashboard can tell a router that has the current one from a router still running what it
-     * was given months ago — the script is installed once and never updates itself.
-     *
-     * Raise this whenever a change to agentSource() matters to a router already in the field,
-     * so its owner is told to re-run the setup command.
-     *
-     *   1  the original script: a customer's time limit was limit-uptime alone
-     *   2  a one-shot timer per login, so a deadline is wall-clock and holds while disconnected
-     */
-    public const AGENT_VERSION = 2;
-
-    /**
      * The command a tenant pastes into the router terminal.
      */
     public function oneLiner(TenantRouter $router): string
@@ -44,78 +31,6 @@ class ProvisioningScript
             . ' dst-path=trinetpay-bootstrap.rsc mode=https check-certificate=no;'
             . ' :delay 2s; /import file-name=trinetpay-bootstrap.rsc;'
             . ' /file remove trinetpay-bootstrap.rsc';
-    }
-
-    /**
-     * The command a tenant pastes to update only the agent script on a router already working.
-     *
-     * Separate from the setup one-liner because the two cost very different things. Setting a
-     * router up starts it from a clean slate — it clears hotspot cookies and active sessions, and
-     * sets the radio's name and security — which is right for a router being put into service and
-     * wrong for one with customers on it. This touches the script and nothing else.
-     */
-    public function agentUpdateOneLiner(TenantRouter $router): string
-    {
-        $url = TenantUrls::base() . '/provision/' . $router->getOrGenerateProvisionToken() . '/agent';
-
-        return '/tool fetch url=' . RouterOs::quote($url)
-            . ' dst-path=trinetpay-agent.rsc mode=https check-certificate=no;'
-            . ' :delay 2s; /import file-name=trinetpay-agent.rsc;'
-            . ' /file remove trinetpay-agent.rsc';
-    }
-
-    /**
-     * Replaces the agent script on a router that is already set up, and does nothing else.
-     *
-     * Everything a customer can feel is left alone: no cookie is cleared, no session is removed,
-     * the radio is not touched, the hotspot profile is not touched, and the hotspot users that
-     * customers are logged in with stay exactly as they are. A customer watching a video does not
-     * notice this happening.
-     *
-     * The only visible gap is the polling itself. The scheduler is taken away first and put back
-     * last — the same order setup uses, so a poll cannot fire in the moment between the script
-     * being removed and re-added — which leaves the router not asking for commands for a second
-     * or two. A customer paying in that second waits one extra poll, about ten seconds.
-     *
-     * Customers already on the router keep the old script's limits, because their hotspot users
-     * were created under it and this does not recreate them. They are expired by the platform
-     * sweep as before. Everyone who buys after this runs gets the deadline timer.
-     */
-    public function agentUpdate(TenantRouter $router): string
-    {
-        return strtr(<<<'RSC'
-# =========================================================
-# TrinetPay agent update
-# Router:    {{ROUTER}}
-# Script:    version {{AGENT_VERSION}}
-# Generated: {{TIME}}
-#
-# Replaces the agent script only. Customers online are not disconnected, the Wi-Fi name
-# and password are not changed, and nobody loses time they have paid for.
-# =========================================================
-:log info "TrinetPay: agent update started"
-
-:if ([:len [/system script find name="trinetpay-agent"]] = 0) do={
-  :log warning "TrinetPay: this router has no agent yet, run the full setup command instead"
-}
-
-:do {
-  /system scheduler remove [find name="trinetpay-agent"]
-  /system script remove [find name="trinetpay-agent"]
-  /system script add name="trinetpay-agent" policy=ftp,read,write,policy,test,reboot source={{AGENT_SOURCE}}
-  /system scheduler add name="trinetpay-agent" interval={{INTERVAL}} start-time=startup policy=ftp,read,write,policy,test,reboot comment="TrinetPay" on-event="/system script run trinetpay-agent"
-  :log info "TrinetPay: agent updated to version {{AGENT_VERSION}}"
-} on-error={ :log error "TrinetPay: the agent could not be updated, the router is unchanged" }
-
-# Nothing is reported back from here. The platform learns the update landed from the next poll,
-# which names the script's version, and the dashboard stops asking for it.
-RSC, [
-            '{{ROUTER}}'        => RouterOs::comment($router->name),
-            '{{TIME}}'          => now()->toDateTimeString(),
-            '{{AGENT_VERSION}}' => (string) self::AGENT_VERSION,
-            '{{AGENT_SOURCE}}'  => RouterOs::quote($this->agentSource($router)),
-            '{{INTERVAL}}'      => RouterOs::bareName((string) config('router.agent_interval'), '10s'),
-        ]);
     }
 
     /**
@@ -571,16 +486,6 @@ RSC, ['{{SSID}}' => RouterOs::quote($this->ssid($tenant))]);
         // Each line is also acted on inside its own handler. One command a build dislikes used to
         // abort the whole batch through the outer handler and report it as a network problem; now
         // it costs that one line and the rest are still carried out.
-        //
-        // A customer's deadline is kept by a one-shot scheduler per login, named tnx-<login>. That
-        // is what makes six hours mean six hours: limit-uptime counts only the time the customer
-        // is connected, so switching the phone's WiFi off used to pause their clock and a voucher
-        // outlived its window by days. The timer runs whether they are connected or not.
-        //
-        // It is not the only thing enforcing the deadline, and must not be. A reboot restarts a
-        // scheduler's countdown, and an older build may refuse to add one at all — so the platform
-        // still sweeps expired customers every minute (see AccessGranter::endExpiredAccess). The
-        // timer is what makes the cut-off exact; the sweep is what makes it certain.
         return strtr(<<<'RSC'
 :do {
 :local base {{POLL_URL}};
@@ -592,7 +497,7 @@ RSC, ['{{SSID}}' => RouterOs::quote($this->ssid($tenant))]);
 :local users 0;
 :do { :set users [:len [/ip hotspot active find]] } on-error={ };
 :local up [/system resource get uptime];
-:local url ($base . "?v=" . $ver . "&n=" . $users . "&u=" . $up . "&a={{AGENT_VERSION}}"{{IDPARAM}});
+:local url ($base . "?v=" . $ver . "&n=" . $users . "&u=" . $up{{IDPARAM}});
 :local content "";
 :do {
   :local res [/tool fetch url=$url mode=https check-certificate=no as-value output=user];
@@ -633,7 +538,6 @@ RSC, ['{{SSID}}' => RouterOs::quote($this->ssid($tenant))]);
           /ip hotspot user remove [find name=$u];
           /ip hotspot active remove [find user=$u];
           /ip hotspot cookie remove [find user=$u];
-          :do { /system scheduler remove [find name=("tnx-" . $u)] } on-error={ };
         }
       }
     }
@@ -661,15 +565,7 @@ RSC, ['{{SSID}}' => RouterOs::quote($this->ssid($tenant))]);
               /ip hotspot user profile set [find name=$prof] rate-limit=$rate;
             }
             :if ([:len [/ip hotspot user find name=$user]] > 0) do={ /ip hotspot user remove [find name=$user] };
-            :local timer ("tnx-" . $user);
-            :do { /system scheduler remove [find name=$timer] } on-error={ };
             /ip hotspot user add name=$user password=$user profile=$prof limit-uptime=[:totime ($secs . "s")] limit-bytes-total=$bytes comment="TrinetPay";
-            :if ($user ~ "^[A-Za-z0-9]+\$") do={
-              :do {
-                :local ev ("/ip hotspot user remove [find name=" . $user . "]; /ip hotspot active remove [find user=" . $user . "]; /ip hotspot cookie remove [find user=" . $user . "]; /system scheduler remove [find name=" . $timer . "]");
-                /system scheduler add name=$timer interval=($secs . "s") on-event=$ev comment="TrinetPay";
-              } on-error={ :log warning ("TrinetPay agent: no timer could be set for " . $user) };
-            }
           }
         }
       }
@@ -679,10 +575,9 @@ RSC, ['{{SSID}}' => RouterOs::quote($this->ssid($tenant))]);
 }
 } on-error={ :log warning "TrinetPay agent: stopped before it finished" };
 RSC, [
-            '{{POLL_URL}}'      => RouterOs::quote($poll),
-            '{{IDENTITY}}'      => $identity,
-            '{{IDPARAM}}'       => $idParam,
-            '{{AGENT_VERSION}}' => (string) self::AGENT_VERSION,
+            '{{POLL_URL}}' => RouterOs::quote($poll),
+            '{{IDENTITY}}' => $identity,
+            '{{IDPARAM}}'  => $idParam,
         ]);
     }
 
@@ -695,11 +590,6 @@ RSC, [
      *   kick <login>
      *   removeuser <login>
      *   adduser <login> <profile> <up>M/<down>M <seconds> <bytes>
-     *
-     * In adduser, <seconds> is wall-clock time left until the customer's deadline, not an
-     * allowance of connected time. The router turns it into a one-shot timer that removes the
-     * login when it fires, so six hours means six hours whether the customer spends them online
-     * or with the phone switched off.
      *
      * The router acts only on those exact shapes and checks every value again on its side. So a
      * reply that was tampered with in transit can restart the router, disconnect customers or add
