@@ -58,6 +58,10 @@ return [
     'try_again'          => 'Jaribu tena',
     'contact'            => 'Unahitaji msaada? Piga :phone na taja kumbukumbu :ref.',
 
+    // Bango la juu ya ukurasa: mtandao huu ni upi, na jinsi ya kumpata mwenyewe.
+    'network_id'         => 'Jina la mtandao',
+    'no_contact'         => 'Hakuna namba ya mawasiliano iliyowekwa',
+
     // Server replies
     'payment_sent'       => 'Ombi la malipo limetumwa kwenye simu yako!',
     'portal_not_ready'   => 'Ukurasa huu bado haujakamilika kuandaliwa.',

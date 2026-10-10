@@ -22,6 +22,14 @@ html,body{min-height:100%;background:#eef3f7;font-family:Arial,Helvetica,sans-se
 .lang{margin-left:auto;display:flex;gap:4px;font-size:11px;font-weight:900}
 .lang a{padding:4px 7px;border:1px solid #d8dee8;color:#526173;text-decoration:none}
 .lang a.on{background:var(--brand);border-color:var(--brand);color:#fff}
+/* Who the customer is buying from, and how to reach them when something goes wrong.
+   Sits under the header so it is the first thing read, and stays out of the way of the
+   packages below it. Each way of making contact is a tap, not a number to copy out. */
+.ident{padding:12px 28px;background:#f7f9fb;border-bottom:1px solid #e5e9f0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.ident-key{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;font-weight:700;color:#526173;background:#fff;border:1px solid #d8dee8;padding:3px 8px;border-radius:3px}
+.ident-spacer{margin-left:auto}
+.contact-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;font-size:12px;font-weight:800;text-decoration:none;border:1px solid #d8dee8;background:#fff;color:#344054;border-radius:3px}
+.contact-btn:hover{border-color:var(--brand);color:var(--brand)}
 .body{padding:24px 28px}
 .section-lbl{font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#344054;margin-bottom:10px}
 .packages{border:1px solid #d8dee8;margin-bottom:20px}
@@ -47,6 +55,8 @@ html,body{min-height:100%;background:#eef3f7;font-family:Arial,Helvetica,sans-se
   .header{padding:18px 16px}
   .body{padding:20px 16px}
   .footer{padding:12px 16px}
+  .ident{padding:10px 16px;gap:8px}
+  .ident-spacer{margin-left:0}
   .brand{font-size:18px}
   .modal-box{padding:28px 20px}
 }
@@ -96,6 +106,27 @@ html,body{min-height:100%;background:#eef3f7;font-family:Arial,Helvetica,sans-se
         <a href="{{ route('portal.tenant', $portalQuery + ['portal_key' => $portalKey, 'lang' => 'sw']) }}" class="{{ $locale === 'sw' ? 'on' : '' }}">SW</a>
         <a href="{{ route('portal.tenant', $portalQuery + ['portal_key' => $portalKey, 'lang' => 'en']) }}" class="{{ $locale === 'en' ? 'on' : '' }}">EN</a>
       </div>
+    </div>
+
+    {{-- Who this network belongs to and how to reach them. The name is on the header above;
+         this is the part a customer needs when the WiFi does not work and they want a person. --}}
+    @php($contactIntl = $contactPhone ? \App\Support\Phone::international($contactPhone) : null)
+    <div class="ident">
+      <span class="ident-key" title="{{ __('portal.network_id') }}">{{ $portalKey }}</span>
+
+      @if($contactPhone)
+        <span class="ident-spacer"></span>
+        {{-- A phone call, not a link to a website. Everything on this page is being read by
+             someone who has not paid yet and can reach nothing but the walled garden, so a
+             WhatsApp or email link here would be a button that does nothing. Dialling works
+             with no internet at all. --}}
+        <a class="contact-btn" href="tel:+{{ $contactIntl }}">
+          <i class="fa-solid fa-phone"></i> {{ $contactPhone }}
+        </a>
+      @else
+        <span class="ident-spacer"></span>
+        <span style="font-size:11px;color:#8a96a3;">{{ __('portal.no_contact') }}</span>
+      @endif
     </div>
 
     <div class="body">

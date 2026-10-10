@@ -41,6 +41,50 @@ class PortalTest extends TestCase
         $this->get('/portal/asha')->assertOk()->assertSee('Asha Daily')->assertDontSee('Jagadi Daily');
     }
 
+    // ── The banner at the top of the portal ──────────────────────────────────
+
+    public function test_the_portal_banner_names_the_isp_and_how_to_reach_them(): void
+    {
+        $tenant = $this->makeTenant('jagadi-wifi', ['name' => 'Jagadi WiFi']);
+        \App\Models\TenantSettings::create([
+            'tenant_id'     => $tenant->id,
+            'tagline'       => 'Fast WiFi for Kariakoo',
+            'contact_phone' => '0712 345 678',
+        ]);
+
+        $page = $this->get('/portal/jagadi-wifi')->assertOk();
+
+        $page->assertSee('JAGADI WIFI')               // whose network this is
+             ->assertSee('Fast WiFi for Kariakoo')    // their own words for it
+             ->assertSee('jagadi-wifi')               // the name to quote when they ring up
+             ->assertSee('0712 345 678');             // and the number to ring
+
+        // Dialling has to work for someone who has not paid and can reach nothing else.
+        $page->assertSee('tel:+255712345678', false);
+    }
+
+    /** An ISP who never filled the number in gets a plain note, not a dead button. */
+    public function test_the_banner_says_so_when_no_contact_number_has_been_set(): void
+    {
+        $tenant = $this->makeTenant('asha', ['name' => 'Asha WiFi']);
+        \App\Models\TenantSettings::create(['tenant_id' => $tenant->id, 'default_language' => 'en']);
+
+        $this->get('/portal/asha')
+            ->assertOk()
+            ->assertSee('No contact number has been set')
+            ->assertDontSee('tel:+', false);
+    }
+
+    public function test_the_banner_speaks_swahili_too(): void
+    {
+        $tenant = $this->makeTenant('asha', ['name' => 'Asha WiFi']);
+        \App\Models\TenantSettings::create(['tenant_id' => $tenant->id]);
+
+        $this->get('/portal/asha?lang=sw')
+            ->assertOk()
+            ->assertSee('Hakuna namba ya mawasiliano iliyowekwa');
+    }
+
     public function test_the_portal_address_of_an_isp_is_their_own_key_on_the_platform_host(): void
     {
         config(['app.url' => 'https://wifikitaa.test']);
