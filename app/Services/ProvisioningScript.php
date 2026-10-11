@@ -478,11 +478,6 @@ RSC, ['{{SSID}}' => RouterOs::quote($this->ssid($tenant))]);
      * later than this does, never earlier, so it costs nothing to keep as a second line of defence.
      * A customer added by an older copy of this script has no such comment and is simply left to
      * limit-uptime alone, exactly as before — nothing here can make an old router worse.
-     *
-     * The same poll also carries one more number for free: the bytes in plus bytes out summed
-     * across every hotspot session currently active, which the sweep above already had to list to
-     * count users. The platform turns that into a usage-over-time graph on the reports page,
-     * without this script doing anything it was not already doing.
      */
     public function agentSource(TenantRouter $router): string
     {
@@ -517,14 +512,7 @@ RSC, ['{{SSID}}' => RouterOs::quote($this->ssid($tenant))]);
 :if ([:typeof $cut] = "nil") do={ :set cut [:len $ver] };
 :set ver [:pick $ver 0 $cut];
 :local users 0;
-:local bytes 0;
-:do {
-  :local act [/ip hotspot active find];
-  :set users [:len $act];
-  :foreach a in=$act do={
-    :do { :set bytes ($bytes + [/ip hotspot active get $a bytes-in] + [/ip hotspot active get $a bytes-out]) } on-error={ }
-  }
-} on-error={ };
+:do { :set users [:len [/ip hotspot active find]] } on-error={ };
 :local up [/system resource get uptime];
 :foreach h in=[/ip hotspot user find] do={
   :do {
@@ -542,7 +530,7 @@ RSC, ['{{SSID}}' => RouterOs::quote($this->ssid($tenant))]);
     }
   } on-error={ }
 }
-:local url ($base . "?v=" . $ver . "&n=" . $users . "&u=" . $up . "&b=" . $bytes{{IDPARAM}});
+:local url ($base . "?v=" . $ver . "&n=" . $users . "&u=" . $up{{IDPARAM}});
 :local content "";
 :do {
   :local res [/tool fetch url=$url mode=https check-certificate=no as-value output=user];

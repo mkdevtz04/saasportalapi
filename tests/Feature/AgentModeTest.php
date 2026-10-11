@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Jobs\GrantAccessJob;
 use App\Models\RouterCommand;
-use App\Models\RouterUsageSample;
 use App\Models\Tenant;
 use App\Models\TenantRouter;
 use App\Models\TenantWallet;
@@ -609,83 +608,5 @@ class AgentModeTest extends TestCase
         \Illuminate\Support\Facades\Artisan::call('schedule:list');
 
         $this->assertStringContainsString('access:expire', \Illuminate\Support\Facades\Artisan::output());
-    }
-
-    // ── Bandwidth ────────────────────────────────────────────────────────────
-
-    /**
-     * The same heartbeat already has to list every active session to count users, so it costs
-     * nothing extra to also sum the bytes those sessions have carried and send that along too.
-     */
-    public function test_the_agent_script_reports_how_much_data_is_moving(): void
-    {
-        $source = app(\App\Services\ProvisioningScript::class)->agentSource($this->agentRouter($this->makeTenant()));
-
-        $this->assertStringContainsString('bytes-in', $source);
-        $this->assertStringContainsString('bytes-out', $source);
-        $this->assertStringContainsString('"&b=" . $bytes', $source);
-    }
-
-    public function test_a_poll_with_a_byte_count_keeps_a_usage_reading(): void
-    {
-        $router = $this->agentRouter($this->makeTenant());
-
-        $this->get('/api/agent/agent-tok/poll?v=7.11&n=2&b=5000')->assertOk();
-
-        $sample = RouterUsageSample::withoutGlobalScopes()->where('router_id', $router->id)->firstOrFail();
-        $this->assertSame(5000, $sample->bytes_total);
-        $this->assertSame(5000, $sample->bytes_delta, 'the first reading is its own delta');
-        $this->assertSame(2, $sample->active_users);
-    }
-
-    public function test_a_poll_with_no_byte_count_keeps_no_usage_reading(): void
-    {
-        $this->agentRouter($this->makeTenant());
-
-        $this->get('/api/agent/agent-tok/poll?v=7.11&n=0')->assertOk();
-
-        $this->assertSame(0, RouterUsageSample::withoutGlobalScopes()->count(), 'an older script sends no &b=, nothing to record');
-    }
-
-    public function test_the_delta_is_how_much_moved_since_the_reading_before_it(): void
-    {
-        $router = $this->agentRouter($this->makeTenant());
-
-        $this->get('/api/agent/agent-tok/poll?v=7.11&n=0&b=5000')->assertOk();
-        $this->travel((int) config('router.usage_sample_minutes') + 1)->minutes();
-        $this->get('/api/agent/agent-tok/poll?v=7.11&n=0&b=8000')->assertOk();
-
-        $readings = RouterUsageSample::withoutGlobalScopes()->where('router_id', $router->id)->orderBy('recorded_at')->get();
-        $this->assertCount(2, $readings);
-        $this->assertSame(3000, $readings->last()->bytes_delta);
-    }
-
-    /**
-     * A reboot resets the router's own counter to zero. Read naively that looks like the customer
-     * gave data back, which cannot happen — so a counter that went backwards is read as a fresh
-     * start instead of a negative use.
-     */
-    public function test_a_counter_that_went_backwards_is_read_as_a_reboot_not_negative_use(): void
-    {
-        $router = $this->agentRouter($this->makeTenant());
-
-        $this->get('/api/agent/agent-tok/poll?v=7.11&n=0&b=9000')->assertOk();
-        $this->travel((int) config('router.usage_sample_minutes') + 1)->minutes();
-        $this->get('/api/agent/agent-tok/poll?v=7.11&n=0&b=400')->assertOk();
-
-        $latest = RouterUsageSample::withoutGlobalScopes()->where('router_id', $router->id)->latest('recorded_at')->first();
-        $this->assertSame(400, $latest->bytes_total);
-        $this->assertSame(400, $latest->bytes_delta, 'read as a fresh counter, not -8600');
-    }
-
-    /** A poll fires every few seconds; keeping a row that often would be unaffordable and unreadable. */
-    public function test_readings_are_not_kept_more_often_than_the_configured_interval(): void
-    {
-        $router = $this->agentRouter($this->makeTenant());
-
-        $this->get('/api/agent/agent-tok/poll?v=7.11&n=0&b=1000')->assertOk();
-        $this->get('/api/agent/agent-tok/poll?v=7.11&n=0&b=2000')->assertOk();
-
-        $this->assertSame(1, RouterUsageSample::withoutGlobalScopes()->where('router_id', $router->id)->count());
     }
 }

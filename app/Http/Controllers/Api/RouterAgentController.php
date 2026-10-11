@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\RouterCommand;
-use App\Models\RouterUsageSample;
 use App\Models\TenantRouter;
 use App\Models\Transaction;
 use App\Services\ProvisioningScript;
@@ -52,10 +51,6 @@ class RouterAgentController extends Controller
         }
 
         $router->update($update);
-
-        if ($request->query->has('b')) {
-            $this->recordUsageSample($router, (int) $request->query('b'), (int) $update['active_users']);
-        }
 
         $commands = $this->takePendingCommands($router);
         $this->markAccessGiven($router, $commands);
@@ -132,42 +127,6 @@ class RouterAgentController extends Controller
                 ->where('provision_status', '!=', 'done')
                 ->update(['provision_status' => 'done', 'provision_error' => null]);
         }
-    }
-
-    /**
-     * Keep a usage history reading, a few minutes apart rather than every poll.
-     *
-     * bytes_total is the raw counter the router just reported, which a reboot resets to zero.
-     * bytes_delta is what the reports page actually sums, worked out here by comparing against
-     * the reading before it: the gap since then if the counter only grew, or the whole new
-     * reading if it did not, which is what a reboot having happened looks like from here.
-     */
-    private function recordUsageSample(TenantRouter $router, int $bytesTotal, int $activeUsers): void
-    {
-        $bytesTotal = max(0, $bytesTotal);
-        $minutes    = max(1, (int) config('router.usage_sample_minutes', 5));
-
-        $last = RouterUsageSample::withoutGlobalScopes()
-            ->where('router_id', $router->id)
-            ->latest('recorded_at')
-            ->first();
-
-        if ($last && $last->recorded_at->gt(now()->subMinutes($minutes))) {
-            return;
-        }
-
-        $delta = ($last && $last->bytes_total !== null && $bytesTotal >= $last->bytes_total)
-            ? $bytesTotal - $last->bytes_total
-            : $bytesTotal;
-
-        RouterUsageSample::withoutGlobalScopes()->create([
-            'tenant_id'    => $router->tenant_id,
-            'router_id'    => $router->id,
-            'recorded_at'  => now(),
-            'bytes_total'  => $bytesTotal,
-            'bytes_delta'  => $delta,
-            'active_users' => $activeUsers,
-        ]);
     }
 
     /** Values reported by a router end up in dashboards, so keep them to plain text. */

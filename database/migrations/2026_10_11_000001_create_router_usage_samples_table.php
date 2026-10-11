@@ -5,18 +5,18 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * A running trail of how much data each router has carried, so a tenant can see usage over
- * time instead of only a live snapshot.
+ * A running trail of how much data each router has carried. Not used any more.
  *
- * An agent-mode router already reports in every few seconds; this adds one more number to that
- * same reply, the bytes-in plus bytes-out summed across its currently active hotspot sessions,
- * which costs it nothing extra to read. Not every poll is kept, or this would be a row every ten
- * seconds forever: one is kept every few minutes, and bytes_delta is how much moved since the row
- * before it, worked out here rather than trusted from the router, because a reboot resets the
- * router's own counter to zero and a plain subtraction would read that as negative use.
+ * This backed a bandwidth graph on the reports page: an agent-mode router summed bytes-in plus
+ * bytes-out across its active hotspot sessions on every poll and sent that number along. On
+ * weaker hardware with many customers, the extra per-session reads behind that sum were heavy
+ * enough to slow the poll itself down, which risked the very thing that matters most — a paying
+ * customer getting connected without delay — so the feature was pulled.
  *
- * RADIUS-mode routers already have real session accounting in radacct and are read from there
- * instead. API-mode routers, the legacy way of connecting, are not sampled yet.
+ * The table is left in place, empty, rather than reverted: dropping it here would mean rolling
+ * this migration back on a server where it may already share a batch with others applied the
+ * same run, which is more risk than an unused table is worth. Safe to drop by hand later if ever
+ * wanted.
  */
 return new class extends Migration
 {
