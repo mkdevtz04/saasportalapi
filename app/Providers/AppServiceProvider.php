@@ -65,5 +65,10 @@ class AppServiceProvider extends ServiceProvider
         // Changing your own email or password asks for the current one. Someone who found an
         // unlocked screen should not be able to sit and guess it.
         RateLimiter::for('profile', fn (Request $request) => Limit::perMinute(6)->by('profile:' . ($request->user('tenant')?->id ?? $request->ip())));
+
+        // Same, for the platform admin's own account. A separate bucket keyed to the admin
+        // guard, because 'profile' above is keyed to the tenant guard and would otherwise fall
+        // back to sharing one IP-keyed bucket across every admin.
+        RateLimiter::for('admin-profile', fn (Request $request) => Limit::perMinute(6)->by('admin-profile:' . ($request->user('admin')?->id ?? $request->ip())));
     }
 }

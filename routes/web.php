@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AdminAuditController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminImpersonationController;
 use App\Http\Controllers\Admin\AdminLoginController;
+use App\Http\Controllers\Admin\AdminProfileController;
 use App\Http\Controllers\Admin\AdminReconciliationController;
 use App\Http\Controllers\Admin\AdminTenantController;
 use App\Http\Controllers\Admin\AdminWithdrawalController;
@@ -169,6 +170,13 @@ Route::post('/admin/logout',[AdminLoginController::class, 'destroy'])->name('adm
 
 Route::middleware(EnsureAdmin::class)->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
+
+    // Your own admin account: name, sign-in email, phone and password.
+    Route::prefix('profile')->name('profile.')->group(function () {
+        Route::get('/',         [AdminProfileController::class, 'edit'])->name('edit');
+        Route::put('/',         [AdminProfileController::class, 'update'])->middleware('throttle:admin-profile')->name('update');
+        Route::put('/password', [AdminProfileController::class, 'updatePassword'])->middleware('throttle:admin-profile')->name('password');
+    });
 
     // ISP management
     Route::get('/tenants',                          [AdminTenantController::class, 'index'])->name('tenants.index');

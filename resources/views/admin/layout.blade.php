@@ -219,6 +219,10 @@
         </a>
     </div>
     <div class="sidebar-footer">
+        <a href="{{ route('admin.profile.edit') }}"
+           class="nav-item {{ request()->routeIs('admin.profile.*') ? 'active' : '' }}">
+             <span class="icon"><i class="fa-solid fa-user-gear"></i></span> My account
+        </a>
         <form method="POST" action="{{ route('admin.logout') }}">
             @csrf
             <button type="submit" class="nav-item" style="width:100%;background:none;cursor:pointer;border:none;">
