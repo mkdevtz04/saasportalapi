@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\NotifyAdminWithdrawalJob;
+use App\Jobs\NotifyTenantWithdrawalRequestedJob;
 use App\Models\TenantWallet;
 use App\Models\Transaction;
 use App\Models\WalletEntry;
@@ -250,6 +251,15 @@ class DashboardController extends Controller
             NotifyAdminWithdrawalJob::dispatch($withdrawal->id);
         } catch (\Throwable $e) {
             Log::warning('Could not queue the withdrawal alert', ['withdrawal_id' => $withdrawal->id, 'error' => $e->getMessage()]);
+        }
+
+        // Same reasoning, the other direction: the ISP is told their request was received,
+        // on the number it is to be paid to, rather than finding out only by reopening the
+        // dashboard.
+        try {
+            NotifyTenantWithdrawalRequestedJob::dispatch($withdrawal->id);
+        } catch (\Throwable $e) {
+            Log::warning('Could not queue the withdrawal confirmation', ['withdrawal_id' => $withdrawal->id, 'error' => $e->getMessage()]);
         }
 
         return back()->with('success', 'Withdrawal request submitted. You will receive TZS ' . number_format($net) . ' after a TZS ' . number_format($fee) . ' fee. Processing within 24 hours.');

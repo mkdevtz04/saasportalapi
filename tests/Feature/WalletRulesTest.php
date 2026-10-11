@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Contracts\SmsGateway;
 use App\Jobs\NotifyAdminWithdrawalJob;
+use App\Jobs\NotifyTenantWithdrawalRequestedJob;
 use App\Models\AgentWallet;
 use App\Models\PlatformBillingLog;
 use App\Models\TenantWallet;
@@ -179,18 +180,20 @@ class WalletRulesTest extends TestCase
             ->post('/dashboard/wallet/withdraw', ['amount' => 10000, 'mobile_number' => '0712345678'])
             ->assertSessionHasNoErrors();
 
-        $this->assertCount(1, $sms->sent);
-        $this->assertSame('255695493670', $sms->sent[0]['to']);
-        $this->assertStringContainsString('Jagadi WiFi', $sms->sent[0]['message']);
-        $this->assertStringContainsString('10,000', $sms->sent[0]['message']);
-        $this->assertStringContainsString('9,500', $sms->sent[0]['message']);
+        // Two texts go out for one request: this one to the admin, and a separate one
+        // confirming receipt to the tenant (see test_asking_to_withdraw_also_texts_the_tenant...).
+        $toAdmin = collect($sms->sent)->firstWhere('to', '255695493670');
+        $this->assertNotNull($toAdmin, 'the admin alert went out');
+        $this->assertStringContainsString('Jagadi WiFi', $toAdmin['message']);
+        $this->assertStringContainsString('10,000', $toAdmin['message']);
+        $this->assertStringContainsString('9,500', $toAdmin['message']);
 
         // The payout number is in the admin panel, so the text only carries enough to recognise it.
-        $this->assertStringNotContainsString('0712345678', $sms->sent[0]['message']);
-        $this->assertStringContainsString('071*****78', $sms->sent[0]['message']);
+        $this->assertStringNotContainsString('0712345678', $toAdmin['message']);
+        $this->assertStringContainsString('071*****78', $toAdmin['message']);
     }
 
-    public function test_no_admin_number_means_no_text_and_no_failed_withdrawal(): void
+    public function test_no_admin_number_means_no_admin_text_but_the_tenant_is_still_confirmed(): void
     {
         config(['platform.alert_phone' => '']);
         $sms    = $this->captureSms();
@@ -202,8 +205,45 @@ class WalletRulesTest extends TestCase
             ->post('/dashboard/wallet/withdraw', ['amount' => 10000, 'mobile_number' => '0712345678'])
             ->assertSessionHasNoErrors();
 
-        $this->assertSame([], $sms->sent);
+        // No admin number configured means no admin alert, not no SMS at all: the tenant's
+        // own acknowledgement does not depend on PLATFORM_ALERT_PHONE being set.
+        $this->assertCount(1, $sms->sent);
+        $this->assertSame('255712345678', $sms->sent[0]['to']);
         $this->assertSame('pending', WithdrawalRequest::firstOrFail()->status);
+    }
+
+    // ── Telling the tenant their request was received ────────────────────────
+
+    public function test_asking_to_withdraw_also_texts_the_tenant_an_acknowledgement(): void
+    {
+        config(['platform.alert_phone' => '']);   // isolates the tenant side of the pair
+        $sms    = $this->captureSms();
+        $tenant = $this->makeTenant();
+        $owner  = $this->makeOwner($tenant);
+        $this->makeWallet($tenant, 20000);
+
+        $this->actingAs($owner, 'tenant')
+            ->post('/dashboard/wallet/withdraw', ['amount' => 10000, 'mobile_number' => '0712345678'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertCount(1, $sms->sent);
+        $this->assertSame('255712345678', $sms->sent[0]['to'], 'the number the withdrawal is paid to');
+        $this->assertStringContainsString('9,500', $sms->sent[0]['message'], 'the net amount, after the fee');
+        $this->assertStringContainsString('3 hours', $sms->sent[0]['message']);
+    }
+
+    public function test_a_confirmation_for_a_withdrawal_already_dealt_with_is_dropped(): void
+    {
+        $sms     = $this->captureSms();
+        $tenant  = $this->makeTenant();
+        $request = WithdrawalRequest::create([
+            'tenant_id' => $tenant->id, 'amount' => 10000, 'fee_amount' => 500,
+            'net_amount' => 9500, 'mobile_number' => '0712345678', 'status' => 'paid',
+        ]);
+
+        (new NotifyTenantWithdrawalRequestedJob($request->id))->handle($this->app->make(SmsGateway::class));
+
+        $this->assertSame([], $sms->sent, 'nothing left to acknowledge once the request has moved on');
     }
 
     public function test_a_withdrawal_goes_through_even_when_the_sms_provider_is_down(): void
