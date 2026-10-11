@@ -122,6 +122,46 @@ class AgentModeTest extends TestCase
         $this->assertStringNotContainsString('&m=', $source, 'the router name only matters for FreeRADIUS');
     }
 
+    /**
+     * The complaint this was written for: a six-hour voucher outliving its six hours because
+     * limit-uptime counts only time actually connected, so switching a phone's WiFi off paused the
+     * clock and the voucher kept working for days. The fix stays inside this one script: a
+     * customer's own hotspot user comment carries the router's uptime at grant time plus the
+     * seconds they were given, and every run of the script — before it even tries to reach the
+     * platform — sweeps every hotspot user for one whose deadline the router's own uptime has
+     * reached by now.
+     */
+    public function test_the_agent_keeps_a_wall_clock_deadline_in_the_customers_own_comment(): void
+    {
+        $source = app(\App\Services\ProvisioningScript::class)->agentSource($this->agentRouter($this->makeTenant()));
+
+        // The deadline is uptime-at-grant plus the seconds bought, written into the comment so it
+        // survives between runs without this script needing anything that persists on its own.
+        $this->assertStringContainsString(':local deadline ($up + [:totime ($secs . "s")]);', $source);
+        $this->assertStringContainsString('comment=("trinetpay-exp:" . $deadline)', $source);
+
+        // The sweep reads it back and removes whoever the router's own clock says is due, cutting
+        // the login, the active session and the cookie — the same three removals "removeuser"
+        // already does, so a stale cookie cannot let an expired customer straight back in.
+        $this->assertStringContainsString('[:pick $c 0 14] = "trinetpay-exp:"', $source);
+        $this->assertStringContainsString(':local deadline [:totime [:pick $c 14 [:len $c]]];', $source);
+        $this->assertStringContainsString('/ip hotspot user remove $h;', $source);
+        $this->assertStringContainsString('/ip hotspot active remove [find user=$u];', $source);
+        $this->assertStringContainsString('/ip hotspot cookie remove [find user=$u];', $source);
+
+        // It runs before the platform is even asked for anything, so the deadline arrives whether
+        // the customer is online or not and keeps arriving while the platform cannot be reached.
+        $sweepAt = strpos($source, 'trinetpay-exp:"');
+        $fetchAt = strpos($source, '/tool fetch url=$url');
+        $this->assertNotFalse($sweepAt);
+        $this->assertNotFalse($fetchAt);
+        $this->assertLessThan($fetchAt, $sweepAt, 'the local sweep runs before the platform is ever asked for anything');
+
+        // limit-uptime only ever catches a customer later than this, never earlier, so it is kept
+        // underneath it as a second line of defence rather than removed.
+        $this->assertStringContainsString('limit-uptime=[:totime', $source);
+    }
+
     public function test_the_login_page_is_available_to_an_agent_router(): void
     {
         $this->agentRouter($this->makeTenant('testisp'));

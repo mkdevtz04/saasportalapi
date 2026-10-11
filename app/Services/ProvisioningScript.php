@@ -461,6 +461,23 @@ RSC, ['{{SSID}}' => RouterOs::quote($this->ssid($tenant))]);
      * The script stored on the router that runs every few seconds. It reports the router's state and
      * reads the commands the platform has waiting. It never runs downloaded text as a script: each
      * line is matched against a fixed shape and every value is checked again on the router.
+     *
+     * A customer's deadline is wall-clock, the way a mobile data bundle is: six hours after buying
+     * means six hours, spent online or with the phone switched off. limit-uptime alone cannot give
+     * that — it counts only time actually connected, so a phone switched off pauses it and a voucher
+     * outlives its window for as long as the customer stays away.
+     *
+     * The fix stays inside this one script and adds nothing else that runs on the router. When a
+     * customer is added, their hotspot user's own comment is made to carry the router's uptime at
+     * that moment plus the seconds they were given — their deadline, in the router's own terms. Every
+     * time this script runs, before it even tries to reach the platform, it reads that comment back
+     * off every hotspot user and removes the ones whose deadline the router's current uptime has
+     * reached. That is the whole mechanism: no second script, no per-customer timer, nothing that
+     * needs the platform to be reachable or the router to do anything it was not already doing every
+     * few seconds. limit-uptime is left in place underneath it and can only ever remove a customer
+     * later than this does, never earlier, so it costs nothing to keep as a second line of defence.
+     * A customer added by an older copy of this script has no such comment and is simply left to
+     * limit-uptime alone, exactly as before — nothing here can make an old router worse.
      */
     public function agentSource(TenantRouter $router): string
     {
@@ -497,6 +514,22 @@ RSC, ['{{SSID}}' => RouterOs::quote($this->ssid($tenant))]);
 :local users 0;
 :do { :set users [:len [/ip hotspot active find]] } on-error={ };
 :local up [/system resource get uptime];
+:foreach h in=[/ip hotspot user find] do={
+  :do {
+    :local c [/ip hotspot user get $h comment];
+    :if ([:len $c] > 14) do={
+      :if ([:pick $c 0 14] = "trinetpay-exp:") do={
+        :local deadline [:totime [:pick $c 14 [:len $c]]];
+        :if ($up >= $deadline) do={
+          :local u [/ip hotspot user get $h name];
+          /ip hotspot user remove $h;
+          /ip hotspot active remove [find user=$u];
+          /ip hotspot cookie remove [find user=$u];
+        }
+      }
+    }
+  } on-error={ }
+}
 :local url ($base . "?v=" . $ver . "&n=" . $users . "&u=" . $up{{IDPARAM}});
 :local content "";
 :do {
@@ -565,7 +598,8 @@ RSC, ['{{SSID}}' => RouterOs::quote($this->ssid($tenant))]);
               /ip hotspot user profile set [find name=$prof] rate-limit=$rate;
             }
             :if ([:len [/ip hotspot user find name=$user]] > 0) do={ /ip hotspot user remove [find name=$user] };
-            /ip hotspot user add name=$user password=$user profile=$prof limit-uptime=[:totime ($secs . "s")] limit-bytes-total=$bytes comment="TrinetPay";
+            :local deadline ($up + [:totime ($secs . "s")]);
+            /ip hotspot user add name=$user password=$user profile=$prof limit-uptime=[:totime ($secs . "s")] limit-bytes-total=$bytes comment=("trinetpay-exp:" . $deadline);
           }
         }
       }
