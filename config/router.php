@@ -26,4 +26,10 @@ return [
     // So it keeps being handed out for this long. Creating a hotspot user is safe to repeat — the
     // router removes any existing one first — and the extra copies cost a few bytes per poll.
     'redeliver_seconds' => env('ROUTER_REDELIVER_SECONDS', 120),
+
+    // How far apart to keep usage history readings, for the bandwidth graph on the reports page.
+    // An agent-mode router reports its current byte count on every poll, every few seconds, and
+    // keeping a row that often forever would be unaffordable and unreadable. One row this often
+    // is enough to draw a trend without it.
+    'usage_sample_minutes' => env('ROUTER_USAGE_SAMPLE_MINUTES', 5),
 ];

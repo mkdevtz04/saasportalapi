@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\RouterUsageSample;
+use App\Models\TenantRouter;
 use App\Models\Transaction;
 use App\Models\WithdrawalRequest;
 use App\Support\Csv;
@@ -15,6 +17,11 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * Sales for a chosen period, split by type, package, router and day, with a spreadsheet export.
  * Days are East Africa Time. Portal payments and voucher sales are shown separately because
  * only portal payments go into the wallet.
+ *
+ * The same page also shows how much data moved, for the same period: a day-by-day total and a
+ * per-router breakdown, built from the readings agent-mode routers leave behind on every poll
+ * (see RouterAgentController::recordUsageSample). RADIUS and API-mode routers have no readings
+ * yet, so a tenant with only those sees an honest "no usage data yet" rather than a zero.
  */
 class DashboardReportController extends Controller
 {
@@ -75,15 +82,21 @@ class DashboardReportController extends Controller
             ->selectRaw('COUNT(*) as count, COALESCE(SUM(amount), 0) as gross, COALESCE(SUM(fee_amount), 0) as fees, COALESCE(SUM(net_amount), 0) as net')
             ->first();
 
+        [$byDayBytes, $byRouterBytes, $totalBytes, $hasUsageData] = $this->bandwidth($tenant->id, $from, $to);
+
         return view('dashboard.reports', [
-            'tenant'      => $tenant,
-            'from'        => $from,
-            'to'          => $to,
-            'byDay'       => $byDay,
-            'byPackage'   => $byPackage,
-            'byRouter'    => $byRouter,
-            'totals'      => $totals,
-            'withdrawals' => $withdrawals,
+            'tenant'        => $tenant,
+            'from'          => $from,
+            'to'            => $to,
+            'byDay'         => $byDay,
+            'byPackage'     => $byPackage,
+            'byRouter'      => $byRouter,
+            'totals'        => $totals,
+            'withdrawals'   => $withdrawals,
+            'byDayBytes'    => $byDayBytes,
+            'byRouterBytes' => $byRouterBytes,
+            'totalBytes'    => $totalBytes,
+            'hasUsageData'  => $hasUsageData,
         ]);
     }
 
@@ -161,5 +174,47 @@ class DashboardReportController extends Controller
     private function add(?array $row, int $amount): array
     {
         return ['count' => ($row['count'] ?? 0) + 1, 'amount' => ($row['amount'] ?? 0) + $amount];
+    }
+
+    /**
+     * How much data moved in the period, by day and by router.
+     *
+     * hasUsageData separates "nothing moved" from "there is nothing to show yet": a tenant whose
+     * routers are all RADIUS or API mode, or an agent-mode router too new to have a reading yet,
+     * has no rows at all, which is a different thing to tell them than a flat zero.
+     *
+     * @return array{0:array<string,int>,1:array<string,int>,2:int,3:bool}
+     */
+    private function bandwidth(int $tenantId, Carbon $from, Carbon $to): array
+    {
+        $byDayBytes = [];
+        for ($day = $from->copy(); $day->lte($to); $day->addDay()) {
+            $byDayBytes[$day->format('Y-m-d')] = 0;
+        }
+
+        $samples = RouterUsageSample::where('tenant_id', $tenantId)
+            ->whereBetween('recorded_at', [$from->copy()->utc(), $to->copy()->utc()])
+            ->get(['router_id', 'recorded_at', 'bytes_delta']);
+
+        $hasUsageData = RouterUsageSample::where('tenant_id', $tenantId)->exists();
+
+        $routerNames = TenantRouter::where('tenant_id', $tenantId)->pluck('name', 'id');
+
+        $byRouterBytes = [];
+
+        foreach ($samples as $sample) {
+            $key = $sample->recorded_at->copy()->timezone(self::ZONE)->format('Y-m-d');
+
+            if (isset($byDayBytes[$key])) {
+                $byDayBytes[$key] += $sample->bytes_delta;
+            }
+
+            $name = $routerNames[$sample->router_id] ?? 'Unknown router';
+            $byRouterBytes[$name] = ($byRouterBytes[$name] ?? 0) + $sample->bytes_delta;
+        }
+
+        arsort($byRouterBytes);
+
+        return [$byDayBytes, $byRouterBytes, (int) $samples->sum('bytes_delta'), $hasUsageData];
     }
 }

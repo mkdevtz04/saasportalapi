@@ -3,6 +3,12 @@
 @section('title', 'Reports')
 @section('breadcrumb', 'Reports')
 
+@if ($hasUsageData)
+@push('head')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+@endpush
+@endif
+
 @section('content')
 
 <div class="page-header">
@@ -111,5 +117,82 @@
         </tbody>
     </table></div>
 </div>
+
+<div class="card">
+    <div class="card-title"><i class="fa-solid fa-gauge-high"></i> Bandwidth — data used in this period</div>
+    @if (! $hasUsageData)
+        <p style="color:#94a3b8;font-size:13px;">
+            No usage history yet. This fills in on its own as your agent-mode routers poll in —
+            there is nothing to set up. Routers connected through RADIUS or the old API mode are
+            not tracked here yet.
+        </p>
+    @else
+        <canvas id="bandwidthChart" height="80"></canvas>
+    @endif
+</div>
+
+@if ($hasUsageData)
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;">
+    <div class="card">
+        <div class="card-title"><i class="fa-solid fa-wifi"></i> By router</div>
+        @if (empty($byRouterBytes))
+            <p style="color:#94a3b8;font-size:13px;">No usage in this period.</p>
+        @else
+            <div class="table-wrap"><table>
+                <thead><tr><th>Router</th><th>Data used</th></tr></thead>
+                <tbody>
+                @foreach ($byRouterBytes as $name => $bytes)
+                    <tr><td>{{ $name }}</td><td style="font-weight:600;">{{ \App\Support\Format::bytes($bytes) }}</td></tr>
+                @endforeach
+                </tbody>
+            </table></div>
+        @endif
+    </div>
+    <div class="stat-card" style="align-self:start;">
+        <span class="stat-icon"><i class="fa-solid fa-database"></i></span>
+        <div class="stat-label">Total data used</div>
+        <div class="stat-value">{{ \App\Support\Format::bytes($totalBytes) }}</div>
+        <div class="stat-sub">Across your agent-mode routers, this period</div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+function formatBytes(bytes) {
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    bytes = Math.max(0, Number(bytes));
+    let i = 0;
+    while (bytes >= 1024 && i < units.length - 1) { bytes /= 1024; i++; }
+    return (i === 0 ? bytes.toFixed(0) : bytes.toFixed(1)) + ' ' + units[i];
+}
+
+const bwCtx = document.getElementById('bandwidthChart');
+new Chart(bwCtx, {
+    type: 'bar',
+    data: {
+        labels: @json(array_map(fn ($d) => \Illuminate\Support\Carbon::parse($d)->format('d M'), array_keys($byDayBytes))),
+        datasets: [{
+            label: 'Data used',
+            data: @json(array_values($byDayBytes)),
+            backgroundColor: '#2561e822',
+            borderColor: '#2561e8',
+            borderWidth: 2,
+            borderRadius: 6,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: ctx => formatBytes(ctx.raw) } }
+        },
+        scales: {
+            y: { beginAtZero: true, ticks: { callback: val => formatBytes(val) } }
+        }
+    }
+});
+</script>
+@endpush
+@endif
 
 @endsection

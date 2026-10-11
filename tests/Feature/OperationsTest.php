@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Contracts\SmsGateway;
 use App\Models\AuditLog;
 use App\Models\RouterCommand;
+use App\Models\RouterUsageSample;
 use App\Models\TenantRouter;
 use App\Models\Transaction;
 use App\Models\WalletEntry;
@@ -257,6 +258,59 @@ class OperationsTest extends TestCase
 
         $this->assertSame(['count' => 3, 'amount' => 15000], $response->viewData('byPackage')['Daily']);
         $this->assertSame(['count' => 4, 'amount' => 35000], $response->viewData('byRouter')['Kariakoo']);
+    }
+
+    public function test_the_bandwidth_section_sums_usage_by_day_and_router(): void
+    {
+        $tenant = $this->makeTenant();
+        $router = $this->makeRouter($tenant, ['auth_mode' => 'agent', 'name' => 'Kariakoo']);
+
+        RouterUsageSample::create([
+            'tenant_id' => $tenant->id, 'router_id' => $router->id,
+            'recorded_at' => '2026-09-15 10:00:00', 'bytes_total' => 1000, 'bytes_delta' => 1000, 'active_users' => 2,
+        ]);
+        // 21:30 UTC on the 16th is 00:30 on the 17th in East Africa
+        RouterUsageSample::create([
+            'tenant_id' => $tenant->id, 'router_id' => $router->id,
+            'recorded_at' => '2026-09-16 21:30:00', 'bytes_total' => 3000, 'bytes_delta' => 2000, 'active_users' => 3,
+        ]);
+
+        $response = $this->actingAs($this->makeOwner($tenant), 'tenant')
+            ->get('/dashboard/reports?from=2026-09-01&to=2026-09-30')
+            ->assertOk();
+
+        $this->assertTrue($response->viewData('hasUsageData'));
+        $this->assertSame(1000, $response->viewData('byDayBytes')['2026-09-15']);
+        $this->assertSame(2000, $response->viewData('byDayBytes')['2026-09-17'], 'read at 00:30 East Africa Time on the 17th');
+        $this->assertSame(3000, $response->viewData('totalBytes'));
+        $this->assertSame(3000, $response->viewData('byRouterBytes')['Kariakoo']);
+    }
+
+    public function test_the_report_says_so_plainly_when_there_is_no_usage_history_yet(): void
+    {
+        $tenant = $this->makeTenant();
+
+        $response = $this->actingAs($this->makeOwner($tenant), 'tenant')->get('/dashboard/reports')->assertOk();
+
+        $this->assertFalse($response->viewData('hasUsageData'));
+        $response->assertSee('No usage history yet');
+    }
+
+    public function test_the_bandwidth_section_never_includes_another_isps_usage(): void
+    {
+        $mine   = $this->makeTenant('alpha');
+        $theirs = $this->makeTenant('bravo');
+        $theirRouter = $this->makeRouter($theirs, ['auth_mode' => 'agent']);
+
+        RouterUsageSample::create([
+            'tenant_id' => $theirs->id, 'router_id' => $theirRouter->id,
+            'recorded_at' => now(), 'bytes_total' => 99999, 'bytes_delta' => 99999, 'active_users' => 1,
+        ]);
+
+        $response = $this->actingAs($this->makeOwner($mine), 'tenant')->get('/dashboard/reports')->assertOk();
+
+        $this->assertFalse($response->viewData('hasUsageData'));
+        $this->assertSame(0, $response->viewData('totalBytes'));
     }
 
     public function test_the_report_never_includes_another_isps_sales(): void
