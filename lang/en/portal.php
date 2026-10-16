@@ -5,6 +5,12 @@ return [
     'default_tagline'    => 'Fast & affordable WiFi',
     'language'           => 'Language',
 
+    // Welcome banner at the top of the portal: the network this is, and how to reach them.
+    'greet_title'        => 'Welcome to :business WiFi!',
+    'greet_sub'          => 'Choose your package and pay with your phone to enjoy the internet.',
+    'network_id'         => 'Network name',
+    'no_contact'         => 'No contact number has been set',
+
     'tab_pay'            => 'Pay online',
     'tab_voucher'        => 'Enter voucher',
 

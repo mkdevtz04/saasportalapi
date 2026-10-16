@@ -5,6 +5,10 @@ return [
     'default_tagline'    => 'WiFi ya haraka na nafuu',
     'language'           => 'Lugha',
 
+    // Bango la karibu juu ya ukurasa: mtandao huu ni upi, na jinsi ya kumpata mwenyewe.
+    'greet_title'        => 'Karibu kwenye WiFi ya :business!',
+    'greet_sub'          => 'Chagua kifurushi chako na ulipe kwa simu yako kufurahia mtandao.',
+
     'tab_pay'            => 'Lipa mtandaoni',
     'tab_voucher'        => 'Weka vocha',
 
